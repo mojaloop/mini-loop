@@ -1,0 +1,46 @@
+
+# Compiled source #
+###################
+*.pyc
+*.pyo
+
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+.settings
+._*
+.Spotlight-V100
+.Trashes
+.terraform
+ehthumbs.db
+Thumbs.db
+.project
+.cproject
+.pydevproject
+.idea
+*.log
+*.json
+*.swp
+sds_*
+Pipfile*
+!.gitignore
+
+# VSCode
+.vscode
+
+# Terraform
+.terraform
+terraform*zip
+
+# Ansible retry files
+*.retry
+ansible*.cache
+ansible.log
+
+# kubectl generated config files
+**/config-files/**
+
+# temporary config files from shell scripts
+_config_*
