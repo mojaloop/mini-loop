@@ -4,6 +4,10 @@
 *.pyc
 *.pyo
 
+# code from Lewis
+vessels-tech/
+vessels*/
+
 
 # OS generated files #
 ######################
@@ -44,3 +48,7 @@ ansible.log
 
 # temporary config files from shell scripts
 _config_*
+
+# vagrant dot files
+.vagrant/
+
