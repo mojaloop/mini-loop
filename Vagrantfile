@@ -22,80 +22,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     vb.name = NAME
   end
 
-  config.vm.provision "shell", inline: <<-SHELL
+  config.vm.provision "shell", path: "./scripts/vagrant.sh"
+
   
-    export RELEASE=1.18
-    export PATH=$PATH:/snap/bin
-    echo $PATH
-
-    echo "installing packages"
-    apt install git -y
-    apt install nodejs -y 
-    apt install npm -y
-    npm install npm@latest -g
-    npm install -g newman
-    
-    echo "clone postman tests for Mojaloop"
-    chown vagrant /home/vagrant/.config 
-    chgrp vagrant /home/vagrant/.config
-    git clone https://github.com/mojaloop/postman.git
-
-    echo "MojaLoop: run update ..."
-    apt update
-
-    echo "MojaLoop: installing snapd ..."
-    apt install snapd -y
-
-    echo "MojaLoop: installing microk8s release $RELEASE ... "
-    sudo snap install microk8s --classic --channel=$RELEASE/stable
-
-    echo "MojaLoop: enable helm ... "
-    microk8s.enable helm3 
-    echo "MojaLoop: enable dns ... "
-    microk8s.enable dns
-    echo "MojaLoop: enable storage ... "
-    microk8s.enable storage
-    echo "MojaLoop: enable ingress ... "
-    microk8s.enable ingress
-    echo "MojaLoop: enable istio ... "
-    microk8s.enable istio
-    echo "MojaLoop: initialise helm ... "
-    microk8s.helm3 init
-
-#
-    echo "MojaLoop: add repos and deploy helm charts ..." 
-    microk8s.helm3 repo add mojaloop http://mojaloop.io/helm/repo/
-    microk8s.helm3 repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
-    microk8s.helm3 repo add kiwigrid https://kiwigrid.github.io
-    microk8s.helm3 repo add elastic https://helm.elastic.co
-    microk8s.helm3 repo update
-    microk8s.helm3 list
-      
-    # echo "MojaLoop: install nginx-ingress ..."   
-    # microk8s.helm3 --namespace kube-public install stable/nginx-ingress
-    
-    echo "MojaLoop: install postman ..."   
-    sudo snap install postman
-
-    echo "MojaLoop: add convenient aliases..." 
-    snap alias microk8s.kubectl kubectl
-    snap alias microk8s.helm3 helm
-
-    #echo "MojaLoop: Deploy mojaloop" 
-    # Note troubleshooting guide and the need for updated values.yml
-    # see https://mojaloop.io/documentation/deployment-guide/deployment-troubleshooting.html#31-ingress-rules-are-not-resolving-for-nginx-ingress-v022-or-later
-    # TODO : verify that these values.yml updates are needed for the ingress re-write rules and then
-    #        incorporate this fix here. use helm show values to capture the latest values.yml file
-    #helm --namespace demo --name moja install mojaloop/mojaloop
-    
-    echo "MojaLoop: add vagrant user to microk8s group"
-    usermod -a -G microk8s vagrant
-
-    # TODO : 
-    # add tests and run tests now
-    # or perhaps run the test from the CI pipeline
-SHELL
-
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
   # `vagrant box outdated`. This is not recommended.
