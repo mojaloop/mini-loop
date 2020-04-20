@@ -23,7 +23,7 @@ echo $PATH
 
 echo "install  version 10+ of node"
 curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash
-apt install nodejs -y
+apt-get install -y nodejs
 
 echo "installing packages"
 apt install git -y
@@ -70,12 +70,12 @@ echo "MojaLoop: add vagrant user to microk8s group"
 usermod -a -G microk8s vagrant
 
 echo "MojaLoop: add repos and deploy helm charts ..." 
-su - devops -c "microk8s.helm3 repo add mojaloop http://mojaloop.io/helm/repo/"
-su - devops -c "microk8s.helm3 repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator"
-su - devops -c "microk8s.helm3 repo add kiwigrid https://kiwigrid.github.io"
-su - devops -c "microk8s.helm3 repo add elastic https://helm.elastic.co"
-su - devops -c "microk8s.helm3 repo update"
-su - devops -c "microk8s.helm3 list
+su - vagrant -c "microk8s.helm3 repo add mojaloop http://mojaloop.io/helm/repo/"
+su - vagrant -c "microk8s.helm3 repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator"
+su - vagrant -c "microk8s.helm3 repo add kiwigrid https://kiwigrid.github.io"
+su - vagrant -c "microk8s.helm3 repo add elastic https://helm.elastic.co"
+su - vagrant -c "microk8s.helm3 repo update"
+su - vagrant -c "microk8s.helm3 list"
     
 #echo "MojaLoop: Deploy mojaloop" 
 # Note troubleshooting guide and the need for updated values.yml

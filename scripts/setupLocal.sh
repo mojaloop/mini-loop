@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 export PATH=/snap/bin:$PATH
-POSTMAN_ENV_FILE=../postman/environments/Mojaloop-Local.postman_environment.json
-POSTMAN_COLLECTION_DIR=../postman
+POSTMAN_ENV_FILE=$HOME/postman/environments/Mojaloop-Local.postman_environment.json
+POSTMAN_COLLECTION_DIR=$HOME/postman
 
-# echo "-== Creating Hub Accounts ==-"
-# newman run --delay-request=2000 --folder='Hub Account' \
-# --environment=$POSTMAN_ENV_FILE \
-# $POSTMAN_COLLECTION_DIR/OSS-New-Deployment-FSP-Setup.postman_collection.json
+echo "-== Creating Hub Accounts ==-"
+newman run --delay-request=2000 --folder='Hub Account' \
+--environment=$POSTMAN_ENV_FILE \
+$POSTMAN_COLLECTION_DIR/OSS-New-Deployment-FSP-Setup.postman_collection.json
 
 echo "-== Onboarding PayerFSP ==-"
 newman run --delay-request=2000 --folder='payeefsp (p2p transfers)' \

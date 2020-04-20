@@ -6,20 +6,6 @@
 MOJALOOP_CHARTS_DIR=/vagrant/vessels-tech/helm
 MJALOOP_CHARTS_BRANCH='fix/219-kubernetes-17'
 
-# add /etc/hosts entries for local access
-export ENDPOINTS='127.0.0.1     localhost forensic-logging-sidecar.local central-kms.local \
-central-event-processor.local email-notifier.local central-ledger.local 
-central-settlement.local ml-api-adapter.local account-lookup-service.local 
- account-lookup-service-admin.local quoting-service.local moja-simulator.local 
- central-ledger central-settlement ml-api-adapter account-lookup-service 
- account-lookup-service-admin quoting-service simulator host.docker.internal'
-
-read -r -d '' VAR <<'EOF'
-    localhost forensic-logging-sidecar.local central-kms.local
-    central-event-processor.local email-notifier.local central-ledger.local 
-EOF
-perl -p -i.bak -e 's/127\.0\.0\.1.*localhost.*$/$ENV{ENDPOINTS} /' /etc/hosts
-
 cd /vagrant 
 rm -rf $MOJALOOP_CHARTS_DIR
 git clone https://github.com/vessels-tech/helm.git $MOJALOOP_CHARTS_DIR
