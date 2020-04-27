@@ -1,0 +1,52 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+unless Vagrant.has_plugin?("vagrant-google")
+  puts 'Installing vagrant-google Plugin...'
+  system('vagrant plugin install vagrant-google')
+end
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "google/gce"
+
+  config.vm.provider :google do |google, override|
+    google.google_project_id = "td-helloworld"
+    google.google_json_key_location = "/Users/tdaly/opensource/google-cloud-sdk/td-helloworld.json"
+    
+    google.image_family = 'ubuntu-1804-lts'
+    google.machine_type = 'n1-standard-4'
+    google.disk_size = 30
+    
+    override.ssh.username = "tdaly"
+    #override.ssh.private_key_path = "~/.ssh/id_rsa"
+    override.ssh.private_key_path = "~/.ssh/google_compute_engine"
+  end
+
+  config.vm.provision "shell", inline: "rm -rf /vagrant/scripts"
+  config.vm.provision "file", source: "../scripts",  \
+                              destination: "/vagrant/scripts"
+
+  config.vm.provision "shell", inline: <<-SHELL
+    echo "---- ensure /vagrant owned by vagrant  ---- "
+    sleep 30
+    uname2="$(stat --format '%U' "/vagrant")"
+    if [ "x${uname2}" = "xvagrant" ]; then
+      echo "/vagrant owner is vagrant : ok "
+    else
+      echo "changing /vagrant owner to vagrant"
+      groupadd vagrant
+      useradd vagrant -g vagrant -m  -b /home -s $(which bash)
+      chown -R vagrant /vagrant 
+    fi
+    chmod g+w /vagrant 
+  SHELL
+
+  
+  config.vm.provision "shell", inline: <<-SHELL
+    echo "---- configure for mojaloop  ---- "
+    id
+    /vagrant/scripts/vagrant.sh
+    su - vagrant -c "/vagrant/scripts/mojaloop-install-local.sh"
+  SHELL
+
+end

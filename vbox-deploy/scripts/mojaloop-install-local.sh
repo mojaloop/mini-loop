@@ -3,7 +3,7 @@
 # 18th April 20202
 
 # set locations 
-MOJALOOP_CHARTS_DIR=/vagrant/vessels-tech-helm
+MOJALOOP_CHARTS_DIR=/vagrant/vessels-tech/helm
 MJALOOP_CHARTS_BRANCH='fix/219-kubernetes-17'
 
 cd /vagrant 

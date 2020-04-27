@@ -8,6 +8,8 @@
 vessels-tech/
 vessels*/
 
+# local work directory 
+wrk/*
 
 # OS generated files #
 ######################
@@ -33,6 +35,7 @@ Pipfile*
 
 # VSCode
 .vscode
+*.code-workspace
 
 # Terraform
 .terraform
