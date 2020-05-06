@@ -29,13 +29,15 @@ Using Hashicorp Vagrant, a VirtualBox Ubnutu VM or Google Cloud VM is created an
  - `git` 
 
 ### VirtualBox Deployment (Local)
-- [Virtualbox and accompanying Guest Additions](virtualbox.org)
+- [Virtualbox and accompanying Guest Additions](https://www.virtualbox.org/wiki/Downloads)
 
 > On MacOS, you can use homebrew:
 
 ```bash
 brew cask install virtualbox
 ```
+
+[todo: verify versions... brew version at the time of writing is still `6.1.4`, which seems to be broken]
 
 - [HashiCorp `vagrant`](https://www.vagrantup.com)
 - min 8GB ram available
@@ -62,11 +64,28 @@ git clone https://github.com/tdaly61/laptop-mojo.git
 cd laptop-mojo/gcs-deploy
 
 # edit the Vagrantfile and enter correct values for
-#    - override.ssh.username = "<your_username>"
+#   - google.google_project_id = "<your project_id>"
+#   - google.google_json_key_location = "<path to your service account key>"
+#   - override.ssh.username = "<your_username>"
 #   - override.ssh.private_key_path = "~/.ssh/google_compute_engine"
+
+# TODO: add notes about setting up an account and getting a service account key
+# TODO: where is this VM located? How do we configure this?
 
 vagrant up --provider=google #loads the vagrant google-plugin and creates the google cloud VM , boots and configures the OS
 ```
+
+[TODO: fix issue when running for first time]:
+
+```
+Installed the plugin 'vagrant-google (2.5.0)'!
+The provider 'google' could not be found, but was requested to
+back the machine 'default'. Please use a provider that exists.
+
+Vagrant knows about the following providers: docker, hyperv, virtualbox
+```
+
+subsequent runs seem to work however
 
 ## Run the postman setup steps
 
@@ -81,6 +100,27 @@ cd /vagrant
 ./scripts/setupLocal.sh # use postman to install test data
 ./scripts/runGoldenPathLocal.sh #run the mojaloop GoldenPath postman collection tests
 ```
+
+[todo: this failed on GCS, I think postman wasn't cloned properly, or perhaps it should be `/vagrant` instead of `/home/vagrant`
+
+```bash
+vagrant@i-2020050613-5ea755ad:/vagrant$ ./scripts/setupLocal.sh
+-== Creating Hub Accounts ==-
+error: ENOENT: no such file or directory, open '/home/vagrant/postman/environments/Mojaloop-Local.postman_environment.json'
+
+-== Onboarding PayerFSP ==-
+error: ENOENT: no such file or directory, open '/home/vagrant/postman/OSS-New-Deployment-FSP-Setup.postman_collection.json'
+
+-== Onboarding PayeeFSP ==-
+error: ENOENT: no such file or directory, open '/home/vagrant/postman/environments/Mojaloop-Local.postman_environment.json'
+
+```
+
+]
+
+[todo: now getting 503s for those above calls]
+
+
 
 
 ## Notes:
