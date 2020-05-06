@@ -30,6 +30,13 @@ Using Hashicorp Vagrant, a VirtualBox Ubnutu VM or Google Cloud VM is created an
 
 ### VirtualBox Deployment (Local)
 - [Virtualbox and accompanying Guest Additions](virtualbox.org)
+
+> On MacOS, you can use homebrew:
+
+```bash
+brew cask install virtualbox
+```
+
 - [HashiCorp `vagrant`](https://www.vagrantup.com)
 - min 8GB ram available
 - min 64GB storage available

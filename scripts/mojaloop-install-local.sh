@@ -9,6 +9,7 @@ MJALOOP_CHARTS_BRANCH='fix/219-kubernetes-17'
 cd /vagrant 
 
 rm -rf $MOJALOOP_CHARTS_DIR
+# Needs to be VBox 6.1.6 or higher?
 git clone https://github.com/vessels-tech/helm.git $MOJALOOP_CHARTS_DIR
 cd $MOJALOOP_CHARTS_DIR
 git checkout -b $MJALOOP_CHARTS_BRANCH origin/$MJALOOP_CHARTS_BRANCH
