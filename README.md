@@ -47,6 +47,8 @@ brew cask install virtualbox
 ### Google Cloud Deployment 
 - Google Cloud SDK and SDK credentials (https://cloud.google.com/sdk/docs/downloads-versioned-archives)
 
+[todo: add link to setting up account and getting service account .json file]
+
 ## Setup
 
 ### Local (Virtualbox)
@@ -115,11 +117,10 @@ error: ENOENT: no such file or directory, open '/home/vagrant/postman/OSS-New-De
 error: ENOENT: no such file or directory, open '/home/vagrant/postman/environments/Mojaloop-Local.postman_environment.json'
 
 ```
-
 ]
 
-[todo: now getting 503s for those above calls]
-
+[TODO: check Lewis' makefile for curl commands for health checks]
+[TODO: script to wait until pods and services are up, and then ./scripts/setupLocal.sh]
 
 
 
@@ -141,3 +142,4 @@ this is tested so far with:
 - Switch out k8s for k3s internally
 - Integrate postman tests as part of the vagrant up command. This would require the environment to be a little smarter about waiting for 
 - Demonstrate a CI/CD workflow for automated release testing
+- Can we reduce the Java Memory footprint (kafka, zookeeper, mysql, Mongo)? Ideally we could run on 4g of ram for local testing
