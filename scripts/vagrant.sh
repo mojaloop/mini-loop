@@ -37,41 +37,36 @@ chgrp vagrant /home/vagrant/.config
 rm -rf /vagrant/postman 
 git clone https://github.com/mojaloop/postman.git /vagrant/postman 
 
-echo "MojaLoop: run update ..."
+echo "Mojaloop: run update ..."
 apt update
 
-echo "MojaLoop: installing snapd ..."
+echo "Mojaloop: installing snapd ..."
 apt install snapd -y
 
-echo "MojaLoop: installing microk8s release $RELEASE ... "
+# TODO; ${RELEASE} is not defined
+echo "Mojaloop: installing microk8s release $RELEASE ... "
 sudo snap install microk8s --classic --channel=$RELEASE/stable
 
-echo "MojaLoop: enable helm ... "
+echo "Mojaloop: enable helm ... "
 microk8s.enable helm3 
-echo "MojaLoop: enable dns ... "
+echo "Mojaloop: enable dns ... "
 microk8s.enable dns
-echo "MojaLoop: enable storage ... "
+echo "Mojaloop: enable storage ... "
 microk8s.enable storage
-echo "MojaLoop: enable ingress ... "
+echo "Mojaloop: enable ingress ... "
 microk8s.enable ingress
-echo "MojaLoop: enable istio ... "
-microk8s.enable istio
-
-#echo "MojaLoop: install nginx-ingress ..."   
-#microk8s.helm3 --namespace kube-public install stable/nginx-ingress
-
-echo "MojaLoop: install postman ..."   
+echo "Mojaloop: install postman ..."   
 sudo snap install postman
 
-echo "MojaLoop: add convenient aliases..." 
+echo "Mojaloop: add convenient aliases..." 
 snap alias microk8s.kubectl kubectl
 snap alias microk8s.helm3 helm
 
-echo "MojaLoop: add vagrant user to microk8s group"
+echo "Mojaloop: add vagrant user to microk8s group"
 usermod -a -G microk8s vagrant
 #chown -f -R vagrant ~vagrant/.kube
 
-echo "MojaLoop: add repos and deploy helm charts ..." 
+echo "Mojaloop: add repos and deploy helm charts ..." 
 su - vagrant -c "microk8s.helm3 repo add mojaloop http://mojaloop.io/helm/repo/"
 su - vagrant -c "microk8s.helm3 repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator"
 su - vagrant -c "microk8s.helm3 repo add kiwigrid https://kiwigrid.github.io"

@@ -30,6 +30,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "shell", inline: <<-SHELL
     echo "---- configure for mojaloop  ---- "
     /vagrant/scripts/vagrant.sh
+    // install as sudo?
     su - vagrant -c "/vagrant/scripts/mojaloop-install-local.sh"
   SHELL
   

@@ -37,7 +37,8 @@ Using Hashicorp Vagrant, a VirtualBox Ubnutu VM or Google Cloud VM is created an
 brew cask install virtualbox
 ```
 
-[todo: verify versions... brew version at the time of writing is still `6.1.4`, which seems to be broken]
+> Note: you may be able to install guest additions directly onto Vagrant with [vagrant-vbguest](https://github.com/dotless-de/vagrant-vbguest). We haven't tested this ourselves, but give it a shot and let us know if it works!
+
 
 - [HashiCorp `vagrant`](https://www.vagrantup.com)
 - min 8GB ram available
