@@ -49,7 +49,7 @@ git clone https://github.com/vessels-tech/helm.git ${MOJALOOP_TMP_WORKING_DIR}
 cd ${MOJALOOP_TMP_WORKING_DIR} && git checkout -b $MOJALOOP_CHARTS_BRANCH origin/$MOJALOOP_CHARTS_BRANCH || echo ''
 # Remove the .git dir, this causes VirtualBox shared folder failures. Unfortunately this means we lose git history in the shared folder
 rm -rf ${MOJALOOP_TMP_WORKING_DIR}/.git
-cp -R ${MOJALOOP_TMP_WORKING_DIR} ${MOJALOOP_CHARTS_DIR}
+cp -R ${MOJALOOP_TMP_WORKING_DIR}/* ${MOJALOOP_CHARTS_DIR}
 cd ${MOJALOOP_CHARTS_DIR}
 
 ./package.sh
