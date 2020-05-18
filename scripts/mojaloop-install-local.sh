@@ -36,8 +36,10 @@ function cleanup {
 MOJALOOP_WORKING_DIR=/vagrant
 MOJALOOP_TMP_WORKING_DIR=/home/vagrant/tmp/helm
 MOJALOOP_CHARTS_DIR=${MOJALOOP_WORKING_DIR}/helm
-MOJALOOP_REPO_DIR=${MOJALOOP_WORKING_DIR}/repo
+MOJALOOP_REPO_DIR=${MOJALOOP_CHARTS_DIR}/repo
 MOJALOOP_CHARTS_BRANCH='fix/219-kubernetes-17'
+RELEASE_NAME="miniloop"
+TIMEOUT_SECS="1200s"
 
 rm -rf ${MOJALOOP_TMP_WORKING_DIR}
 rm -rf ${MOJALOOP_CHARTS_DIR}
@@ -57,10 +59,22 @@ cd ${MOJALOOP_REPO_DIR}
 pwd
 python3 -m http.server & 
 
-# TODO: handle uninstall/upgrade path
-# helm uninstall moja 
-# TODO: helm uninstall any previous charts OR message that user should re-provision VM 
-# if mojaloop is already running , in any case check if it is and bail.
-helm install moja http://localhost:8000/mojaloop-9.3.0.tgz 
+# JIC this is being re-run , delete any previous release
+helm delete $RELEASE_NAME > /dev/null 2>&1
+
+# install the chart
+echo "install $RELEASE_NAME helm chart and wait $TIMEOUT_SECS secs for it to be ready"
+helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  http://localhost:8000/mojaloop-9.3.0.tgz 
+if [[ `helm status $RELEASE_NAME | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
+  echo "$RELEASE_NAME deployed sucessfully "
+else 
+  echo "Error: $RELEASE_NAME helm chart  deployment failed "
+  echo "Possible reasons include : - "
+  echo "     very slow internet connection /  issues downloading images"
+  echo "     slow machine / insufficient memory to start all pods (4GB min) "
+  echo " The current timeone for all pods to be ready is $TIMEOUT_SECS"
+  echo " you may consider increasing this by increasing the setting in scripts/mojaloop-install-local.sh"
+  exit 1
+fi 
 
 cleanup
