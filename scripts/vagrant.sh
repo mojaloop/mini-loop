@@ -3,8 +3,7 @@
 # 18th April 20202
 
 # set locations 
-MOJALOOP_CHARTS_DIR=/vagrant/vessels-tech/helm
-MJALOOP_CHARTS_BRANCH='fix/219-kubernetes-17'
+POSTMAN_TAG="v10.1.0"
 
 echo "add /etc/hosts entries for local access to mojaloop endpoints" 
 ENDPOINTSLIST=(127.0.0.1    localhost forensic-logging-sidecar.local central-kms.local central-event-processor.local email-notifier.local central-ledger.local 
@@ -35,7 +34,7 @@ echo "clone postman tests for Mojaloop"
 chown vagrant /home/vagrant/.config 
 chgrp vagrant /home/vagrant/.config
 rm -rf /vagrant/postman 
-git clone https://github.com/mojaloop/postman.git /vagrant/postman 
+git clone --branch $POSTMAN_TAG https://github.com/mojaloop/postman.git /vagrant/postman 
 
 echo "Mojaloop: run update ..."
 apt update

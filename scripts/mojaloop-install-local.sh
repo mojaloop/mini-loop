@@ -9,10 +9,7 @@
 # keep track of the last executed command
 trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
 # echo an error message before exiting
-trap 'cleanup && echo "\"${last_command}\" command filed with exit code $?."' EXIT
-
-# exit on errors
-set -e
+trap 'cleanup  && echo "\"${last_command}\" command filed with exit code $?."' EXIT
 
 # exit on unset vars
 set -u
@@ -21,13 +18,13 @@ set -u
 # Cleanup 
 ## 
 function cleanup {
-  echo 'Cleaning up'
-  # TODO: enable
-  mkdir -p ${MOJALOOP_TMP_WORKING_DIR}
-  
+  exit_status=$?
+  echo 'Cleaning up'  
   # we are finished with the http server, so clean it up by killing it.
   py_proc=`ps -eaf | grep -i "python3 -m http.server" | grep -v grep | awk '{print $2}'`
   if [[ ! -z "${py_proc}" ]]; then kill $py_proc; fi
+  
+  exit $exit_status
 }
 
 ##
@@ -37,9 +34,9 @@ MOJALOOP_WORKING_DIR=/vagrant
 MOJALOOP_TMP_WORKING_DIR=/home/vagrant/tmp/helm
 MOJALOOP_CHARTS_DIR=${MOJALOOP_WORKING_DIR}/helm
 MOJALOOP_REPO_DIR=${MOJALOOP_CHARTS_DIR}/repo
-MOJALOOP_CHARTS_BRANCH='fix/219-kubernetes-17'
+MOJALOOP_CHARTS_BRANCH='fix/219-kubernetes-17-helm2-2'
 RELEASE_NAME="miniloop"
-TIMEOUT_SECS="1200s"
+TIMEOUT_SECS="2400s"
 
 rm -rf ${MOJALOOP_TMP_WORKING_DIR}
 rm -rf ${MOJALOOP_CHARTS_DIR}
@@ -63,8 +60,8 @@ python3 -m http.server &
 helm delete $RELEASE_NAME > /dev/null 2>&1
 
 # install the chart
-echo "install $RELEASE_NAME helm chart and wait $TIMEOUT_SECS secs for it to be ready"
-helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  http://localhost:8000/mojaloop-9.3.0.tgz 
+echo "install $RELEASE_NAME helm chart and wait for upto $TIMEOUT_SECS secs for it to be ready"
+helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  http://localhost:8000/mojaloop-10.1.0.tgz 
 if [[ `helm status $RELEASE_NAME | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
   echo "$RELEASE_NAME deployed sucessfully "
 else 
@@ -73,8 +70,22 @@ else
   echo "     very slow internet connection /  issues downloading images"
   echo "     slow machine / insufficient memory to start all pods (4GB min) "
   echo " The current timeone for all pods to be ready is $TIMEOUT_SECS"
-  echo " you may consider increasing this by increasing the setting in scripts/mojaloop-install-local.sh"
+  echo " you may consider increasing this by increasing the setting in scripts/mojaloop-install"
   exit 1
 fi 
 
+# verify the health of the deployment 
+# curl to http://ml-api-adapter.local/health and http://central-ledger.local/health
+if [[ `curl -s http://central-ledger.local/health | \
+    perl -nle '$count++ while /OK+/g; END {print $count}' ` -lt 3 ]] ; then
+    echo "central-leger endpoint healthcheck failed"
+    exit 1
+fi
+if [[ `curl -s http://ml-api-adapter.local/health | \
+    perl -nle '$count++ while /OK+/g; END {print $count}' ` -lt 2 ]] ; then
+    echo "ml-api-adapter endpoint healthcheck failed"
+    exit 1 
+fi
+
+echo "miniloop configuration of mojaloop deployed ok and passes initial health checks"
 cleanup

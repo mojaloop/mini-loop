@@ -26,22 +26,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "file", source: "../scripts",  \
                               destination: "/vagrant/scripts"
 
-
-  config.vm.provision "shell", inline: <<-SHELL
-    echo "---- configure for mojaloop  ---- "
-    /vagrant/scripts/vagrant.sh
-    su - vagrant -c "/vagrant/scripts/mojaloop-install-local.sh"
-    su - vagrant -c "/vagrant/scripts/setup-local-env.sh" 
-
-
-    # if [ $? -eq 0  ]; then 
-    #   # setup the environment and load test data
-    #   su - vagrant -c "/vagrant/scripts/setup-local-env.sh
-    #   else 
-    #   echo "bail"
-    #   fi 
-    #   su - vagrant -c "/vagrant/scripts
-  SHELL
+  config.vm.provision "shell", 
+    inline: "/bin/bash /vagrant/scripts/vagrant.sh" 
   
+  config.vm.provision "shell", privileged: false,
+    inline: "/bin/bash /vagrant/scripts/mojaloop-install-local.sh"   
+
+  config.vm.provision "shell", privileged: false,
+    inline: "/bin/bash /vagrant/scripts/setup-local-env.sh"   
 
 end

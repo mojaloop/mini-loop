@@ -1,4 +1,4 @@
-# Mini-Loop
+# Mini-loop
 Opinionated Mojaloop 'in a box' using Vagrant, K8s and Helm
 
 ```bash
