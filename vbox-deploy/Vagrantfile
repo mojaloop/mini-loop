@@ -5,7 +5,7 @@
 VAGRANTFILE_API_VERSION = "2"
 
 # define hostname
-NAME = "miniloop"
+NAME = "mini-loop"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "hashicorp/bionic64"
@@ -29,10 +29,18 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "shell", 
     inline: "/bin/bash /vagrant/scripts/vagrant.sh" 
   
-  config.vm.provision "shell", privileged: false,
-    inline: "/bin/bash /vagrant/scripts/mojaloop-install-local.sh"   
+    config.vm.provision "shell", inline: <<-SHELL
+    su - vagrant -c "/vagrant/scripts/mini-loop-install.sh"
+  SHELL
+  
+  config.vm.provision "shell", inline: <<-SHELL
+    su - vagrant -c "/vagrant/scripts/setup-local-env.sh"
+  SHELL
+  
+  # config.vm.provision "shell", privileged: false,
+  #   inline: "/bin/bash /vagrant/scripts/mini-loop-install.sh"   
 
-  config.vm.provision "shell", privileged: false,
-    inline: "/bin/bash /vagrant/scripts/setup-local-env.sh"   
+  # config.vm.provision "shell", privileged: false,
+  #   inline: "/bin/bash /vagrant/scripts/setup-local-env.sh"   
 
 end

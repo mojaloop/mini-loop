@@ -31,8 +31,8 @@ npm install npm@latest -g
 npm install -g newman
 
 echo "clone postman tests for Mojaloop"
-chown vagrant /home/vagrant/.config 
-chgrp vagrant /home/vagrant/.config
+# chown vagrant /home/vagrant/.config 
+# chgrp vagrant /home/vagrant/.config
 rm -rf /vagrant/postman 
 git clone --branch $POSTMAN_TAG https://github.com/mojaloop/postman.git /vagrant/postman 
 
@@ -42,9 +42,8 @@ apt update
 echo "Mojaloop: installing snapd ..."
 apt install snapd -y
 
-# TODO; ${RELEASE} is not defined
-echo "Mojaloop: installing microk8s release $RELEASE ... "
-sudo snap install microk8s --classic --channel=$RELEASE/stable
+echo "Mojaloop: installing microk8s release $KUBERNETES_RELEASE ... "
+sudo snap install microk8s --classic --channel=$KUBERNETES_RELEASE/stable
 
 echo "Mojaloop: enable helm ... "
 microk8s.enable helm3 

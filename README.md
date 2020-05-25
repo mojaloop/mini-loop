@@ -10,17 +10,12 @@ vagrant up
 ## Overview
 
 Mini-loop is a simple, opinonated 'out of the box' installation of [Mojaloop](https://mojaloop.io) for test and demonstration purposes. The goal is to make it easy and reliable to deploy Mojaloop both locally or in a cloud environment.
-
 This project essentially automates the instructions for the linux installation in the mojaloop documentation at https://mojaloop.io/documentation/deployment-guide/local-setup-linux.html#mojaloop-setup-for-linux-ubuntu.
-
 There are however some minor variations from these onboarding docs, such as using helm3 charts and enabling kubernetes version 1.18.  See [#1070-helm3](https://github.com/mojaloop/project/issues/1070) and [#219-kubernetes-version](https://github.com/mojaloop/helm/issues/219) for more deatils.
-
 
 ## Description / Approach
 
-Using Hashicorp Vagrant, a VirtualBox Ubnutu VM or Google Cloud VM is created and all of the components required to run mojaloop are automatically installed and configured into this VM. One the VM is booted the mojaloop helm chart is deployed and the mojaloop kubernetes pods and services will be created. The user or test scripts can then access the VM and then a small number of scripts are pre-loaded under the shared /vagrant directory to:
-1. run the postman collections to load test data 
-2. execute the mojaloop postman/newman based Golden_Path test collections against this mojaloop installation using localhost.  
+Using Hashicorp Vagrant, a VirtualBox Ubnutu VM or Google Cloud VM is created and all of the components required to run mojaloop are automatically installed and configured into this VM. Once the VM is booted the mojaloop helm chart is deployed and the mojaloop kubernetes pods and services created, the mini-loop configuration automatically runs the /vagrant/scripts/setup-local-env.sh script to load test data into the mojaloop application. The user then can then log into the vm and execute the mojaloop postman/newman based Golden_Path test collections against this mojaloop installation using localhost (see below for instructions).  
 
 ## Prerequisites 
 
@@ -30,7 +25,6 @@ Using Hashicorp Vagrant, a VirtualBox Ubnutu VM or Google Cloud VM is created an
 
 ### VirtualBox Deployment (Local)
 - [Virtualbox and accompanying Guest Additions](https://www.virtualbox.org/wiki/Downloads)
-
 > On MacOS, you can use homebrew:
 
 ```bash
@@ -41,14 +35,18 @@ brew cask install virtualbox
 
 
 - [HashiCorp `vagrant`](https://www.vagrantup.com)
-- min 8GB ram available
+- min 6GB ram available  (8GB recommended) 
 - min 64GB storage available
 - broadband internet connection (for downloading initial linux images in the form of vagrant boxes, if your internet connection is slow you may want to consider using the google cloud deployment instead)
 
 ### Google Cloud Deployment 
-- Google Cloud SDK and SDK credentials (https://cloud.google.com/sdk/docs/downloads-versioned-archives)
-
-[todo: add link to setting up account and getting service account .json file]
+- vagrant Google plugin
+``` 
+vagrant plugin install vagrant-google 
+```
+- Google Cloud SDK (https://cloud.google.com/sdk/docs/downloads-versioned-archives and https://cloud.google.com/sdk/install )
+- Google Cloud Service accounts and service account key ( https://cloud.google.com/iam/docs/creating-managing-service-account-keys ) 
+- Google Cloud ssh keys established (https://www.youtube.com/watch?v=JGcW1QdEQGs) 
 
 ## Setup
 
@@ -60,37 +58,25 @@ vagrant up #creates the virtualbox VM, boots and configures the OS
 ```
 
 ### Google Cloud Services
-Assuming vagrant is installed and running and the google cloud SDK is downloaded and you have setup SDK keys and ssh keys for google compute.
+Assuming vagrant is installed and running and the google cloud prerequisites as detailed above established.
 
 ```bash
 git clone https://github.com/tdaly61/laptop-mojo.git
 cd laptop-mojo/gcs-deploy
-
-# edit the Vagrantfile and enter correct values for
-#   - google.google_project_id = "<your project_id>"
-#   - google.google_json_key_location = "<path to your service account key>"
-#   - override.ssh.username = "<your_username>"
-#   - override.ssh.private_key_path = "~/.ssh/google_compute_engine"
-
-# TODO: add notes about setting up an account and getting a service account key
-# TODO: where is this VM located? How do we configure this?
-
-vagrant up --provider=google #loads the vagrant google-plugin and creates the google cloud VM , boots and configures the OS
 ```
 
-[TODO: fix issue when running for first time]:
+edit the Vagrantfile and enter correct values for
+  - google.google_project_id = "<your_project_id>"  # e.g. my_project_id
+  - google.google_json_key_location = "<path_to_your_service_account_key>"  # e.g." ~/my_project_id.json" 
+  - override.ssh.username = "<your_username>" # look in the service account key to find this e.g. in ~/my_project_id.json
+  - override.ssh.private_key_path = "<your_private_ssh_key>"  # e.g. "~/.ssh/google_compute_engine"
 
 ```
-Installed the plugin 'vagrant-google (2.5.0)'!
-The provider 'google' could not be found, but was requested to
-back the machine 'default'. Please use a provider that exists.
-
-Vagrant knows about the following providers: docker, hyperv, virtualbox
+vagrant up --provider=google # uses the vagrant google-plugin and creates the google cloud VM , boots and configures the OS
 ```
 
-subsequent runs seem to work however
 
-## Run the postman setup steps
+## Accessing the VM and running Golden_Path postman collection
 
 ```bash
 vagant ssh # to login as user you specified in the override.ssh.username = above
@@ -99,39 +85,31 @@ sudo su -
 su - vagrant #mojaloop is deployed and owned by the vagrant user
 cd /vagrant
 
-# wait for all mojaloop pods to reach "running" state.  use `kubectl get pods` to check and note this might take a little while 
-./scripts/setupLocal.sh # use postman to install test data
-./scripts/runGoldenPathLocal.sh #run the mojaloop GoldenPath postman collection tests
+./scripts/run-golden-path-local.sh #run the mojaloop Golden_Path tests via newman/postman
 ```
-
-[todo: this failed on GCS, I think postman wasn't cloned properly, or perhaps it should be `/vagrant` instead of `/home/vagrant`
-
-```bash
-vagrant@i-2020050613-5ea755ad:/vagrant$ ./scripts/setupLocal.sh
--== Creating Hub Accounts ==-
-error: ENOENT: no such file or directory, open '/home/vagrant/postman/environments/Mojaloop-Local.postman_environment.json'
-
--== Onboarding PayerFSP ==-
-error: ENOENT: no such file or directory, open '/home/vagrant/postman/OSS-New-Deployment-FSP-Setup.postman_collection.json'
-
--== Onboarding PayeeFSP ==-
-error: ENOENT: no such file or directory, open '/home/vagrant/postman/environments/Mojaloop-Local.postman_environment.json'
-
-```
-]
-
-[TODO: check Lewis' makefile for curl commands for health checks]
-[TODO: script to wait until pods and services are up, and then ./scripts/setupLocal.sh]
-
-
 
 ## Notes:
+- For VirtualBox you can examine the VM using the GUI console.
+- For GCS you can find the VM using the Google Cloud Console (https://console.cloud.google.com) via Navigation menu -> compute engine -> vm instances.  The Navigation menu is the 3 horizontal lines to the left of the  "Google Cloud Platform" banner. 
+- for GCS if you are using a "passphrase" on your ssh key , vagrant up will get stuck waiting for SSH-KEY, if this happens then use ssh-agent to serve your private key and passphrase prior to running vagrant up. E.g.
+```
+$ eval `ssh-agent`
+$ ssh-add ~/.ssh/google_compute_engine  # i.e. ssh-add your_private_key.  Enter your passphrase when prompted and hit return
+$ ssh-add -l # to verify your key has been added
+```
+- The GCS deployment might be preferable for those users with slow internet access as it avoids the need to download the Ubuntu binary to the local laptop. 
+- the helm install can take a while and lacks a progress indicator (sadly).  The timeout can be extended by modifying TIMEOUT_SECS="2400s" in scripts/mini-loop-install-local. 
+- Once the fixes for mojaloop to enable helm3 and kubernetes version 1.17 and 1.18  have been put back into the mojaloop repo and helm repository, the access to vessels-tech repo will no longer be needed and further simplification of the install can be done.
+- useful vagrant commands 
+```
+vagrant status # shows running vms
+vagrant halt # stops vm but does not destroy
+vagrant up # starts vm , use --provision flag to re-run provisioning
+vagrant destory # destroys VM (will terminate resources / save money if using GCS)
+```
 
-Once the fixes for mojaloop to enable helm3 and kubernetes version 1.17 and 1.18  have been put back into the mojaloop repo and helm repository, the access to vessels-tech repo will no longer be needed and the mojaloop-install-local.sh script can be eliminated by moving that functionality into the Vagrant file. This would also mean that data loading could be done from the Vagrantfile and so instructions simplify to running "vagrant up"
 
-As at April 27th 2020 the Golden_Path collection throws errors on a number of the transfers and this needs further debugging.
-
-this is tested so far with:
+mini-loop is tested so far with:
 - OSX VirtualBox host
 - google cloud service
 - Virtualbox 6.1.6
@@ -140,7 +118,10 @@ this is tested so far with:
 
 
 ## TODO:
-- Switch out k8s for k3s internally
-- Integrate postman tests as part of the vagrant up command. This would require the environment to be a little smarter about waiting for 
+- test mini-loop with 4 GB ram allocated for VM and verify install time and function.
+- Switch out k8s for k3s internally, see if this reduces install time and memory requirements
 - Demonstrate a CI/CD workflow for automated release testing
-- Can we reduce the Java Memory footprint (kafka, zookeeper, mysql, Mongo)? Ideally we could run on 4g of ram for local testing
+- Reduce the Java Memory footprint (kafka, zookeeper, mysql, Mongo)? Ideally we could run on 4g of ram for local testing
+
+
+# TODO:  As at May 25th 2020 the Golden_Path collection throws errors on a number of the transfers and this needs further debugging.

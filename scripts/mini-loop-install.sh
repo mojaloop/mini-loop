@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # install mojaloop using Lewis Daly's temporary version
-# 18th April 20202
+# 18th April 2020
 
 ##
 # Bash Niceties
@@ -35,7 +35,7 @@ MOJALOOP_TMP_WORKING_DIR=/home/vagrant/tmp/helm
 MOJALOOP_CHARTS_DIR=${MOJALOOP_WORKING_DIR}/helm
 MOJALOOP_REPO_DIR=${MOJALOOP_CHARTS_DIR}/repo
 MOJALOOP_CHARTS_BRANCH='fix/219-kubernetes-17-helm2-2'
-RELEASE_NAME="miniloop"
+RELEASE_NAME="mini-loop"
 TIMEOUT_SECS="2400s"
 
 rm -rf ${MOJALOOP_TMP_WORKING_DIR}
@@ -52,6 +52,11 @@ cp -R ${MOJALOOP_TMP_WORKING_DIR}/* ${MOJALOOP_CHARTS_DIR}
 cd ${MOJALOOP_CHARTS_DIR}
 
 ./package.sh
+if [[ $? -ne 0 ]] ; then 
+  echo "Error: helm packaging failed"
+  exit 1
+fi
+
 cd ${MOJALOOP_REPO_DIR}
 pwd
 python3 -m http.server & 
@@ -68,9 +73,13 @@ else
   echo "Error: $RELEASE_NAME helm chart  deployment failed "
   echo "Possible reasons include : - "
   echo "     very slow internet connection /  issues downloading images"
-  echo "     slow machine / insufficient memory to start all pods (4GB min) "
-  echo " The current timeone for all pods to be ready is $TIMEOUT_SECS"
+  echo "     slow machine / insufficient memory to start all pods (6GB min) "
+  echo " The current timeout for all pods to be ready is $TIMEOUT_SECS"
   echo " you may consider increasing this by increasing the setting in scripts/mojaloop-install"
+  echo " additionally you might finsh the install by hand : login to the vm and continue to wait for the pods to be ready"
+  echo "   vagrant ssh "
+  echo "   kubectl get pods #if most are in running state maybe wait a little longer "
+  echo "   /vagrant/scripts/set-local-env.sh # to load the mojaloop test data." 
   exit 1
 fi 
 
@@ -87,5 +96,5 @@ if [[ `curl -s http://ml-api-adapter.local/health | \
     exit 1 
 fi
 
-echo "miniloop configuration of mojaloop deployed ok and passes initial health checks"
-cleanup
+echo "$RELEASE_NAME configuration of mojaloop deployed ok and passes initial health checks"
+#cleanup

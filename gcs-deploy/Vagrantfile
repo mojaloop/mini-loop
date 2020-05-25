@@ -1,6 +1,12 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+# required_plugins = %w( vagrant-omnibus vagrant-aws )
+# required_plugins.each do |plugin|
+#     exec "vagrant plugin install #{plugin};vagrant #{ARGV.join(" ")}" unless Vagrant.has_plugin? plugin || ARGV[0] == 'plugin'
+# end
+
+
 unless Vagrant.has_plugin?("vagrant-google")
   puts 'Installing vagrant-google Plugin...'
   system('vagrant plugin install vagrant-google')
@@ -48,13 +54,15 @@ Vagrant.configure("2") do |config|
     chmod g+w /vagrant 
   SHELL
 
-  config.vm.provision "shell", 
-    inline: "/bin/bash /vagrant/scripts/vagrant.sh" 
-  
-  config.vm.provision "shell", privileged: false,
-    inline: "/bin/bash /vagrant/scripts/mojaloop-install-local.sh"   
+  config.vm.provision "shell", inline: "/bin/bash /vagrant/scripts/vagrant.sh" 
 
-  config.vm.provision "shell", privileged: false,
-    inline: "/bin/bash /vagrant/scripts/setup-local-env.sh"   
+  config.vm.provision "shell", inline: <<-SHELL
+    su - vagrant -c "/vagrant/scripts/mini-loop-install.sh"
+  SHELL
+  
+  config.vm.provision "shell", inline: <<-SHELL
+    su - vagrant -c "/vagrant/scripts/setup-local-env.sh"
+  SHELL
+  
 
 end
