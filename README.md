@@ -86,7 +86,19 @@ sudo su -
 su - vagrant #mojaloop is deployed and owned by the vagrant user
 cd /vagrant
 
-./scripts/mini-loop-create-transfer.sh 
+./scripts/_example_transfer.sh
+```
+
+## Handy Vagrant Commands:
+
+```bash
+vagrant status # shows running vms
+
+vagrant halt # stops vm but does not destroy
+
+vagrant up # starts vm , use --provision flag to re-run provisioning
+
+vagrant destory # destroys VM (will terminate resources / save money if using GCS)
 ```
 
 ## Notes:
@@ -101,13 +113,7 @@ $ ssh-add -l # to verify your key has been added
 - The GCS deployment might be preferable for those users with slow internet access as it avoids the need to download the Ubuntu binary to the local laptop. 
 - the helm install can take a while and lacks a progress indicator (sadly).  The timeout can be extended by modifying TIMEOUT_SECS="2400s" in scripts/mini-loop-install-local. 
 - Once the fixes for mojaloop to enable helm3 and kubernetes version 1.17 and 1.18  have been put back into the mojaloop repo and helm repository, the access to vessels-tech repo will no longer be needed and further simplification of the install can be done.
-- useful vagrant commands 
-```
-vagrant status # shows running vms
-vagrant halt # stops vm but does not destroy
-vagrant up # starts vm , use --provision flag to re-run provisioning
-vagrant destory # destroys VM (will terminate resources / save money if using GCS)
-```
+
 
 
 mini-loop is tested so far with:
