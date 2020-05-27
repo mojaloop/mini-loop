@@ -1,9 +1,10 @@
 # Mini-loop
 Opinionated Mojaloop 'in a box' using Vagrant, K8s and Helm
 
+Quick start
 ```bash
-git clone https://github.com/tdaly61/laptop-mojo.git
-cd laptop-mojo/vbox-deploy
+git clone https://github.com/tdaly61/mini-loop.git
+cd mini-loop/vbox-deploy
 vagrant up
 ```
 
@@ -15,7 +16,7 @@ There are however some minor variations from these onboarding docs, such as usin
 
 ## Description / Approach
 
-Using Hashicorp Vagrant, a VirtualBox Ubnutu VM or Google Cloud VM is created and all of the components required to run mojaloop are automatically installed and configured into this VM. Once the VM is booted the mojaloop helm chart is deployed and the mojaloop kubernetes pods and services created, the mini-loop configuration automatically runs the /vagrant/scripts/setup-local-env.sh script to load test data into the mojaloop application and then executes the mojaloop postman/newman based Golden_Path test collections against this mojaloop installation using localhost.  
+Using Hashicorp Vagrant, a VirtualBox Ubnutu VM or Google Cloud VM is created and all of the components required to run mojaloop are automatically installed and configured into this VM. Once the VM is booted the mojaloop helm chart is deployed and the mojaloop kubernetes pods and services created, the mini-loop configuration automatically runs the /vagrant/scripts/02_seed_mojaloop.sh script to load test data into the mojaloop application and then executes the mojaloop postman/newman based Golden_Path test collections against this mojaloop installation using localhost.  
 
 Once the golden_path tests have completed, users can interact with the installation. Refer to the instructions below on logging into the VM and running a transfer. 
 
@@ -54,8 +55,8 @@ vagrant plugin install vagrant-google
 
 ### Local (Virtualbox)
 ```bash
-git clone https://github.com/tdaly61/laptop-mojo.git
-cd laptop-mojo/vbox-deploy
+git clone https://github.com/tdaly61/mini-loop.git
+cd mini-loop/vbox-deploy
 vagrant up #creates the virtualbox VM, boots and configures the OS
 ```
 
@@ -63,8 +64,8 @@ vagrant up #creates the virtualbox VM, boots and configures the OS
 Assuming vagrant is installed and running and the google cloud prerequisites as detailed above established.
 
 ```bash
-git clone https://github.com/tdaly61/laptop-mojo.git
-cd laptop-mojo/gcs-deploy
+git clone https://github.com/tdaly61/mini-loop.git
+cd mini-loop/gcs-deploy
 ```
 
 edit the Vagrantfile and enter correct values for
@@ -111,7 +112,7 @@ $ ssh-add ~/.ssh/google_compute_engine  # i.e. ssh-add your_private_key.  Enter 
 $ ssh-add -l # to verify your key has been added
 ```
 - The GCS deployment might be preferable for those users with slow internet access as it avoids the need to download the Ubuntu binary to the local laptop. 
-- the helm install can take a while and lacks a progress indicator (sadly).  The timeout can be extended by modifying TIMEOUT_SECS="2400s" in scripts/mini-loop-install-local. 
+- the helm install can take a while and lacks a progress indicator (sadly).  The timeout can be extended by modifying TIMEOUT_SECS="2400s" in scripts/01_install_miniloop.sh . 
 - Once the fixes for mojaloop to enable helm3 and kubernetes version 1.17 and 1.18  have been put back into the mojaloop repo and helm repository, the access to vessels-tech repo will no longer be needed and further simplification of the install can be done.
 
 
