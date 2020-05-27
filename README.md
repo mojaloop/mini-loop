@@ -15,7 +15,9 @@ There are however some minor variations from these onboarding docs, such as usin
 
 ## Description / Approach
 
-Using Hashicorp Vagrant, a VirtualBox Ubnutu VM or Google Cloud VM is created and all of the components required to run mojaloop are automatically installed and configured into this VM. Once the VM is booted the mojaloop helm chart is deployed and the mojaloop kubernetes pods and services created, the mini-loop configuration automatically runs the /vagrant/scripts/setup-local-env.sh script to load test data into the mojaloop application. The user then can then log into the vm and execute the mojaloop postman/newman based Golden_Path test collections against this mojaloop installation using localhost (see below for instructions).  
+Using Hashicorp Vagrant, a VirtualBox Ubnutu VM or Google Cloud VM is created and all of the components required to run mojaloop are automatically installed and configured into this VM. Once the VM is booted the mojaloop helm chart is deployed and the mojaloop kubernetes pods and services created, the mini-loop configuration automatically runs the /vagrant/scripts/setup-local-env.sh script to load test data into the mojaloop application and then executes the mojaloop postman/newman based Golden_Path test collections against this mojaloop installation using localhost.  
+
+Once the golden_path tests have completed, users can interact with the installation. Refer to the instructions below on logging into the VM and running a transfer. 
 
 ## Prerequisites 
 
@@ -75,9 +77,8 @@ edit the Vagrantfile and enter correct values for
 vagrant up --provider=google # uses the vagrant google-plugin and creates the google cloud VM , boots and configures the OS
 ```
 
-
-## Accessing the VM and running Golden_Path postman collection
-
+## Accessing the VM and running a sample transfer
+ensure your current directory is the directory from which you ran "vagrant up" 
 ```bash
 vagant ssh # to login as user you specified in the override.ssh.username = above
 sudo su - 
@@ -85,7 +86,7 @@ sudo su -
 su - vagrant #mojaloop is deployed and owned by the vagrant user
 cd /vagrant
 
-./scripts/run-golden-path-local.sh #run the mojaloop Golden_Path tests via newman/postman
+./scripts/mini-loop-create-transfer.sh 
 ```
 
 ## Notes:
@@ -115,13 +116,3 @@ mini-loop is tested so far with:
 - Virtualbox 6.1.6
 - ubuntu 1804 guest (via hashicorp published vagrant box)
 - vagrant  2.2.7
-
-
-## TODO:
-- test mini-loop with 4 GB ram allocated for VM and verify install time and function.
-- Switch out k8s for k3s internally, see if this reduces install time and memory requirements
-- Demonstrate a CI/CD workflow for automated release testing
-- Reduce the Java Memory footprint (kafka, zookeeper, mysql, Mongo)? Ideally we could run on 4g of ram for local testing
-
-
-# TODO:  As at May 25th 2020 the Golden_Path collection throws errors on a number of the transfers and this needs further debugging.

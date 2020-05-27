@@ -5,9 +5,7 @@
 #
 ##
 export CLUSTER_IP="localhost"
-export CURRENCY="AUD"
-#DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-#source $DIR/../config/.compiled_env
+export CURRENCY="<your_currency"
 
 red=$'\e[1;31m'
 grn=$'\e[1;32m'

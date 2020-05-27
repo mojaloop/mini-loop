@@ -36,11 +36,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "shell", inline: <<-SHELL
     su - vagrant -c "/vagrant/scripts/setup-local-env.sh"
   SHELL
+
+  config.vm.provision "shell", inline: <<-SHELL
+    su - vagrant -c "/vagrant/scripts/run-golden-path-local.sh"
+  SHELL
   
-  # config.vm.provision "shell", privileged: false,
-  #   inline: "/bin/bash /vagrant/scripts/mini-loop-install.sh"   
-
-  # config.vm.provision "shell", privileged: false,
-  #   inline: "/bin/bash /vagrant/scripts/setup-local-env.sh"   
-
 end
