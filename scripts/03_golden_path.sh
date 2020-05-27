@@ -5,5 +5,6 @@ POSTMAN_COLLECTION_DIR=/vagrant/postman
 
 echo "-== running Golden_Path.postman_collection  ==-"
 newman run --delay-request=2000  \
---environment=$POSTMAN_ENV_FILE \
-$POSTMAN_COLLECTION_DIR/Golden_Path.postman_collection.json
+  --environment=$POSTMAN_ENV_FILE \
+  --env-var HOST_SIMULATOR_K8S_CLUSTER=http://miniloop-simulator \
+  $POSTMAN_COLLECTION_DIR/Golden_Path.postman_collection.json

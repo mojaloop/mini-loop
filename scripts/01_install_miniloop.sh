@@ -51,6 +51,7 @@ rm -rf ${MOJALOOP_TMP_WORKING_DIR}/.git
 cp -R ${MOJALOOP_TMP_WORKING_DIR}/* ${MOJALOOP_CHARTS_DIR}
 cd ${MOJALOOP_CHARTS_DIR}
 
+
 ./package.sh
 if [[ $? -ne 0 ]] ; then 
   echo "Error: helm packaging failed"

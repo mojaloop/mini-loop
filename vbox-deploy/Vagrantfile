@@ -30,15 +30,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     inline: "/bin/bash /vagrant/scripts/vagrant.sh" 
   
     config.vm.provision "shell", inline: <<-SHELL
-    su - vagrant -c "/vagrant/scripts/mini-loop-install.sh"
+    su - vagrant -c "/vagrant/scripts/01_install_miniloop.sh"
   SHELL
   
   config.vm.provision "shell", inline: <<-SHELL
-    su - vagrant -c "/vagrant/scripts/setup-local-env.sh"
+    su - vagrant -c "/vagrant/scripts/02_seed_mojaloop.sh"
   SHELL
 
   config.vm.provision "shell", inline: <<-SHELL
-    su - vagrant -c "/vagrant/scripts/run-golden-path-local.sh"
+    su - vagrant -c "/vagrant/scripts/03_golden_path.sh"
   SHELL
   
 end
