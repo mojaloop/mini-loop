@@ -28,7 +28,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.provision "shell", inline: <<-SHELL
     # remove windows \r carriage return and run inline
-    sed 's/\r$//' /vagrant/scripts/vagrant_windows.sh | /bin/bash
+    sed 's/\r$//' /vagrant/scripts/vagrant.sh | /bin/bash
   SHELL
   
   config.vm.provision "shell", inline: <<-SHELL
