@@ -78,7 +78,7 @@ edit the Vagrantfile and enter correct values for
 vagrant up --provider=google # uses the vagrant google-plugin and creates the google cloud VM , boots and configures the OS
 ```
 
-## Accessing the VM and running a sample transfer
+## Make a Test Transfer
 ensure your current directory is the directory from which you ran "vagrant up" 
 ```bash
 vagant ssh # to login as user you specified in the override.ssh.username = above
@@ -86,7 +86,7 @@ sudo su -
 
 su - vagrant #mojaloop is deployed and owned by the vagrant user
 cd /vagrant
-
+[ todo: add instructions for windows ]
 ./scripts/_example_transfer.sh
 ```
 
@@ -123,3 +123,28 @@ mini-loop is tested so far with:
 - Virtualbox 6.1.6
 - ubuntu 1804 guest (via hashicorp published vagrant box)
 - vagrant  2.2.7
+
+## FAQ
+
+1. I think it installed correctly, but how do I verify that everything is working?
+
+Be default we execute a subset of the Mojaloop Golden Path tests, so if your logs on `vagrant up` look ok, then you can be confident that everything is up and running just fine.
+
+You can also run a test transfer yourself, see [make a test transfer](#make-a-test-transfer)
+
+
+2. I'm having issues with `\r`'s on Windows (`$'\r': command not found`)
+
+When testing on Windows, we observed that carriage returns (`\r` characters) were being appended to our scripts, which causes some bash scripts to fail once Vagrant mounts the scripts into the vagrant box. Our workaround for the following is to remove them inline and pipe to bash, like so:
+
+```bash
+sed 's/\r$//' /vagrant/scripts/_example_transfer.sh | /bin/bash
+```
+
+You could also update the file in place like so:
+```bash
+sed -i 's/\r$//' /vagrant/scripts/_example_transfer.sh
+/vagrant/scripts/_example_transfer.sh
+```
+
+This however could create issues down the line where you may need to re-run the above script if you make changes to the `_example_tranfer.sh` script from the Windows host.
