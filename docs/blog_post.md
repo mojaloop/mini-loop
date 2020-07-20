@@ -1,11 +1,11 @@
 # Mini Loop
 
-Mini-loop is an opinionated, batteries-included installation of Mojaloop, designed for newcomers to the Mojaloop community who want to get a working example of Mojaloop without worrying about Kubernetes, Helm and our Postman tests.
+Mini-loop is an opinionated, batteries-included installation of Mojaloop, designed for newcomers to the Mojaloop Community who want to get a working example of Mojaloop without worrying about Kubernetes, Helm and our Postman tests.
 
 
 ## Motivation
 
-We noticed that a lot of newcomers to the Mojaloop community struggled to get a local installation working through the [installation steps](https://docs.mojaloop.io/documentation/deployment-guide/), and the many different options presented for an installation (which OS, which Kubernetes environment ad version, which Helm version to name a few) was sometimes hard to understand, especially for newcomers to Kubernetes and Helm.
+We noticed that a lot of newcomers to the Mojaloop Community struggled to get a local installation working through the [installation steps](https://docs.mojaloop.io/documentation/deployment-guide/), and the many different options presented for an installation (which OS, which Kubernetes environment ad version, which Helm version to name a few) was sometimes hard to understand, especially for newcomers to Kubernetes and Helm.
 
 So we set out to make Mini-Loop, which can be installed in a few steps:
 
