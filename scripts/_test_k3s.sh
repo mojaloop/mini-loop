@@ -25,6 +25,7 @@ export KUBECONFIG=${PATH_TO_KUBECTL_CONFIG}
 ##
 # install k3s and helm
 ##
+# TODO: check installed doesn't work...
 if [ ! command -v k3s &> /dev/null ]; then
   echo "installing k3s"
   curl -sfL https://get.k3s.io | sh -
