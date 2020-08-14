@@ -84,6 +84,9 @@ fi
 helm delete $RELEASE_NAME > /dev/null 2>&1
 
 cd ${MOJALOOP_REPO_DIR}
+
+py_proc=`ps -eaf | grep -i "python3 -m http.server" | grep -v grep | awk '{print $2}'`
+if [[ ! -z "${py_proc}" ]]; then kill $py_proc; fi
 python3 -m http.server & 
 
 kubectl get node
@@ -125,7 +128,9 @@ else
   exit 1
 fi 
 
+##
 # verify the health of the deployment 
+##
 if [[ `curl -s http://central-ledger.local/health | \
     perl -nle '$count++ while /OK+/g; END {print $count}' ` -lt 3 ]] ; then
     echo "central-leger endpoint healthcheck failed"
