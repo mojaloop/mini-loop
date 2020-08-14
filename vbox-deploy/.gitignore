@@ -1,4 +1,3 @@
 # ignore the dirs copied across from Vagrant's mount after running `vagrant up`
-scripts
 helm
 postman
