@@ -11,7 +11,7 @@ So we set out to make Mini-Loop, which can be installed in a few steps:
 
 ```bash
 git clone https://github.com/tdaly61/mini-loop.git
-cd mini-loop/vbox-deploy
+cd mini-loop/deploy-vbox
 vagrant up
 ```
 
@@ -50,7 +50,7 @@ Mini-loop uses Vagrant to manage the Mojaloop Virtual Machine (VM), which in tur
 
 ```bash
 git clone https://github.com/tdaly61/mini-loop.git
-cd mini-loop/vbox-deploy
+cd mini-loop/deploy-vbox
 vagrant up
 ```
 

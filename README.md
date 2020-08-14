@@ -4,7 +4,7 @@ Opinionated Mojaloop 'in a box' using Vagrant, K8s and Helm
 Quick start
 ```bash
 git clone https://github.com/tdaly61/mini-loop.git
-cd mini-loop/vbox-deploy
+cd mini-loop/deploy-vbox
 vagrant up
 ```
 
@@ -36,13 +36,13 @@ brew cask install virtualbox
 
 > Note: you may be able to install guest additions directly onto Vagrant with [vagrant-vbguest](https://github.com/dotless-de/vagrant-vbguest). We haven't tested this ourselves, but give it a shot and let us know if it works!
 
-
 - [HashiCorp `vagrant`](https://www.vagrantup.com)
 - min 6GB ram available  (8GB recommended) 
 - min 64GB storage available
 - broadband internet connection (for downloading initial linux images in the form of vagrant boxes, if your internet connection is slow you may want to consider using the google cloud deployment instead)
 
 ### Google Cloud Deployment 
+
 - vagrant Google plugin
 ``` 
 vagrant plugin install vagrant-google 
@@ -51,12 +51,22 @@ vagrant plugin install vagrant-google
 - Google Cloud Service accounts and service account key ( https://cloud.google.com/iam/docs/creating-managing-service-account-keys ) 
 - Google Cloud ssh keys established (https://www.youtube.com/watch?v=JGcW1QdEQGs) 
 
+### AWS Deployment
+
+- [vagrant AWS plugin](https://github.com/mitchellh/vagrant-aws)
+
+```
+vagrant plugin install vagrant-aws
+```
+
+[ todo: requirements ]
+
 ## Setup
 
 ### Local (Virtualbox)
 ```bash
 git clone https://github.com/tdaly61/mini-loop.git
-cd mini-loop/vbox-deploy
+cd mini-loop/deploy-vbox
 vagrant up #creates the virtualbox VM, boots and configures the OS
 ```
 
@@ -65,10 +75,31 @@ Assuming vagrant is installed and running and the google cloud prerequisites as 
 
 ```bash
 git clone https://github.com/tdaly61/mini-loop.git
-cd mini-loop/gcs-deploy
+cd mini-loop/deploy-gcp
+```
+
+edit the Vagrantfile and enter correct values for:
+
+- `google.google_project_id = "<your_project_id>"  # e.g. my_project_id`
+- `google.google_json_key_location = "<path_to_your_service_account_key>"  # e.g." ~/my_project_id.json" `
+- `override.ssh.username = "<your_username>" # look in the service account key to find this e.g. in ~/my_project_id.json`
+- `override.ssh.private_key_path = "<your_private_ssh_key>"  # e.g. "~/.ssh/google_compute_engine"`
+
+```
+vagrant up --provider=google # uses the vagrant google-plugin and creates the google cloud VM , boots and configures the OS
+```
+
+
+### AWS
+Assuming vagrant is installed and running and the google cloud prerequisites as detailed above established.
+
+```bash
+git clone https://github.com/tdaly61/mini-loop.git
+cd mini-loop/deploy-aws
 ```
 
 edit the Vagrantfile and enter correct values for
+<!-- TODO: edit -->
   - google.google_project_id = "<your_project_id>"  # e.g. my_project_id
   - google.google_json_key_location = "<path_to_your_service_account_key>"  # e.g." ~/my_project_id.json" 
   - override.ssh.username = "<your_username>" # look in the service account key to find this e.g. in ~/my_project_id.json
