@@ -51,12 +51,22 @@ vagrant plugin install vagrant-google
 - Google Cloud Service accounts and service account key ( https://cloud.google.com/iam/docs/creating-managing-service-account-keys ) 
 - Google Cloud ssh keys established (https://www.youtube.com/watch?v=JGcW1QdEQGs) 
 
-### AWS Deployment
+### AWS Deployment (beta)
 
+> Note: The `vagrant-aws` plugin is no longer being maintained, so your milage may vary. When setting up AWS support, we found that we had to work off of a forked repository to fix some issues with the main `vagrant-aws` plugin
+
+
+- `ruby` version `2.5` or higher (this is required by the `vagrant-aws` plugin)
 - [vagrant AWS plugin](https://github.com/mitchellh/vagrant-aws)
+- AWS Credentials and Config files: `~/.aws/credentials` and `~/.aws/config`
+> Note: There is an issue with the way the plugin from the config file. See [this issue](https://github.com/mitchellh/vagrant-aws/issues/521#issuecomment-490701919) for tips on how to set up your `~/.aws/config` file.
 
-```
-vagrant plugin install vagrant-aws
+```bash
+# see this issue https://github.com/mitchellh/vagrant-aws/pull/542 for why we use this gem
+wget vagrant plugin install https://github.com/bdwyertech/vagrant-aws/releases/download/v0.8.0-bdwyertech/vagrant-aws-0.8.0.gem
+vagrant plugin install vagrant-aws-0.8.0.gem
+
+vagrant box add ec2 https://github.com/mitchellh/vagrant-aws/raw/master/dummy.box
 ```
 
 [ todo: requirements ]

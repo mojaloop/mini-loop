@@ -1,0 +1,98 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# required_plugins = %w( vagrant-omnibus vagrant-aws )
+# required_plugins.each do |plugin|
+#     exec "vagrant plugin install #{plugin};vagrant #{ARGV.join(" ")}" unless Vagrant.has_plugin? plugin || ARGV[0] == 'plugin'
+# end
+
+
+unless Vagrant.has_plugin?("vagrant-google")
+  puts 'Installing vagrant-google Plugin...'
+  system('vagrant plugin install vagrant-google')
+end
+
+unless Vagrant.has_plugin?("vagrant-reload")
+  puts 'Installing vagrant-reload Plugin...'
+  system('vagrant plugin install vagrant-reload')
+end
+
+Vagrant.configure("2") do |config|
+  # TODO: create the box
+  config.vm.box = "ec2"
+
+  config.vm.provider :aws do |aws, override|
+    # Note: no need to set these if they are already in your environment
+    # aws.access_key_id = "YOUR KEY"
+    # aws.secret_access_key = "YOUR SECRET KEY"
+
+    # aws.session_token = "SESSION TOKEN"
+
+    aws.keypair_name = "mini-loop-keypair"
+
+    # Ubuntu 18.04 LTS AMI in ap-southeast-1
+    aws.ami = "ami-0007cf37783ff7e10"
+
+    override.ssh.username = "ubuntu"
+    override.ssh.private_key_path = "~/.ssh/id_rsa"
+
+    # 4 vCPUs, 16gb Memory
+    instance_type = 'm5.xlarge'
+    # customize region to your liking
+    region = 'ap-southeast-1'
+
+    # Feel free to remove these - they are for the Mojaloop Dev Environment
+    tags = {
+      'mojaloop/cost_center' => 'oss-qa',
+      'mojaloop/owner' => 'lewis'
+    }
+
+    # google.google_project_id = "td-helloworld"
+    # google.google_project_id = "moja-box"
+    # google.google_json_key_location = "/Users/tdaly/opensource/google-cloud-sdk/td-helloworld.json"
+    # #google.google_json_key_location = "~/developer/vessels/mojaloop-github/moja-box/config/default.json"
+    
+    # google.image_family = 'ubuntu-1804-lts'
+    # google.machine_type = 'n1-standard-4'
+    # google.disk_size = 30
+    
+    # override.ssh.username = "tdaly"
+    # #override.ssh.private_key_path = "~/.ssh/id_rsa"
+    # override.ssh.private_key_path = "~/.ssh/google_compute_engine"
+  end
+
+  config.vm.provision "shell", inline: "rm -rf /vagrant/scripts"
+  config.vm.provision "file", source: "../scripts",  \
+                              destination: "/vagrant/scripts"
+
+  config.vm.provision "shell", inline: <<-SHELL
+    echo "---- ensure /vagrant owned by vagrant  ---- "
+    sleep 30
+    uname2="$(stat --format '%U' "/vagrant")"
+    if [ "x${uname2}" = "xvagrant" ]; then
+      echo "/vagrant owner is vagrant : ok "
+    else
+      echo "changing /vagrant owner to vagrant"
+      groupadd vagrant
+      useradd vagrant -g vagrant -m  -b /home -s $(which bash)
+      chown -R vagrant /vagrant 
+    fi
+    chmod g+w /vagrant 
+  SHELL
+
+  config.vm.provision "shell", 
+    inline: "/bin/bash /vagrant/scripts/vagrant.sh" 
+  
+  config.vm.provision "shell", inline: <<-SHELL
+    su - vagrant -c "/vagrant/scripts/01_install_miniloop.sh"
+  SHELL
+
+  config.vm.provision "shell", inline: <<-SHELL
+    su - vagrant -c "/vagrant/scripts/02_seed_mojaloop.sh"
+  SHELL
+
+  config.vm.provision "shell", inline: <<-SHELL
+    su - vagrant -c "/vagrant/scripts/03_golden_path.sh"
+  SHELL
+
+end
