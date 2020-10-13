@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # set locations 
-# POSTMAN_TAG="v10.1.0"
+POSTMAN_TAG="v10.1.0"
 
 echo "add /etc/hosts entries for local access to mojaloop endpoints" 
 ENDPOINTSLIST=(127.0.0.1    localhost forensic-logging-sidecar.local central-kms.local central-event-processor.local email-notifier.local central-ledger.local 
@@ -30,9 +30,7 @@ npm install -g newman
 
 echo "clone postman tests for Mojaloop"
 rm -rf /vagrant/postman 
-# TODO: remove if working
-# git clone --branch $POSTMAN_TAG https://github.com/mojaloop/postman.git /vagrant/postman 
-git clone https://github.com/mojaloop/postman.git /vagrant/postman 
+git clone --branch $POSTMAN_TAG https://github.com/mojaloop/postman.git /vagrant/postman 
 
 echo "Mojaloop: run update ..."
 apt update
@@ -69,6 +67,3 @@ su - vagrant -c "microk8s.helm3 repo add elastic https://helm.elastic.co"
 su - vagrant -c "microk8s.helm3 repo update"
 su - vagrant -c "microk8s.helm3 list"
 su - vagrant -c "microk8s.helm3 repo list"
-
-
-
