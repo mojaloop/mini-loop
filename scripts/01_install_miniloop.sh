@@ -31,43 +31,12 @@ function cleanup {
 # Environment Config
 ##
 MOJALOOP_WORKING_DIR=/vagrant
-MOJALOOP_TMP_WORKING_DIR=/home/vagrant/tmp/helm
-MOJALOOP_CHARTS_DIR=${MOJALOOP_WORKING_DIR}/helm
-MOJALOOP_REPO_DIR=${MOJALOOP_CHARTS_DIR}/repo
-MOJALOOP_CHARTS_BRANCH='fix/219-kubernetes-17-helm2-2'
 RELEASE_NAME="mini-loop"
 TIMEOUT_SECS="2400s"
 
-rm -rf ${MOJALOOP_TMP_WORKING_DIR}
-rm -rf ${MOJALOOP_CHARTS_DIR}
-mkdir -p ${MOJALOOP_TMP_WORKING_DIR}
-mkdir -p ${MOJALOOP_CHARTS_DIR}
-
-# Clone into tmp dir to get around virtualbox issue
-git clone https://github.com/vessels-tech/helm.git ${MOJALOOP_TMP_WORKING_DIR}
-cd ${MOJALOOP_TMP_WORKING_DIR} && git checkout -b $MOJALOOP_CHARTS_BRANCH origin/$MOJALOOP_CHARTS_BRANCH || echo ''
-# Remove the .git dir, this causes VirtualBox shared folder failures. Unfortunately this means we lose git history in the shared folder
-rm -rf ${MOJALOOP_TMP_WORKING_DIR}/.git
-cp -R ${MOJALOOP_TMP_WORKING_DIR}/* ${MOJALOOP_CHARTS_DIR}
-cd ${MOJALOOP_CHARTS_DIR}
-
-
-./package.sh
-if [[ $? -ne 0 ]] ; then 
-  echo "Error: helm packaging failed"
-  exit 1
-fi
-
-cd ${MOJALOOP_REPO_DIR}
-pwd
-python3 -m http.server & 
-
-# JIC this is being re-run , delete any previous release
-helm delete $RELEASE_NAME > /dev/null 2>&1
-
 # install the chart
 echo "install $RELEASE_NAME helm chart and wait for upto $TIMEOUT_SECS secs for it to be ready"
-helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  http://localhost:8000/mojaloop-10.1.0.tgz 
+helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  mojaloop/mojaloop
 if [[ `helm status $RELEASE_NAME | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
   echo "$RELEASE_NAME deployed sucessfully "
 else 
