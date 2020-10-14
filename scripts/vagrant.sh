@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# set locations 
-POSTMAN_TAG="v10.1.0"
+# Select which version of postman tests to use
+POSTMAN_TAG="v11.0.0"
 
 echo "add /etc/hosts entries for local access to mojaloop endpoints" 
 ENDPOINTSLIST=(127.0.0.1    localhost forensic-logging-sidecar.local central-kms.local central-event-processor.local email-notifier.local central-ledger.local 
