@@ -43,12 +43,12 @@ brew cask install virtualbox
 - broadband internet connection (for downloading initial linux images in the form of vagrant boxes, if your internet connection is slow you may want to consider using the google cloud deployment instead)
 
 ### Google Cloud Deployment 
-- vagrant Google plugin
-- vagrant env plugin
-``` 
-vagrant plugin install vagrant-google 
-vagrant plugin install vagrant-env
+- vagrant-google plugin
+- vagrant-env plugin
+```bash
+vagrant plugin install vagrant-google vagrant-env
 ```
+
 - Google Cloud SDK (https://cloud.google.com/sdk/docs/downloads-versioned-archives and https://cloud.google.com/sdk/install )
 - Google Cloud Service accounts and service account key ( https://cloud.google.com/iam/docs/creating-managing-service-account-keys ) 
 - Google Cloud ssh keys established. See the [vagrant-google guide](https://github.com/mitchellh/vagrant-google#ssh-support) and [this-video](https://www.youtube.com/watch?v=JGcW1QdEQGs) for more information on how to do this.
@@ -63,20 +63,20 @@ vagrant up #creates the virtualbox VM, boots and configures the OS
 ```
 
 ### Google Cloud Services
-Assuming vagrant is installed and running and the google cloud prerequisites as detailed above established.
+1. Assuming vagrant is installed and running and the google cloud prerequisites as detailed above established.
 
 ```bash
 git clone https://github.com/tdaly61/mini-loop.git
 cd mini-loop/gcs-deploy
 ```
 
-Copy the `.env.example` file to `.env`, and edit it for the following parameters:
+2. Copy the `.env.example` file to `.env`, and edit it for the following parameters:
 
 ```bash
 cp .env.example .env
 ```
 
-edit the `.env` file and enter correct values for
+3. Edit the `.env` file and enter correct values for
   - `GCP_PROJECT_ID` - the id of your project in Google Cloud
   - `GCP_JSON_KEY_PATH` - The full path to your service account key `.json` file
   - `CGP_SSH_USERNAME` - a username you 
@@ -94,8 +94,12 @@ CGP_SSH_KEY=~/.ssh/id_rsa
 > Note: Having SSH troubles?
 > Check out the [vagrant-google](https://github.com/mitchellh/vagrant-google#ssh-support) section on SSH support
 
-```
-vagrant up --provider=google # uses the vagrant google-plugin and creates the google cloud VM , boots and configures the OS
+
+4. Run `vagrant up --provider=google`!
+
+```bash
+# uses the vagrant google-plugin and creates the google cloud VM, boots and configures the OS
+vagrant up --provider=google 
 ```
 
 ## Make a Test Transfer

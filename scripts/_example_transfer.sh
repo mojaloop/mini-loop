@@ -30,8 +30,8 @@ createTransfer() {
 
   curl --fail -X POST \
     http://${CLUSTER_IP}/transfers \
-    -H 'Accept: application/vnd.interoperability.quotes+json;version=1' \
-    -H 'Content-Type: application/vnd.interoperability.quotes+json;version=1.0' \
+    -H 'Accept: application/vnd.interoperability.transfers+json;version=1' \
+    -H 'Content-Type: application/vnd.interoperability.transfers+json;version=1.0' \
     -H 'Cache-Control: no-cache' \
     -H "Date: $DATE" \
     -H "FSPIOP-Destination: $PAYEE_FSP_ID" \
@@ -63,8 +63,8 @@ acceptTransfer() {
 
   curl --fail -X PUT \
     http://${CLUSTER_IP}/transfers/${TRANSFER_ID} \
-    -H 'Accept: application/vnd.interoperability.quotes+json;version=1' \
-    -H 'Content-Type: application/vnd.interoperability.quotes+json;version=1' \
+    -H 'Accept: application/vnd.interoperability.transfers+json;version=1' \
+    -H 'Content-Type: application/vnd.interoperability.transfers+json;version=1.0' \
     -H 'Cache-Control: no-cache' \
     -H "Date: $DATE" \
     -H "FSPIOP-Destination: $PAYER_FSP_ID" \
