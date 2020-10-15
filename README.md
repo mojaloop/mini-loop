@@ -43,13 +43,15 @@ brew cask install virtualbox
 - broadband internet connection (for downloading initial linux images in the form of vagrant boxes, if your internet connection is slow you may want to consider using the google cloud deployment instead)
 
 ### Google Cloud Deployment 
-- vagrant Google plugin
-``` 
-vagrant plugin install vagrant-google 
+- vagrant-google plugin
+- vagrant-env plugin
+```bash
+vagrant plugin install vagrant-google vagrant-env
 ```
+
 - Google Cloud SDK (https://cloud.google.com/sdk/docs/downloads-versioned-archives and https://cloud.google.com/sdk/install )
 - Google Cloud Service accounts and service account key ( https://cloud.google.com/iam/docs/creating-managing-service-account-keys ) 
-- Google Cloud ssh keys established (https://www.youtube.com/watch?v=JGcW1QdEQGs) 
+- Google Cloud ssh keys established. See the [vagrant-google guide](https://github.com/mitchellh/vagrant-google#ssh-support) and [this-video](https://www.youtube.com/watch?v=JGcW1QdEQGs) for more information on how to do this.
 
 ## Setup
 
@@ -61,21 +63,43 @@ vagrant up #creates the virtualbox VM, boots and configures the OS
 ```
 
 ### Google Cloud Services
-Assuming vagrant is installed and running and the google cloud prerequisites as detailed above established.
+1. Assuming vagrant is installed and running and the google cloud prerequisites as detailed above established.
 
 ```bash
 git clone https://github.com/tdaly61/mini-loop.git
 cd mini-loop/gcs-deploy
 ```
 
-edit the Vagrantfile and enter correct values for
-  - google.google_project_id = "<your_project_id>"  # e.g. my_project_id
-  - google.google_json_key_location = "<path_to_your_service_account_key>"  # e.g." ~/my_project_id.json" 
-  - override.ssh.username = "<your_username>" # look in the service account key to find this e.g. in ~/my_project_id.json
-  - override.ssh.private_key_path = "<your_private_ssh_key>"  # e.g. "~/.ssh/google_compute_engine"
+2. Copy the `.env.example` file to `.env`, and edit it for the following parameters:
+
+```bash
+cp .env.example .env
+```
+
+3. Edit the `.env` file and enter correct values for
+  - `GCP_PROJECT_ID` - the id of your project in Google Cloud
+  - `GCP_JSON_KEY_PATH` - The full path to your service account key `.json` file
+  - `CGP_SSH_USERNAME` - a username you 
+  - `CGP_SSH_KEY` - the path to the ssh private key you set up to use with GCP
+
+Here's an example of a completed `.env` file:
 
 ```
-vagrant up --provider=google # uses the vagrant google-plugin and creates the google cloud VM , boots and configures the OS
+GCP_PROJECT_ID=my-new-project
+GCP_JSON_KEY_PATH=~/default.json
+CGP_SSH_USERNAME=alice
+CGP_SSH_KEY=~/.ssh/id_rsa
+```
+
+> Note: Having SSH troubles?
+> Check out the [vagrant-google](https://github.com/mitchellh/vagrant-google#ssh-support) section on SSH support
+
+
+4. Run `vagrant up --provider=google`!
+
+```bash
+# uses the vagrant google-plugin and creates the google cloud VM, boots and configures the OS
+vagrant up --provider=google 
 ```
 
 ## Make a Test Transfer

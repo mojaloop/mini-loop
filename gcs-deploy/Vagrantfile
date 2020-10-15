@@ -1,13 +1,6 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# required_plugins = %w( vagrant-omnibus vagrant-aws )
-# required_plugins.each do |plugin|
-#     exec "vagrant plugin install #{plugin};vagrant #{ARGV.join(" ")}" unless Vagrant.has_plugin? plugin || ARGV[0] == 'plugin'
-# end
-
-
-
 unless Vagrant.has_plugin?("vagrant-google")
   puts 'Installing vagrant-google Plugin...'
   system('vagrant plugin install vagrant-google')
@@ -18,22 +11,25 @@ unless Vagrant.has_plugin?("vagrant-reload")
   system('vagrant plugin install vagrant-reload')
 end
 
+unless Vagrant.has_plugin?("vagrant-env")
+  puts 'Installing vagrant-reload Plugin...'
+  system('vagrant plugin install vagrant-env')
+end
+
 Vagrant.configure("2") do |config|
+  config.env.enable
   config.vm.box = "google/gce"
 
   config.vm.provider :google do |google, override|
-    google.google_project_id = "td-helloworld"
-    #google.google_project_id = "moja-box"
-    google.google_json_key_location = "/Users/tdaly/opensource/google-cloud-sdk/td-helloworld.json"
-    #google.google_json_key_location = "~/developer/vessels/mojaloop-github/moja-box/config/default.json"
+    google.google_project_id = ENV['GCP_PROJECT_ID']
+    google.google_json_key_location = ENV['GCP_JSON_KEY_PATH']
     
     google.image_family = 'ubuntu-1804-lts'
     google.machine_type = 'n1-standard-4'
     google.disk_size = 30
     
-    override.ssh.username = "tdaly"
-    #override.ssh.private_key_path = "~/.ssh/id_rsa"
-    override.ssh.private_key_path = "~/.ssh/google_compute_engine"
+    override.ssh.username = ENV['CGP_SSH_USERNAME']
+    override.ssh.private_key_path = ENV['CGP_SSH_KEY']
   end
 
   config.vm.provision "shell", inline: "rm -rf /vagrant/scripts"

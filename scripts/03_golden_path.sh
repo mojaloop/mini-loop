@@ -10,7 +10,7 @@ function runGPFolder {
     --environment=$POSTMAN_ENV_FILE \
     --env-var HOST_SIMULATOR_K8S_CLUSTER=http://mini-loop-simulator \
     --folder="${1}" \
-  $POSTMAN_COLLECTION_DIR/Golden_Path.postman_collection.json  
+  $POSTMAN_COLLECTION_DIR/ML_OSS_Golden_Path_LegacySim.postman_collection.json
 }
 
 runGPFolder "Pre-test-setup"

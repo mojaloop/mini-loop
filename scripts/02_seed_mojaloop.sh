@@ -3,7 +3,7 @@
 export PATH=/snap/bin:$PATH
 POSTMAN_ENV_FILE=/vagrant/postman/environments/Mojaloop-Local.postman_environment.json
 POSTMAN_COLLECTION_DIR=/vagrant/postman
-POSTMAN_COLLECTION_NAME=OSS-New-Deployment-FSP-Setup.postman_collection.json
+POSTMAN_COLLECTION_NAME=ML_OSS_Setup_LegacySim.postman_collection.json
 
 echo "-Running Postman ${POSTMAN_COLLECTION_NAME} to seed the Mojaloop Environment-"
 
