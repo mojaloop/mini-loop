@@ -20,6 +20,7 @@ Using Hashicorp Vagrant, a VirtualBox Ubnutu VM or Google Cloud VM is created an
 
 Once the golden_path tests have completed, users can interact with the installation. Refer to the instructions below on logging into the VM and running a transfer. 
 
+
 ## Prerequisites 
 
 ### Common 
@@ -114,6 +115,32 @@ cd /vagrant
 ./scripts/_example_transfer.sh
 ```
 
+## Architecture
+
+Mini-Loop deploys a single instance kubernetes cluster inside a Vagrant box running either locally or in GCP. Here's a rough idea of what that looks like:
+
+![](./mini_loop_arch.svg)
+
+Additionally, Vagrant copies (or mounts in the case of local) across the scripts you need to bootstrap the environment.
+
+Feel free to ssh into your running Vagrant box, and try out the following commands:
+```bash
+# ssh into the running box
+vagrant ssh
+
+# switch to sudo user - this is just a hacky workaround since kubectl is owned by a different user
+sudo su
+
+# view the running pods
+kubectl get po
+
+# view the deployments
+kubectl get deployments
+
+# list the helm deployments
+helm list
+```
+
 ## Handy Vagrant Commands:
 
 ```bash
@@ -123,7 +150,7 @@ vagrant halt # stops vm but does not destroy
 
 vagrant up # starts vm , use --provision flag to re-run provisioning
 
-vagrant destory # destroys VM (will terminate resources / save money if using GCS)
+vagrant destroy # destroys VM (will terminate resources / save money if using GCS)
 ```
 
 ## Notes:
