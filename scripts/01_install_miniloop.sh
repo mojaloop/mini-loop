@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# install mojaloop using Lewis Daly's temporary version
-# 18th April 2020
 
 ##
 # Bash Niceties
@@ -33,6 +31,9 @@ function cleanup {
 MOJALOOP_WORKING_DIR=/vagrant
 RELEASE_NAME="mini-loop"
 TIMEOUT_SECS="2400s"
+
+# uninstall the old chart if it exists
+helm uninstall ${RELEASE_NAME} || echo 'non fatal error uninstalling existing chart'
 
 # install the chart
 echo "install $RELEASE_NAME helm chart and wait for upto $TIMEOUT_SECS secs for it to be ready"
