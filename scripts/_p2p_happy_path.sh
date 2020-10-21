@@ -12,8 +12,6 @@ DATE=$(echo 'nowDate = new Date(); console.log(nowDate.toGMTString());' > /tmp/d
 EXPIRATION_DATE=$(echo 'nowDate = new Date(); nowDate.setDate(nowDate.getDate() + 1); console.log(nowDate.toISOString());' > /tmp/date && node /tmp/date)
 COMPLETED_TIMESTAMP=$(echo 'nowDate = new Date(); nowDate.setDate(nowDate.getDate()); console.log(nowDate.toISOString());' > /tmp/date && node /tmp/date)
 
-
-
 red=$'\e[1;31m'
 grn=$'\e[1;32m'
 blu=$'\e[1;34m'
@@ -159,7 +157,7 @@ createTransfer() {
       "payerFsp": "payerfsp",
       "payeeFsp": "payeefsp",
       "amount": {
-        "amount": "99",
+        "amount": "1.11",
         "currency": "USD"
       },
       "expiration": "'$EXPIRATION_DATE'",

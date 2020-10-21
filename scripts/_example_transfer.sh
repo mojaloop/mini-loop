@@ -71,7 +71,7 @@ acceptTransfer() {
     -H "FSPIOP-Source: $PAYEE_FSP_ID" \
     -H 'Host: ml-api-adapter.local' \
     -d '{
-    "fulfilment": "UNlJ98hZTY_dsw0cAqw4i_UN3v4utt7CZFB4yfLbVFA",
+    "fulfilment": "uU0nuZNNPgilLlLX2n2r-sSE7-N6U4DukIj3rOLvzek",
     "completedTimestamp": "'$COMPLETED_TIMESTAMP'",
     "transferState": "COMMITTED"
   }'
@@ -117,6 +117,6 @@ getPositions() {
 # main
 ##
 createTransfer
-# acceptTransfer
-# sleep 5
-# getPositions
+acceptTransfer
+sleep 5
+getPositions
