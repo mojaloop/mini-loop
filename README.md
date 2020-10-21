@@ -107,11 +107,12 @@ vagrant up --provider=google
 ensure your current directory is the directory from which you ran "vagrant up" 
 ```bash
 vagant ssh # to login as user you specified in the override.ssh.username = above
-sudo su - 
 
-su - vagrant #mojaloop is deployed and owned by the vagrant user
+# on gcp, your user may not be vagrant
+# mojaloop is deployed and owned by the vagrant user
+# password is `vagrant`
+su - vagrant 
 cd /vagrant
-[ todo: add instructions for windows ]
 ./scripts/_example_transfer.sh
 ```
 
@@ -133,6 +134,9 @@ sudo su
 
 # view the running pods
 kubectl get po
+
+# tail some logs
+kubectl logs -f <pod_name>
 
 # view the deployments
 kubectl get deployments
