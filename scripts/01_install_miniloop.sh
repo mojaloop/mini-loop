@@ -50,7 +50,8 @@ else
   echo " additionally you might finsh the install by hand : login to the vm and continue to wait for the pods to be ready"
   echo "   vagrant ssh "
   echo "   kubectl get pods #if most are in running state maybe wait a little longer "
-  echo "   /vagrant/scripts/set-local-env.sh # to load the mojaloop test data." 
+  echo "   /vagrant/scripts/02_seed_mojaloop.sh # to load the mojaloop test data." 
+  echo "  /vagrant/scripts/03_golden_path.sh # to run the golden path tests
   exit 1
 fi 
 
