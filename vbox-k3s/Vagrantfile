@@ -16,24 +16,19 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network "forwarded_port", guest: 8181, host: 2223
 
   config.vm.provider "virtualbox" do |vb|
-    # Display the VirtualBox GUI when booting the machine
     vb.gui = false
     vb.memory = 8192
     vb.cpus = 2
     vb.name = NAME
   end
 
-  config.vm.provision "shell", inline: "rm -rf /vagrant/scripts"
-  config.vm.provision "file", source: "../scripts",  \
-                              destination: "/vagrant/scripts"
+  #config.vm.provision "shell", inline: "rm -rf /vagrant/scripts"
+  config.vm.provision "file", source: "k3-scripts",  \
+                              destination: "/vagrant/k3s-scripts"
 
   config.vm.provision "shell", inline: <<-SHELL
     # remove windows \r carriage return and run inline
     sed 's/\r$//' /vagrant/scripts/vagrant.sh | /bin/bash
   SHELL
   
-  config.vm.provision "shell", inline: <<-SHELL
-    # su - vagrant -c "/vagrant/scripts/01_install_miniloop.sh"
-    su - vagrant -c "sed 's/\r$//' /vagrant/scripts/01_install_miniloop.sh | /bin/bash"
-  SHELL
 end
