@@ -22,13 +22,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     vb.name = NAME
   end
 
-  #config.vm.provision "shell", inline: "rm -rf /vagrant/scripts"
-  config.vm.provision "file", source: "k3-scripts",  \
+  config.vm.provision "file", source: "k3s-scripts",  \
                               destination: "/vagrant/k3s-scripts"
 
   config.vm.provision "shell", inline: <<-SHELL
     # remove windows \r carriage return and run inline
-    sed 's/\r$//' /vagrant/scripts/vagrant.sh | /bin/bash
+    sed 's/\r$//' /vagrant/k3s-scripts/vagrant.sh | /bin/bash
   SHELL
   
 end

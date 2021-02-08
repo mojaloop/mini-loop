@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
+# for k3s vagrant / mojaloop installation 
 # can I install just account lookup and have this run ?  Maybe too much work ??
 # make this multi-node 
+# TLS for NGINX
+# Valid certificates
+
+
 
 
 # install k3s w/o traefik (check on this maybe Mojaloop already has ingress)
 # as I am going to install nginx 
-curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=traefik" sh -
-chmod 644 /etc/rancher/k3s/k3s.yaml
+#curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=traefik" sh -
+curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" INSTALL_K3S_EXEC="--flannel-backend=none \
+      --cluster-cidr=192.168.0.0/16 --disable-network-policy --disable=traefik" sh -
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
 
 #install docker.io
 apt install docker.io -y 
@@ -37,7 +45,8 @@ cp $HOME/linux-amd64/helm /usr/local/bin
 
 echo "Mojaloop: add helm repos ..." 
 su - vagrant -c "helm repo add mojaloop http://mojaloop.io/helm/repo/"
-su - vagrant -c "helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator"
+su - vagrant -c "helm repo add stable https://charts.helm.sh/stable"
+su - vagrant -c "helm repo add incubator https://charts.helm.sh/incubator"
 su - vagrant -c "helm repo add kiwigrid https://kiwigrid.github.io"
 su - vagrant -c "helm repo add elastic https://helm.elastic.co"
 su - vagrant -c "helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx"
@@ -50,3 +59,8 @@ su - vagrant -c "helm repo list"
 # install ingress ?  Not sure maybe use mojaloop's ingress -- check on this 
 #  
 su - vagrant -c "helm install ingress-nginx ingress-nginx/ingress-nginx"
+
+# install calico 
+# 
+su - vagrant -c "kubectl create -f https://docs.projectcalico.org/manifests/tigera-operator.yaml"
+su - vagrant -c "kubectl create -f https://docs.projectcalico.org/manifests/custom-resources.yaml"
