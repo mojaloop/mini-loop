@@ -35,11 +35,12 @@ curl -o $HOME/helm.tar.gz https://get.helm.sh/helm-v3.5.2-linux-amd64.tar.gz
 cat helm.tar.gz | gzip -d -c | tar xf -
 cp $HOME/linux-amd64/helm /usr/local/bin 
 
-echo "Mojaloop: add repos and deploy helm charts ..." 
+echo "Mojaloop: add helm repos ..." 
 su - vagrant -c "helm repo add mojaloop http://mojaloop.io/helm/repo/"
 su - vagrant -c "helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator"
 su - vagrant -c "helm repo add kiwigrid https://kiwigrid.github.io"
 su - vagrant -c "helm repo add elastic https://helm.elastic.co"
+su - vagrant -c "helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx"
 su - vagrant -c "helm repo update"
 su - vagrant -c "helm list"
 su - vagrant -c "helm repo list"
@@ -48,3 +49,4 @@ su - vagrant -c "helm repo list"
 #install nginx 
 # install ingress ?  Not sure maybe use mojaloop's ingress -- check on this 
 #  
+su - vagrant -c "helm install ingress-nginx ingress-nginx/ingress-nginx"
