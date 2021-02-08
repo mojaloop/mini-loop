@@ -29,6 +29,7 @@ systemctl start docker
 # echo "installing packages"
 # apt install git -y
 # apt install npm -y
+# apt install jq -y
 # npm install npm@latest -g
 # npm install -g newman
 
