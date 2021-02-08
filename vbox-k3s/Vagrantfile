@@ -9,6 +9,7 @@ NAME = "ml-k3s"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "hashicorp/bionic64"
+  config.vm.box_check_update = true
   #config.vm.box_version = "1.0.282"
   config.vm.define NAME
   config.vm.network "forwarded_port", guest: 80, host: 8080
@@ -26,5 +27,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "file", source: "../scripts",  \
                               destination: "/vagrant/scripts"
 
-
+  config.vm.provision "shell", inline: <<-SHELL
+    # remove windows \r carriage return and run inline
+    sed 's/\r$//' /vagrant/scripts/vagrant.sh | /bin/bash
+  SHELL
+  
+  config.vm.provision "shell", inline: <<-SHELL
+    # su - vagrant -c "/vagrant/scripts/01_install_miniloop.sh"
+    su - vagrant -c "sed 's/\r$//' /vagrant/scripts/01_install_miniloop.sh | /bin/bash"
+  SHELL
 end
