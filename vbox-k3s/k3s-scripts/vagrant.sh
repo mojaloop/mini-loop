@@ -14,6 +14,8 @@
 curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" INSTALL_K3S_EXEC="--flannel-backend=none \
       --cluster-cidr=192.168.0.0/16 --disable-network-policy --disable=traefik" sh -
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+echo "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml" >> /home/vagrant/.bashrc
+echo "source <(kubectl completion bash)" >> /home/vagrant/.bashrc # add autocomplete permanently to your bash shell.
 
 
 #install docker.io
@@ -22,22 +24,23 @@ groupadd docker
 usermod -a -G docker vagrant
 systemctl start docker
 
-# echo "install  version 10+ of node"
-# curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash
-# apt-get install -y nodejs
+echo "install  version 10+ of node"
+curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash
+apt-get install -y nodejs
 
-# echo "installing packages"
-# apt install git -y
-# apt install npm -y
-# apt install jq -y
-# npm install npm@latest -g
-# npm install -g newman
+echo "installing packages"
+apt install git -y
+apt install npm -y
+apt install jq -y
+npm install npm@latest -g
+npm install -g newman
 
-# echo "clone postman tests for Mojaloop"
-# rm -rf /vagrant/postman 
-# git clone --branch $POSTMAN_TAG https://github.com/mojaloop/postman.git /vagrant/postman 
+echo "clone postman tests for Mojaloop"
+rm -rf /vagrant/postman 
+git clone --branch $POSTMAN_TAG https://github.com/mojaloop/postman.git /vagrant/postman 
 
 # install helm
+echo "installing helm "
 echo "ID is `id`"
 cd $HOME
 curl -o $HOME/helm.tar.gz https://get.helm.sh/helm-v3.5.2-linux-amd64.tar.gz
@@ -62,6 +65,5 @@ su - vagrant -c "helm repo list"
 su - vagrant -c "helm install ingress-nginx ingress-nginx/ingress-nginx"
 
 # install calico 
-# 
 su - vagrant -c "kubectl create -f https://docs.projectcalico.org/manifests/tigera-operator.yaml"
 su - vagrant -c "kubectl create -f https://docs.projectcalico.org/manifests/custom-resources.yaml"
