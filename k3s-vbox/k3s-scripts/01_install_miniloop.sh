@@ -38,7 +38,7 @@ helm uninstall ${RELEASE_NAME} || echo 'non fatal error uninstalling existing ch
 # install the chart
 echo "install $RELEASE_NAME helm chart and wait for upto $TIMEOUT_SECS secs for it to be ready"
 helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  mojaloop/mojaloop
-if [[ `helm status $RELEASE_NAME | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
+if [[ `helm status $RELEASE_NAME | grep "^STATUS:" | awk '{ print $2 }' ` == "deployed" ]] ; then 
   echo "$RELEASE_NAME deployed sucessfully "
 else 
   echo "Error: $RELEASE_NAME helm chart  deployment failed "
@@ -51,7 +51,7 @@ else
   echo "   vagrant ssh "
   echo "   kubectl get pods #if most are in running state maybe wait a little longer "
   echo "   /vagrant/scripts/02_seed_mojaloop.sh # to load the mojaloop test data." 
-  echo "  /vagrant/scripts/03_golden_path.sh # to run the golden path tests
+  echo "  /vagrant/scripts/03_golden_path.sh # to run the golden path tests "
   exit 1
 fi 
 
