@@ -4,9 +4,13 @@
 *.pyc
 *.pyo
 
-# code from Lewis
+# code from Lewis and coil 
 vessels-tech/
 vessels*/
+demo-mojawallet/
+
+# postman in k3s 
+k3s-vbox/postman
 
 # local work directory 
 wrk/*
