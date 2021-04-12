@@ -25,14 +25,10 @@ echo "source <(kubectl completion bash)" >> /home/vagrant/.bashrc # add autocomp
 echo "alias k=kubectl " >> /home/vagrant/.bashrc
 echo "complete -F __start_kubectl k " >> /home/vagrant/.bashrc
 
-
-
 # install kustomize
 curl -s "https://raw.githubusercontent.com/\
 kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
 mv ./kustomize /usr/local/bin
-
-
 
 # add the mojaloop endpoints per doc at 
 echo "add /etc/hosts entries for local access to mojaloop endpoints" 
