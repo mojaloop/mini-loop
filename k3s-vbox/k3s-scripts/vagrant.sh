@@ -24,6 +24,8 @@ echo "export KUBECONFIG=/home/vagrant/k3s.yaml" >> /home/vagrant/.bashrc
 echo "source <(kubectl completion bash)" >> /home/vagrant/.bashrc # add autocomplete permanently to your bash shell.
 echo "alias k=kubectl " >> /home/vagrant/.bashrc
 echo "complete -F __start_kubectl k " >> /home/vagrant/.bashrc
+echo 'alias ksetns="kubectl config set-context --current --namespace"'  >> /home/vagrant/.bashrc
+echo "alias ksetuser=\"kubectl config set-context --current --user\""  >> /home/vagrant/.bashrc
 
 # install kustomize
 curl -s "https://raw.githubusercontent.com/\
@@ -96,6 +98,12 @@ su - vagrant -c "helm repo list"
 # install calico 
 #su - vagrant -c "kubectl create -f https://docs.projectcalico.org/manifests/tigera-operator.yaml"
 #su - vagrant -c "kubectl create -f https://docs.projectcalico.org/manifests/custom-resources.yaml"
+
+# install pod security policies 
+
+
+
+
 
 # optional install docker , here just for reference for the moment
 # see https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-20-04
