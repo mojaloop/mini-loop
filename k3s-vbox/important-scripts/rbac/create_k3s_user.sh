@@ -2,12 +2,13 @@
 # create a new user for the k3s cluster to enable testing of 
 # PSP, RBAC , calico etc
 # see : https://betterprogramming.pub/k8s-tips-give-access-to-your-clusterwith-a-client-certificate-dfb3b71a76fe
+# also : https://docs.bitnami.com/tutorials/configure-rbac-in-your-kubernetes-cluster/#use-case-1-create-user-with-limited-namespace-access
+
 
 
 RUN_DIR=$( cd $(dirname "$0") ; pwd )
 echo "RUN_DIR : $RUN_DIR"
-export USER=claud
-export USER_CSR=$USERcsr
+export USER=user1
 export USERDIR=$RUN_DIR/k3s_$USER
 echo "creating new user kubeconfig file in $USERDIR"
 mkdir $USERDIR
@@ -48,7 +49,7 @@ cat << !EOF > $USERDIR/csr.yaml
 apiVersion: certificates.k8s.io/v1beta1
 kind: CertificateSigningRequest
 metadata:
-  name: ${USER_CSR}
+  name: mycsr
 spec:
   groups:
   - system:authenticated
@@ -61,23 +62,23 @@ spec:
 !EOF
 
 echo "clear any old csr for this user"
-kubectl delete csr $USER_CSR
- if [ $? -ne 0 ]; then
-    printf  "clean up of exisrting csr failed please remove manually "
-    kubectl get csr 
-    exit $?
-  fi
+kubectl delete csr mycsr
+#  if [ $? -ne 0 ]; then
+#     printf  "clean up of exisrting csr failed please remove manually "
+#     kubectl get csr 
+#     exit $?
+#   fi
 
 echo ">>> create the CSR in k8s : kubectl "
 cat $USERDIR/csr.yaml | kubectl apply -f -
 
 # check the csr and approve it 
 kubectl get csr
-kubectl certificate approve $USER_CSR
+kubectl certificate approve mycsr
 kubectl get csr
 
 echo "create $USERDIR/$USER.crt to check what got produced "
-kubectl get csr $USER_CSR -o jsonpath='{.status.certificate}' | base64 --decode \
+kubectl get csr mycsr -o jsonpath='{.status.certificate}' | base64 --decode \
      > $USERDIR/$USER.crt
 
 echo "decoding that yeilds " 
@@ -91,7 +92,7 @@ openssl x509 -in $USERDIR/$USER.crt -noout -text
 export CLUSTER_NAME=$(kubectl config view --minify -o jsonpath={.current-context})
 echo "CLUSTER_NAME=$CLUSTER_NAME"
 # Client certificate
-export CLIENT_CERTIFICATE_DATA=$(kubectl get csr $USER_CSR -o jsonpath='{.status.certificate}')
+export CLIENT_CERTIFICATE_DATA=$(kubectl get csr mycsr -o jsonpath='{.status.certificate}')
 echo "CLIENT_CERTIFICATE_DATA = $CLIENT_CERTIFICATE_DATA"
 # Cluster Certificate Authority
 export CLUSTER_CA=$(kubectl config view --raw -o json | jq -r '.clusters[] | select(.name == "'$(kubectl config current-context)'") | .cluster."certificate-authority-data"')
