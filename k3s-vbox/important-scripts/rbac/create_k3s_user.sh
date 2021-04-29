@@ -16,7 +16,6 @@ mkdir $USERDIR
 echo ">> generate an RSA key" 
 openssl genrsa -out $USERDIR/$USER.key 4096
 
-
 # create the template Certificate Signing Request config 
 # with our new user 
 cat << !EOF > $USERDIR/csr.cnf
@@ -132,7 +131,7 @@ kubectl config set-credentials $USER \
 #kubectl config set-credentials fred --client-certificate=fred.crt  --client-key=./fred.key
 #kubectl config set-context --current --cluster=default --namespace=default --user=fred
 
-echo "try running k get nodes witht he new user "
+echo "try running k get nodes with the new user "
 echo "this should fail with no privs "
 
 kubectl get nodes 

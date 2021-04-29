@@ -45,10 +45,14 @@ perl -p -i.bak -e 's/127\.0\.0\.1.*localhost.*$/$ENV{ENDPOINTS} /' /etc/hosts
 ping  -c 2 account-lookup-service-admin 
 
 #install docker.io
+# apt update -y 
 # apt install docker.io -y 
 # groupadd docker
 # usermod -a -G docker vagrant
 # systemctl start docker
+
+# installing k3d (so we can have multi-node)
+# wget -q -O - https://raw.githubusercontent.com/rancher/k3d/main/install.sh | bash
 
 echo "install  version 10+ of node"
 curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash

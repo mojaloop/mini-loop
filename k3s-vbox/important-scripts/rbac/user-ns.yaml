@@ -1,3 +1,6 @@
+# see https://betterprogramming.pub/k8s-tips-give-access-to-your-clusterwith-a-client-certificate-dfb3b71a76fe
+# resources for testing RBAC / understanding RBAC including groups and users
+
 ---
 apiVersion: v1
 kind: Namespace
