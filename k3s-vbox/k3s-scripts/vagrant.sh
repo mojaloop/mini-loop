@@ -53,6 +53,7 @@ ping  -c 2 account-lookup-service-admin
 
 # installing k3d (so we can have multi-node)
 # wget -q -O - https://raw.githubusercontent.com/rancher/k3d/main/install.sh | bash
+# 
 
 echo "install  version 10+ of node"
 curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash
@@ -121,3 +122,5 @@ su - vagrant -c "helm repo list"
 
 # then you can install a multi-node k3s cluster with k3d
 # see : https://www.suse.com/c/introduction-k3d-run-k3s-docker-src/
+# see : https://en.sokube.ch/post/k3s-k3d-k8s-a-new-perfect-match-for-dev-and-test-1
+
