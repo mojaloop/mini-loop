@@ -23,4 +23,5 @@ wget -q https://raw.githubusercontent.com/rancher/k3d/main/docs/usage/guides/cal
 #      --volume "/home/vagrant/calico.yaml:/var/lib/rancher/k3s/server/manifests/calico.yaml" 
 
 k3d cluster create calico --k3s-server-arg '--flannel-backend=none' --k3s-server-arg '--no-deploy=traefik' \
-      --volume "$HOME/calico.yaml:/var/lib/rancher/k3s/server/manifests/calico.yaml" \
+      --volume "$HOME/calico.yaml:/var/lib/rancher/k3s/server/manifests/calico.yaml" 
+      
