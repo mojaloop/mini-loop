@@ -18,7 +18,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network "forwarded_port", guest: 3001, host: 3001
   config.vm.network "forwarded_port", guest: 6443, host: 8282
   config.vm.synced_folder "../../ml-oss-sandbox", "/vagrant/ml-oss-sandbox"
-  config.vm.synced_folder "../../../learn", "/vagrant/learn"
+  #config.vm.synced_folder "../../../learn", "/vagrant/learn"
 
   config.vm.provider "virtualbox" do |vb|
     vb.gui = false
@@ -30,14 +30,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "file", source: "k3s-scripts",  \
                               destination: "/vagrant/k3s-scripts"
 
-  config.vm.provision "shell", inline: <<-SHELL
-    # remove windows \r carriage return and run inline
-    sed 's/\r$//' /vagrant/k3s-scripts/vagrant.sh | /bin/bash
-  SHELL
+  # config.vm.provision "shell", inline: <<-SHELL
+  #   # remove windows \r carriage return and run inline
+  #   sed 's/\r$//' /vagrant/k3s-scripts/vagrant.sh | /bin/bash
+  # SHELL
 
-  config.vm.provision "shell", inline: <<-SHELL
-    # su - vagrant -c "/vagrant/scripts/01_install_miniloop.sh"
-    su - vagrant -c "sed 's/\r$//' /vagrant/scripts/01_install_miniloop.sh | /bin/bash"
-  SHELL
+  # config.vm.provision "shell", inline: <<-SHELL
+  #   # su - vagrant -c "/vagrant/scripts/01_install_miniloop.sh"
+  #   su - vagrant -c "sed 's/\r$//' /vagrant/scripts/01_install_miniloop.sh | /bin/bash"
+  # SHELL
   
 end
