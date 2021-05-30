@@ -3,7 +3,11 @@
 # see https://k3d.io
 
 # various yum packages 
-apt install bash-completion
+apt install bash-completion -y
+
+echo "install  version 10+ of node"
+curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash
+apt-get install -y nodejs
 
 #install docker.io as k3d needs docker currently in fact it runs in containers in docker
 apt update -y 
