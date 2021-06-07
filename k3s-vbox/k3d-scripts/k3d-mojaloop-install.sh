@@ -29,6 +29,17 @@ su - vagrant -c "helm repo update"
 su - vagrant -c "helm repo list"
 
 su - vagrant -c "kubectl create namespace ml-app"
+# Install the DBs
 su - vagrant -c "kubectl apply -f /vagrant/ml-oss-sandbox/charts/base/ss_mysql_td.yaml"
-su - vagrant -c "helm upgrade --install --namespace ml-app mojaloop mojaloop/mojaloop -f \
-                               /vagrant/ml-oss-sandbox/config/values-oss-lab-v2.yaml"
+
+# Install the switch
+su - vagrant -c "helm upgrade --install --namespace ml-app mojaloop ../helm/mojaloop -f  /vagrant/ml-oss-sandbox/config/values-oss-lab-v2.yaml"
+
+# Install kong ingress 
+su - vagrant -c "helm upgrade --install --namespace ml-app kong kong/kong -f /vagrant/ml-oss-sandbox/config/kong_values.yaml"
+su - vagrant -c "kubectl apply -f /vagrant/ml-oss-sandbox/charts/ingress_kong_admin.yaml"
+su - vagrant -c "kubectl apply -f /vagrant/ml-oss-sandbox/charts/ingress_kong_fspiop.yaml"
+su - vagrant -c "kubectl apply -f /vagrant/ml-oss-sandbox/charts/ingress_simulators.yaml"
+su - vagrant -c "kubectl apply -f /vagrant/ml-oss-sandbox/charts/ingress_ttk.yaml"
+su - vagrant -c "kubectl apply -f /vagrant/ml-oss-sandbox/charts/ingress_kong_thirdparty.yaml" 
+
