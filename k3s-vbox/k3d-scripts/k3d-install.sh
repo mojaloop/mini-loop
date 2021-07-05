@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # for multinode k3d/k3s vagrant / mojaloop installation 
 # see https://k3d.io
+# TODO: 
+#   - add kubctx 
+
 
 # various yum packages 
 apt install bash-completion -y
@@ -17,7 +20,7 @@ groupadd docker
 usermod -a -G docker vagrant
 systemctl start docker
 
-# installing k3d (so we can have multi-node)
+# installing k3d (so we can have multiple kubernetes worker nodes )
 su - vagrant -c "wget -q -O - https://raw.githubusercontent.com/rancher/k3d/main/install.sh | bash" 
 
 # install & configure kubectl 
@@ -49,7 +52,7 @@ curl -o $HOME/helm.tar.gz https://get.helm.sh/helm-v3.5.2-linux-amd64.tar.gz
 cat helm.tar.gz | gzip -d -c | tar xf -
 cp $HOME/linux-amd64/helm /usr/local/bin 
 
-# create k3d cluster with calico CNI and nginx ingress
+# create k3d cluster with nginx ingress
 # see : https://en.sokube.ch/post/k3s-k3d-k8s-a-new-perfect-match-for-dev-and-test-1
 su - vagrant -c "wget -q https://raw.githubusercontent.com/rancher/k3d/main/docs/usage/guides/calico.yaml -P /home/vagrant"
 cat << !EOF > /home/vagrant/helm-ingress-nginx.yaml 
@@ -67,13 +70,34 @@ spec:
   targetNamespace: kube-system
 !EOF
 
-chown vagrant /home/vagrant/helm-ingress-nginx.yaml
-su - vagrant -c "k3d cluster create mojaclus --port 8080:80@loadbalancer --port 8443:443@loadbalancer --k3s-server-arg '--flannel-backend=none' --k3s-server-arg '--no-deploy=traefik' \
-      --agents 2 \ 
-      --volume \"/home/vagrant/calico.yaml:/var/lib/rancher/k3s/server/manifests/calico.yaml\" \
-      --volume \"/home/vagrant/helm-ingress-nginx.yaml:/var/lib/rancher/k3s/server/manifests/helm-ingress-nginx.yaml\" " 
+
+# use default flannel CNI but use nginx ingress
+# not using calico as CNI as it causes issues with k3d being able to ping pod to pod 
+# TODO: investigate if adding a default any-to-any pod networking policy would solve the inability of calico as CNI to 
+#       support pod-to-pod communications (this is possible) ? 
+# There are some known with DNS issues with K3D see @https://github.com/rancher/k3d/issues/209
+su - vagrant -c "k3d cluster create mojaclus --port 8080:80@loadbalancer --port 8443:443@loadbalancer --k3s-server-arg '--no-deploy=traefik' \
+      --volume \"/home/vagrant/helm-ingress-nginx.yaml:/var/lib/rancher/k3s/server/manifests/helm-ingress-nginx.yaml\" \
+      --volume \"/run/systemd/resolve/resolv.conf:/etc/resolv.conf\" "
 
 su - vagrant -c "k3d kubeconfig get mojaclus > /home/vagrant/mojaconfig.yaml"
 echo "export KUBECONFIG=/home/vagrant/mojaconfig.yaml" >> /home/vagrant/.bashrc
 
+# note : might still need to run the lines below to fix the DNS issues not the resolv.conf path
+#        is somewhat ubuntu specific 
+# NAMESERVERS=`grep nameserver /run/systemd/resolve/resolv.conf | awk '{print $2}' | xargs`
+# cmpatch=$(kubectl get cm coredns -n kube-system --template='{{.data.Corefile}}' | sed "s/forward.*/forward . $NAMESERVERS/g" | tr '\n' '^' | xargs -0 printf '{"data": {"Corefile":"%s"}}' | sed -E 's%\^%\\n%g') && kubectl patch cm coredns -n kube-system -p="$cmpatch"
+
 #npx ml-bootstrap@0.3.16 -c $DIR/../docker-local/ml-bootstrap-config.json5
+
+##############################################################################################################
+# This is how to create a K3d cluster with calico as CNI 
+# but don't use until the problems described above are solved 
+# chown vagrant /home/vagrant/helm-ingress-nginx.yaml
+# su - vagrant -c "k3d cluster create mojaclus --port 8080:80@loadbalancer --port 8443:443@loadbalancer --k3s-server-arg '--flannel-backend=none' --k3s-server-arg '--no-deploy=traefik' \
+#       --agents 2 \ 
+#       --volume \"/home/vagrant/calico.yaml:/var/lib/rancher/k3s/server/manifests/calico.yaml\" \
+#       --volume \"/home/vagrant/helm-ingress-nginx.yaml:/var/lib/rancher/k3s/server/manifests/helm-ingress-nginx.yaml\" " 
+
+
+
