@@ -4,7 +4,7 @@
 # Runs a demo transfer
 #
 ##
-export CLUSTER_IP="localhost"
+export CLUSTER_IP="ml-api-adapter.local:8080"
 export CURRENCY="USD"
 
 red=$'\e[1;31m'
@@ -22,8 +22,8 @@ DATE=$(echo 'nowDate = new Date(); console.log(nowDate.toGMTString());' > /tmp/d
 EXPIRATION_DATE=$(echo 'nowDate = new Date(); nowDate.setDate(nowDate.getDate() + 1); console.log(nowDate.toISOString());' > /tmp/date && node /tmp/date)
 COMPLETED_TIMESTAMP=$(echo 'nowDate = new Date(); nowDate.setDate(nowDate.getDate()); console.log(nowDate.toISOString());' > /tmp/date && node /tmp/date)
 
-PAYEE_FSP_ID="payeefsp"
-PAYER_FSP_ID="payerfsp"
+PAYEE_FSP_ID="applebank"
+PAYER_FSP_ID="bananabank"
 
 createTransfer() {
   echo $cyn"Creating the transfer (request from Payer -> Payee) $white"

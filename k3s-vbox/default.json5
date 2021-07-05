@@ -1,0 +1,67 @@
+// This is a config file based on 
+// https://github.com/vessels-tech/ml-bootstrap/blob/master/example/default.json5
+{
+  currency: 'USD',
+  urls: {
+    // Note: we don't set `fspiop` here, since docker-local isn't running behind an api gateway
+    // that means ml-bootstrap needs to talk individually to the components making up the fspiop api.
+    // For now, the only part of the fspiop-api ml-bootstrap needs to know about is /parties and /participants
+    alsEndpoint: 'http://account-lookup-service.local:8080',
+    alsAdmin: 'http://account-lookup-service-admin.local:8080',
+    centralLedgerAdmin: 'http://central-ledger.local:8080',
+  },
+  oracles: [
+    { oracleIdType: "MSISDN", endpoint: "http://dev2-simulator.mojaloop.live:8080/"},
+    // { oracleIdType: "CONSENT", endpoint: "http://als-consent-oracle:3000"}
+  ],
+  participants: [
+    {
+      id: 'applebank',
+      type: 'DFSP',
+      simulatorAdminUrl: 'http://dev2-sim-applebank.mojaloop.live:8080/sim/applebank/test',
+      // use inbound for fspiopCallbackUrl
+      fspiopCallbackUrl: 'http://simulators-sim-applebank-scheme-adapter:4000',
+      thirdpartyCallbackUrl: '',
+      parties: [
+        {
+          // TODO: detailed account list!
+          displayName: "Alice Alpaca",
+          firstName: "Alice",
+          middleName: "K",
+          lastName: "Alpaca",
+          dateOfBirth: "1970-01-01",
+          idType: "MSISDN",
+          idValue: "123456789"
+        },
+      ]
+    },
+    {
+      id: 'bananabank',
+      type: 'DFSP',
+      simulatorAdminUrl: 'http://dev2-sim-bananabank.mojaloop.live:8080/sim/bananabank/test',
+      fspiopCallbackUrl: 'http://simulators-sim-bananabank-scheme-adapter:4000',
+      thirdpartyCallbackUrl: '',
+      parties: [
+        {
+          displayName: "Bob Babirusa",
+          firstName: "Bob",
+          middleName: "O",
+          lastName: "Babirusa",
+          dateOfBirth: "1970-01-01",
+          idType: "MSISDN",
+          idValue: "987654321"   
+        },
+        {
+          displayName: "Billy Bairus",
+          firstName: "Bob",
+          middleName: "O",
+          lastName: "Babirusa",
+          dateOfBirth: "1970-01-01",
+          idType: "MSISDN",
+          idValue: "255255255255"   
+        },
+      ]
+    },
+    
+  ]
+}

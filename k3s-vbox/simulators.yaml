@@ -1,0 +1,169 @@
+NAME: simulators
+LAST DEPLOYED: Sat Jul  3 09:11:31 2021
+NAMESPACE: ml-app
+STATUS: pending-install
+REVISION: 1
+TEST SUITE: None
+USER-SUPPLIED VALUES:
+{}
+
+COMPUTED VALUES:
+defaultProbes:
+  livenessProbe:
+    enabled: true
+    failureThreshold: 3
+    initialDelaySeconds: 3
+    periodSeconds: 30
+    successThreshold: 1
+    timeoutSeconds: 10
+  readinessProbe:
+    enabled: true
+    failureThreshold: 3
+    initialDelaySeconds: 3
+    periodSeconds: 5
+    successThreshold: 1
+    timeoutSeconds: 5
+defaults:
+  config:
+    affinity: {}
+    backend:
+      env:
+        CA_CERT_PATH: ./secrets/cacert.pem
+        FEE_MULTIPLIER: "0.05"
+        HTTPS_ENABLED: false
+        LOG_INDENT: "0"
+        MODEL_DATABASE: ./model.sqlite
+        MUTUAL_TLS_ENABLED: false
+        REPORT_API_LISTEN_PORT: 3002
+        RULES_FILE: ../rules/rules.json
+        SERVER_CERT_PATH: ./secrets/servercert.pem
+        SERVER_KEY_PATH: ./secrets/serverkey.pem
+        SIMULATOR_API_LISTEN_PORT: 3000
+        SQLITE_LOG_FILE: ./log.sqlite
+        TEST_API_LISTEN_PORT: 3003
+      image:
+        pullPolicy: IfNotPresent
+        repository: mojaloop/mojaloop-simulator
+        tag: v11.3.0
+      initContainers: []
+      livenessProbe:
+        enabled: true
+        failureThreshold: 3
+        initialDelaySeconds: 3
+        periodSeconds: 30
+        successThreshold: 1
+        timeoutSeconds: 10
+      readinessProbe:
+        enabled: true
+        failureThreshold: 3
+        initialDelaySeconds: 3
+        periodSeconds: 5
+        successThreshold: 1
+        timeoutSeconds: 5
+      rules: '[]'
+    cache:
+      enabled: true
+      image:
+        pullPolicy: IfNotPresent
+        repository: redis
+        tag: 5.0.4-alpine
+      initContainers: []
+      livenessProbe:
+        enabled: true
+        timeoutSeconds: 5
+      readinessProbe:
+        enabled: true
+        timeoutSeconds: 5
+    imagePullSecretName: dock-casa-secret
+    nodeSelector: {}
+    resources: {}
+    schemeAdapter:
+      env:
+        ALLOW_TRANSFER_WITHOUT_QUOTE: false
+        AUTO_ACCEPT_PARTY: false
+        AUTO_ACCEPT_QUOTES: false
+        CACHE_PORT: 6379
+        CHECK_ILP: true
+        ENABLE_OAUTH_TOKEN_ENDPOINT: false
+        ENABLE_TEST_FEATURES: true
+        EXPIRY_SECONDS: "60"
+        ILP_SECRET: Quaixohyaesahju3thivuiChai5cahng
+        INBOUND_LISTEN_PORT: 4000
+        INBOUND_MUTUAL_TLS_ENABLED: false
+        JWS_SIGN: false
+        JWS_SIGN_PUT_PARTIES: true
+        JWS_VERIFICATION_KEYS_DIRECTORY: /jwsVerificationKeys
+        LOG_INDENT: "0"
+        OAUTH_CLIENT_KEY: ""
+        OAUTH_CLIENT_SECRET: ""
+        OAUTH_REFRESH_SECONDS: "3600"
+        OAUTH_TOKEN_ENDPOINT: ""
+        OAUTH_TOKEN_ENDPOINT_CLIENT_KEY: test-client-key
+        OAUTH_TOKEN_ENDPOINT_CLIENT_SECRET: test-client-secret
+        OAUTH_TOKEN_ENDPOINT_LISTEN_PORT: "6000"
+        OUTBOUND_LISTEN_PORT: 4001
+        OUTBOUND_MUTUAL_TLS_ENABLED: false
+        PEER_ENDPOINT: mojaloop-switch
+        REJECT_EXPIRED_QUOTE_RESPONSES: false
+        REJECT_EXPIRED_TRANSFER_FULFILS: false
+        REJECT_TRANSFERS_ON_EXPIRED_QUOTES: false
+        REQUEST_PROCESSING_TIMEOUT_SECONDS: "30"
+        RESOURCE_VERSIONS: transfers=1.1,quotes=1.0
+        TEST_LISTEN_PORT: 4002
+        USE_QUOTE_SOURCE_FSP_AS_TRANSFER_PAYEE_FSP: false
+        VALIDATE_INBOUND_JWS: false
+        VALIDATE_INBOUND_PUT_PARTIES_JWS: true
+        WS02_BEARER_TOKEN: 7718fa9b-be13-3fe7-87f0-a12cf1628168
+        WSO2_AUTH_FAILURE_REQUEST_RETRIES: "0"
+      image:
+        pullPolicy: IfNotPresent
+        repository: mojaloop/sdk-scheme-adapter
+        tag: v11.11.2
+      initContainers: []
+      livenessProbe:
+        enabled: true
+        failureThreshold: 3
+        initialDelaySeconds: 3
+        periodSeconds: 30
+        successThreshold: 1
+        timeoutSeconds: 10
+      readinessProbe:
+        enabled: true
+        failureThreshold: 3
+        initialDelaySeconds: 3
+        periodSeconds: 5
+        successThreshold: 1
+        timeoutSeconds: 5
+      scale:
+        enabled: false
+        spec:
+          maxReplicas: 10
+          metrics:
+          - resource:
+              name: cpu
+              target:
+                averageUtilization: 80
+                type: Utilization
+            type: Resource
+          minReplicas: 1
+      secrets:
+        jws:
+          privKeySecretName: {}
+          privateKey: ""
+          publicKey: ""
+          publicKeyConfigMapName: {}
+        tls:
+          inbound: null
+          outbound: null
+    tolerations: []
+  ingress:
+    enabled: false
+ingress:
+  annotations: null
+  ingressPathRewriteRegex: /
+sharedJWSPubKeys: null
+simulators: {}
+
+HOOKS:
+MANIFEST:
+

@@ -1,0 +1,258 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    cni.projectcalico.org/podIP: 192.168.82.223/32
+    cni.projectcalico.org/podIPs: 192.168.82.223/32
+  creationTimestamp: "2021-06-27T12:32:51Z"
+  generateName: mojaloop-account-lookup-service-d85549555-
+  labels:
+    app.kubernetes.io/instance: mojaloop
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: account-lookup-service
+    app.kubernetes.io/version: 11.1.0
+    helm.sh/chart: account-lookup-service-11.1.0
+    pod-template-hash: d85549555
+  name: mojaloop-account-lookup-service-d85549555-k6fz5
+  namespace: ml-app
+  ownerReferences:
+  - apiVersion: apps/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: ReplicaSet
+    name: mojaloop-account-lookup-service-d85549555
+    uid: 63676b72-0984-4a2d-a979-07655b80cb4b
+  resourceVersion: "7777"
+  uid: e1c2ba8c-9743-41d2-a8c7-655692b19161
+spec:
+  containers:
+  - command:
+    - node
+    - src/index.js
+    - server
+    - --api
+    env:
+    - name: LOG_LEVEL
+      value: info
+    - name: CSL_LOG_TRANSPORT
+      value: file
+    - name: EVENT_SDK_LOG_FILTER
+    - name: EVENT_SDK_LOG_METADATA_ONLY
+    - name: EVENT_SDK_SIDECAR_DISABLED
+      value: "false"
+    - name: EVENT_SDK_SERVER_HOST
+      value: localhost
+    - name: EVENT_SDK_SERVER_PORT
+      value: "50051"
+    - name: EVENT_SDK_VENDOR_PREFIX
+    - name: EVENT_SDK_TRACESTATE_HEADER_ENABLED
+    - name: EVENT_SDK_ASYNC_OVERRIDE_EVENTS
+    - name: EVENT_SDK_TRACEID_PER_VENDOR
+    image: mojaloop/account-lookup-service:v11.2.1
+    imagePullPolicy: IfNotPresent
+    livenessProbe:
+      failureThreshold: 3
+      httpGet:
+        path: /health
+        port: http-api
+        scheme: HTTP
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 1
+    name: account-lookup-service
+    ports:
+    - containerPort: 4002
+      name: http-api
+      protocol: TCP
+    readinessProbe:
+      failureThreshold: 3
+      httpGet:
+        path: /health
+        port: http-api
+        scheme: HTTP
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 1
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /opt/account-lookup-service/config
+      name: mojaloop-account-lookup-service-config-volume
+    - mountPath: /opt/account-lookup-service/secrets
+      name: jws-signing-key
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-pf88m
+      readOnly: true
+  - command:
+    - npm
+    - run
+    - start
+    env:
+    - name: LOG_LEVEL
+      value: info
+    - name: LOG_FILTER
+      value: error, warn, info
+    - name: EVENT_SDK_LOG_FILTER
+      value: audit:*, log:info, log:warn, log:error
+    - name: EVENT_SDK_LOG_METADATA_ONLY
+      value: "true"
+    image: mojaloop/event-sidecar:v11.0.0
+    imagePullPolicy: IfNotPresent
+    livenessProbe:
+      failureThreshold: 3
+      httpGet:
+        path: /health
+        port: 4003
+        scheme: HTTP
+      initialDelaySeconds: 90
+      periodSeconds: 15
+      successThreshold: 1
+      timeoutSeconds: 1
+    name: account-lookup-service-sidecar
+    ports:
+    - containerPort: 4003
+      protocol: TCP
+    readinessProbe:
+      failureThreshold: 3
+      httpGet:
+        path: /health
+        port: 4003
+        scheme: HTTP
+      initialDelaySeconds: 120
+      periodSeconds: 15
+      successThreshold: 1
+      timeoutSeconds: 1
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /opt/event-sidecar/config
+      name: mojaloop-account-lookup-service-sidecar-volume
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-pf88m
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  initContainers:
+  - command:
+    - sh
+    - -c
+    - until mysql -h mysql-als -P 3306 -u account_lookup --password=password  account_lookup   -e
+      'select * from oracleEndpoint;' ; do echo waiting for MySQL; sleep 2; done;
+    image: mysql:latest
+    imagePullPolicy: IfNotPresent
+    name: wait-for-mysql
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-pf88m
+      readOnly: true
+  nodeName: k3d-mojaclus-server-0
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - configMap:
+      defaultMode: 420
+      items:
+      - key: default.json
+        path: default.json
+      - key: knexfile.js
+        path: knexfile.js
+      name: mojaloop-account-lookup-service-config
+    name: mojaloop-account-lookup-service-config-volume
+  - name: jws-signing-key
+    secret:
+      defaultMode: 420
+      secretName: mojaloop-account-lookup-service-jws-signing-key
+  - configMap:
+      defaultMode: 420
+      items:
+      - key: default.json
+        path: default.json
+      name: mojaloop-account-lookup-service-sidecar
+    name: mojaloop-account-lookup-service-sidecar-volume
+  - name: default-token-pf88m
+    secret:
+      defaultMode: 420
+      secretName: default-token-pf88m
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2021-06-27T12:32:51Z"
+    message: 'containers with incomplete status: [wait-for-mysql]'
+    reason: ContainersNotInitialized
+    status: "False"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2021-06-27T12:32:51Z"
+    message: 'containers with unready status: [account-lookup-service account-lookup-service-sidecar]'
+    reason: ContainersNotReady
+    status: "False"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2021-06-27T12:32:51Z"
+    message: 'containers with unready status: [account-lookup-service account-lookup-service-sidecar]'
+    reason: ContainersNotReady
+    status: "False"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2021-06-27T12:32:51Z"
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - image: mojaloop/account-lookup-service:v11.2.1
+    imageID: ""
+    lastState: {}
+    name: account-lookup-service
+    ready: false
+    restartCount: 0
+    started: false
+    state:
+      waiting:
+        reason: PodInitializing
+  - image: mojaloop/event-sidecar:v11.0.0
+    imageID: ""
+    lastState: {}
+    name: account-lookup-service-sidecar
+    ready: false
+    restartCount: 0
+    started: false
+    state:
+      waiting:
+        reason: PodInitializing
+  hostIP: 172.20.0.2
+  initContainerStatuses:
+  - containerID: containerd://4fdb6be54aa6cdaec4f864d0edf60a6d68169013c628d8adabf5cd75dac61614
+    image: docker.io/library/mysql:latest
+    imageID: docker.io/library/mysql@sha256:52b8406e4c32b8cf0557f1b74517e14c5393aff5cf0384eff62d9e81f4985d4b
+    lastState: {}
+    name: wait-for-mysql
+    ready: false
+    restartCount: 0
+    state:
+      running:
+        startedAt: "2021-06-27T12:40:13Z"
+  phase: Pending
+  podIP: 192.168.82.223
+  podIPs:
+  - ip: 192.168.82.223
+  qosClass: BestEffort
+  startTime: "2021-06-27T12:32:51Z"

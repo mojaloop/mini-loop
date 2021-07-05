@@ -21,6 +21,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network "forwarded_port", guest: 9001, host: 9001
   config.vm.synced_folder "../../ml-oss-sandbox", "/vagrant/ml-oss-sandbox"
   config.vm.synced_folder "../../demo-mojawallet", "/vagrant/demo-mojawallet"
+  config.vm.synced_folder "../../ml-bootstrap", "/vagrant/ml-bootstrap"
   
   #config.vm.synced_folder "../../../learn", "/vagrant/learn"
 

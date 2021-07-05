@@ -8,6 +8,7 @@ apt install bash-completion -y
 echo "install  version 10+ of node"
 curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash
 apt-get install -y nodejs
+apt-get install -y jq
 
 #install docker.io as k3d needs docker currently in fact it runs in containers in docker
 apt update -y 
@@ -75,3 +76,4 @@ su - vagrant -c "k3d cluster create mojaclus --port 8080:80@loadbalancer --port 
 su - vagrant -c "k3d kubeconfig get mojaclus > /home/vagrant/mojaconfig.yaml"
 echo "export KUBECONFIG=/home/vagrant/mojaconfig.yaml" >> /home/vagrant/.bashrc
 
+#npx ml-bootstrap@0.3.16 -c $DIR/../docker-local/ml-bootstrap-config.json5
