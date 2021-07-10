@@ -31,11 +31,13 @@ Thumbs.db
 .pydevproject
 .idea
 *.log
-*.json
 *.swp
 sds_*
 Pipfile*
 !.gitignore
+
+# large artifacts
+*gz
 
 # VSCode
 .vscode

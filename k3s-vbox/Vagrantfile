@@ -19,7 +19,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network "forwarded_port", guest: 6443, host: 8282
   config.vm.network "forwarded_port", guest: 9000, host: 9000
   config.vm.network "forwarded_port", guest: 9001, host: 9001
-  config.vm.network "forwarded_port", guest: 6060, host: 6060
   config.vm.synced_folder "../../ml-oss-sandbox", "/vagrant/ml-oss-sandbox"
   config.vm.synced_folder "../../demo-mojawallet", "/vagrant/demo-mojawallet"
   config.vm.synced_folder "../../ml-bootstrap", "/vagrant/ml-bootstrap"

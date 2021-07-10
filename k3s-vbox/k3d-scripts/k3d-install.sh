@@ -39,6 +39,10 @@ echo "complete -F __start_kubectl k " >> /home/vagrant/.bashrc
 echo 'alias ksetns="kubectl config set-context --current --namespace"'  >> /home/vagrant/.bashrc
 echo "alias ksetuser=\"kubectl config set-context --current --user\""  >> /home/vagrant/.bashrc
 
+#install kubens (to facilitate namespace switching)
+curl -s -L https://github.com/ahmetb/kubectx/releases/download/v0.9.4/kubens_v0.9.4_linux_x86_64.tar.gz | gzip -d -c | tar xf -
+mv ./kubens /usr/local/bin
+
 # install kustomize
 curl -s "https://raw.githubusercontent.com/\
 kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
@@ -83,7 +87,7 @@ su - vagrant -c "k3d cluster create mojaclus --port 8080:80@loadbalancer --port 
 su - vagrant -c "k3d kubeconfig get mojaclus > /home/vagrant/mojaconfig.yaml"
 echo "export KUBECONFIG=/home/vagrant/mojaconfig.yaml" >> /home/vagrant/.bashrc
 
-# note : might still need to run the lines below to fix the DNS issues not the resolv.conf path
+# note : might still need to run the lines below to fix the DNS issues.  Note the resolv.conf path
 #        is somewhat ubuntu specific 
 # NAMESERVERS=`grep nameserver /run/systemd/resolve/resolv.conf | awk '{print $2}' | xargs`
 # cmpatch=$(kubectl get cm coredns -n kube-system --template='{{.data.Corefile}}' | sed "s/forward.*/forward . $NAMESERVERS/g" | tr '\n' '^' | xargs -0 printf '{"data": {"Corefile":"%s"}}' | sed -E 's%\^%\\n%g') && kubectl patch cm coredns -n kube-system -p="$cmpatch"
