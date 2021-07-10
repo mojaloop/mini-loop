@@ -1,0 +1,220 @@
+
+replicaCount: 1
+
+ingress:
+  enabled: true
+  annotations:
+        nginx.ingress.kubernetes.io/rewrite-target: /$2
+  ingressPathRewriteRegex: (/|$)(.*)      
+
+simulators:
+  bananabank:
+    ingress:
+      enabled: true
+      
+      hosts: 
+        - dev2-sim-bananabank.mojaloop.live
+    config:
+      schemeAdapter:
+        secrets:
+          jws:
+            privateKey: |-
+              -----BEGIN PRIVATE KEY-----
+              MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDH5Q+uzIdf7yTX
+              4A23TTaGSCMU6ieKUmg2qsRJ0/lnk50A0eFQb98ux/XT90oEpqa8dqpla7lic3BK
+              XdWoUYI+zmauzepTE3L0IZJB7VzQcPfbZiFG7OrGPAUtxxz4FBbKSA7FJnchIAEs
+              blsyu2mQx+zbeajnQS3P+6oqDjdyuT5JyDjna7UFarozx1YXExwyfKsEtIPuMh/U
+              L/q80gtWbXA9nA38t7vmdqxhh4PMddHgSEl6KK29yqwHsgpVg/5Yi0ubhbgLQbHm
+              6XflBQK05t5AqD2j5h94h/dk9WzoWft8/haxI3OqFoaOOQmHemSs3KJndL+PyzL7
+              6JCMlsHBAgMBAAECggEACsA4V3WjG0cEo4KmojLqKY80KdINJdyYQ8Zr76+RpJ81
+              DL/8/wNBTOYOw+NzLOxcn9q+/9zrF88vHSTOUrLtjxyxO5oSDf1IC7bJg7e1K/XD
+              ct6bkBG6b8Z3HdbtaS9FaYQ2HSbcNeEfhwj5aTFYtGN4SvaQXb2s7dhydrgUhdw1
+              1TxXDio728BjRvCOex4H2lmJSflGYwHGJpy1C5Q8upAAMhKMP11598i9Vw7JJI4t
+              wZ2vv3w728ApnQzDIiLzKMvNtvoEwQ7PlnSevL6V4sYAnsAmx6ZctEEv632nGPqk
+              f5XLlDaczcRDcpAC+nyJKER7T/+emWNFlV0Mj+JMQQKBgQDncR0EzPRWGCDBmH8K
+              e2hzzS0RmLb1nouhcFb6EiQR4WTvB8BjAJuf1Brq7gX1b/gGfWkYPS/9AKOI/JzO
+              YHACgQmvTaF2WMHcvhb2F/Z96cKIpsD++RIARClv7MSfbTBVcBXbwaboN/B89sGG
+              4+07ciy4uCwdK7wJP2gSyy3AsQKBgQDdGwDGppVdcGc4cStlCKoGQnT5owCidqP+
+              pLdF5d69pLKaFKFzUh92dUOwLh4qonuOgGGy574JE0oncKn72eie6biEesu+4uuR
+              Teu2qrKiHBPDtPlrBZrYnlyE6h9dftAie++bu0UzMSP4WtevxzF0xykELXtlJUx7
+              fSjZ7UnWEQKBgQC/qdPPQu/hUG/oAyLKCnLw22xEU0TI2XhmxEKzK0zFpfPRY4j2
+              M+2tCZkVDvLOU+CBd2AOG7Xe/qVvb0toOULpP/VGQLLC8DPzW1Rmjmep1Gkug3H2
+              dUtr/waV0uzt3h2V05G2gIN5ccHtquePjrfKb/4LJzIZIjvBKMpGLg6AsQKBgAs2
+              32cz88d1eAbI1qadNeJzZHN07QdQdSjpOdJ1wkJkJBrkiPvMYoQjlndNH4KSEyo7
+              ILluP5k+PTia4kQ/3SiSOiWeBM99uuz3wsjVB5JpUidO+oePFTd/cLndFhIr6GqX
+              VqPTb8MU7vodwWrM85k0sMPheqy6o5Jv2q6S9nfBAoGAai34NUJam3rAw+5EF1fI
+              9v1AQxFmCX1xPawaFqudGxwod+NtrU5T11O07gDOC9V1ZdDU5btTlEoDgDiy5GNo
+              9Bve6yCxr2L7ZaKNccw+yuqTrIzHD4JBpanHjafPCDB+auW0U1lP7Q7TDSzJ42E9
+              yq8V8FKKjAQ2hlGoSVfEvG0=
+              -----END PRIVATE KEY-----
+            publicKey: |-
+              -----BEGIN PUBLIC KEY-----
+              MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAx+UPrsyHX+8k1+ANt002
+              hkgjFOonilJoNqrESdP5Z5OdANHhUG/fLsf10/dKBKamvHaqZWu5YnNwSl3VqFGC
+              Ps5mrs3qUxNy9CGSQe1c0HD322YhRuzqxjwFLccc+BQWykgOxSZ3ISABLG5bMrtp
+              kMfs23mo50Etz/uqKg43crk+Scg452u1BWq6M8dWFxMcMnyrBLSD7jIf1C/6vNIL
+              Vm1wPZwN/Le75nasYYeDzHXR4EhJeiitvcqsB7IKVYP+WItLm4W4C0Gx5ul35QUC
+              tObeQKg9o+YfeIf3ZPVs6Fn7fP4WsSNzqhaGjjkJh3pkrNyiZ3S/j8sy++iQjJbB
+              wQIDAQAB
+              -----END PUBLIC KEY-----
+              
+  applebank:
+    ingress:
+      enabled: true
+      
+      hosts: 
+        - dev2-sim-applebank.mojaloop.live
+    config:
+      schemeAdapter:
+        secrets:
+          jws:
+            privateKey: |-
+              -----BEGIN PRIVATE KEY-----
+              MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDH5Q+uzIdf7yTX
+              4A23TTaGSCMU6ieKUmg2qsRJ0/lnk50A0eFQb98ux/XT90oEpqa8dqpla7lic3BK
+              XdWoUYI+zmauzepTE3L0IZJB7VzQcPfbZiFG7OrGPAUtxxz4FBbKSA7FJnchIAEs
+              blsyu2mQx+zbeajnQS3P+6oqDjdyuT5JyDjna7UFarozx1YXExwyfKsEtIPuMh/U
+              L/q80gtWbXA9nA38t7vmdqxhh4PMddHgSEl6KK29yqwHsgpVg/5Yi0ubhbgLQbHm
+              6XflBQK05t5AqD2j5h94h/dk9WzoWft8/haxI3OqFoaOOQmHemSs3KJndL+PyzL7
+              6JCMlsHBAgMBAAECggEACsA4V3WjG0cEo4KmojLqKY80KdINJdyYQ8Zr76+RpJ81
+              DL/8/wNBTOYOw+NzLOxcn9q+/9zrF88vHSTOUrLtjxyxO5oSDf1IC7bJg7e1K/XD
+              ct6bkBG6b8Z3HdbtaS9FaYQ2HSbcNeEfhwj5aTFYtGN4SvaQXb2s7dhydrgUhdw1
+              1TxXDio728BjRvCOex4H2lmJSflGYwHGJpy1C5Q8upAAMhKMP11598i9Vw7JJI4t
+              wZ2vv3w728ApnQzDIiLzKMvNtvoEwQ7PlnSevL6V4sYAnsAmx6ZctEEv632nGPqk
+              f5XLlDaczcRDcpAC+nyJKER7T/+emWNFlV0Mj+JMQQKBgQDncR0EzPRWGCDBmH8K
+              e2hzzS0RmLb1nouhcFb6EiQR4WTvB8BjAJuf1Brq7gX1b/gGfWkYPS/9AKOI/JzO
+              YHACgQmvTaF2WMHcvhb2F/Z96cKIpsD++RIARClv7MSfbTBVcBXbwaboN/B89sGG
+              4+07ciy4uCwdK7wJP2gSyy3AsQKBgQDdGwDGppVdcGc4cStlCKoGQnT5owCidqP+
+              pLdF5d69pLKaFKFzUh92dUOwLh4qonuOgGGy574JE0oncKn72eie6biEesu+4uuR
+              Teu2qrKiHBPDtPlrBZrYnlyE6h9dftAie++bu0UzMSP4WtevxzF0xykELXtlJUx7
+              fSjZ7UnWEQKBgQC/qdPPQu/hUG/oAyLKCnLw22xEU0TI2XhmxEKzK0zFpfPRY4j2
+              M+2tCZkVDvLOU+CBd2AOG7Xe/qVvb0toOULpP/VGQLLC8DPzW1Rmjmep1Gkug3H2
+              dUtr/waV0uzt3h2V05G2gIN5ccHtquePjrfKb/4LJzIZIjvBKMpGLg6AsQKBgAs2
+              32cz88d1eAbI1qadNeJzZHN07QdQdSjpOdJ1wkJkJBrkiPvMYoQjlndNH4KSEyo7
+              ILluP5k+PTia4kQ/3SiSOiWeBM99uuz3wsjVB5JpUidO+oePFTd/cLndFhIr6GqX
+              VqPTb8MU7vodwWrM85k0sMPheqy6o5Jv2q6S9nfBAoGAai34NUJam3rAw+5EF1fI
+              9v1AQxFmCX1xPawaFqudGxwod+NtrU5T11O07gDOC9V1ZdDU5btTlEoDgDiy5GNo
+              9Bve6yCxr2L7ZaKNccw+yuqTrIzHD4JBpanHjafPCDB+auW0U1lP7Q7TDSzJ42E9
+              yq8V8FKKjAQ2hlGoSVfEvG0=
+              -----END PRIVATE KEY-----
+            publicKey: |-
+              -----BEGIN PUBLIC KEY-----
+              MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAx+UPrsyHX+8k1+ANt002
+              hkgjFOonilJoNqrESdP5Z5OdANHhUG/fLsf10/dKBKamvHaqZWu5YnNwSl3VqFGC
+              Ps5mrs3qUxNy9CGSQe1c0HD322YhRuzqxjwFLccc+BQWykgOxSZ3ISABLG5bMrtp
+              kMfs23mo50Etz/uqKg43crk+Scg452u1BWq6M8dWFxMcMnyrBLSD7jIf1C/6vNIL
+              Vm1wPZwN/Le75nasYYeDzHXR4EhJeiitvcqsB7IKVYP+WItLm4W4C0Gx5ul35QUC
+              tObeQKg9o+YfeIf3ZPVs6Fn7fP4WsSNzqhaGjjkJh3pkrNyiZ3S/j8sy++iQjJbB
+              wQIDAQAB
+              -----END PUBLIC KEY-----
+
+
+
+
+
+  carrotmm:
+    ingress:
+      enabled: true
+      hosts: 
+        - dev2-sim-carrotmm.mojaloop.live
+    config:
+      schemeAdapter:
+        secrets:
+          jws:
+            privateKey: |-
+              -----BEGIN PRIVATE KEY-----
+              MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDH5Q+uzIdf7yTX
+              4A23TTaGSCMU6ieKUmg2qsRJ0/lnk50A0eFQb98ux/XT90oEpqa8dqpla7lic3BK
+              XdWoUYI+zmauzepTE3L0IZJB7VzQcPfbZiFG7OrGPAUtxxz4FBbKSA7FJnchIAEs
+              blsyu2mQx+zbeajnQS3P+6oqDjdyuT5JyDjna7UFarozx1YXExwyfKsEtIPuMh/U
+              L/q80gtWbXA9nA38t7vmdqxhh4PMddHgSEl6KK29yqwHsgpVg/5Yi0ubhbgLQbHm
+              6XflBQK05t5AqD2j5h94h/dk9WzoWft8/haxI3OqFoaOOQmHemSs3KJndL+PyzL7
+              6JCMlsHBAgMBAAECggEACsA4V3WjG0cEo4KmojLqKY80KdINJdyYQ8Zr76+RpJ81
+              DL/8/wNBTOYOw+NzLOxcn9q+/9zrF88vHSTOUrLtjxyxO5oSDf1IC7bJg7e1K/XD
+              ct6bkBG6b8Z3HdbtaS9FaYQ2HSbcNeEfhwj5aTFYtGN4SvaQXb2s7dhydrgUhdw1
+              1TxXDio728BjRvCOex4H2lmJSflGYwHGJpy1C5Q8upAAMhKMP11598i9Vw7JJI4t
+              wZ2vv3w728ApnQzDIiLzKMvNtvoEwQ7PlnSevL6V4sYAnsAmx6ZctEEv632nGPqk
+              f5XLlDaczcRDcpAC+nyJKER7T/+emWNFlV0Mj+JMQQKBgQDncR0EzPRWGCDBmH8K
+              e2hzzS0RmLb1nouhcFb6EiQR4WTvB8BjAJuf1Brq7gX1b/gGfWkYPS/9AKOI/JzO
+              YHACgQmvTaF2WMHcvhb2F/Z96cKIpsD++RIARClv7MSfbTBVcBXbwaboN/B89sGG
+              4+07ciy4uCwdK7wJP2gSyy3AsQKBgQDdGwDGppVdcGc4cStlCKoGQnT5owCidqP+
+              pLdF5d69pLKaFKFzUh92dUOwLh4qonuOgGGy574JE0oncKn72eie6biEesu+4uuR
+              Teu2qrKiHBPDtPlrBZrYnlyE6h9dftAie++bu0UzMSP4WtevxzF0xykELXtlJUx7
+              fSjZ7UnWEQKBgQC/qdPPQu/hUG/oAyLKCnLw22xEU0TI2XhmxEKzK0zFpfPRY4j2
+              M+2tCZkVDvLOU+CBd2AOG7Xe/qVvb0toOULpP/VGQLLC8DPzW1Rmjmep1Gkug3H2
+              dUtr/waV0uzt3h2V05G2gIN5ccHtquePjrfKb/4LJzIZIjvBKMpGLg6AsQKBgAs2
+              32cz88d1eAbI1qadNeJzZHN07QdQdSjpOdJ1wkJkJBrkiPvMYoQjlndNH4KSEyo7
+              ILluP5k+PTia4kQ/3SiSOiWeBM99uuz3wsjVB5JpUidO+oePFTd/cLndFhIr6GqX
+              VqPTb8MU7vodwWrM85k0sMPheqy6o5Jv2q6S9nfBAoGAai34NUJam3rAw+5EF1fI
+              9v1AQxFmCX1xPawaFqudGxwod+NtrU5T11O07gDOC9V1ZdDU5btTlEoDgDiy5GNo
+              9Bve6yCxr2L7ZaKNccw+yuqTrIzHD4JBpanHjafPCDB+auW0U1lP7Q7TDSzJ42E9
+              yq8V8FKKjAQ2hlGoSVfEvG0=
+              -----END PRIVATE KEY-----
+            publicKey: |-
+              -----BEGIN PUBLIC KEY-----
+              MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAx+UPrsyHX+8k1+ANt002
+              hkgjFOonilJoNqrESdP5Z5OdANHhUG/fLsf10/dKBKamvHaqZWu5YnNwSl3VqFGC
+              Ps5mrs3qUxNy9CGSQe1c0HD322YhRuzqxjwFLccc+BQWykgOxSZ3ISABLG5bMrtp
+              kMfs23mo50Etz/uqKg43crk+Scg452u1BWq6M8dWFxMcMnyrBLSD7jIf1C/6vNIL
+              Vm1wPZwN/Le75nasYYeDzHXR4EhJeiitvcqsB7IKVYP+WItLm4W4C0Gx5ul35QUC
+              tObeQKg9o+YfeIf3ZPVs6Fn7fP4WsSNzqhaGjjkJh3pkrNyiZ3S/j8sy++iQjJbB
+              wQIDAQAB
+              -----END PUBLIC KEY-----
+  duriantech:
+    ingress:
+      enabled: true
+      hosts: 
+        - dev2-sim-duriantech.mojaloop.live
+    config:
+      schemeAdapter:
+        secrets:
+          jws:
+            privateKey: |-
+              -----BEGIN PRIVATE KEY-----
+              MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDH5Q+uzIdf7yTX
+              4A23TTaGSCMU6ieKUmg2qsRJ0/lnk50A0eFQb98ux/XT90oEpqa8dqpla7lic3BK
+              XdWoUYI+zmauzepTE3L0IZJB7VzQcPfbZiFG7OrGPAUtxxz4FBbKSA7FJnchIAEs
+              blsyu2mQx+zbeajnQS3P+6oqDjdyuT5JyDjna7UFarozx1YXExwyfKsEtIPuMh/U
+              L/q80gtWbXA9nA38t7vmdqxhh4PMddHgSEl6KK29yqwHsgpVg/5Yi0ubhbgLQbHm
+              6XflBQK05t5AqD2j5h94h/dk9WzoWft8/haxI3OqFoaOOQmHemSs3KJndL+PyzL7
+              6JCMlsHBAgMBAAECggEACsA4V3WjG0cEo4KmojLqKY80KdINJdyYQ8Zr76+RpJ81
+              DL/8/wNBTOYOw+NzLOxcn9q+/9zrF88vHSTOUrLtjxyxO5oSDf1IC7bJg7e1K/XD
+              ct6bkBG6b8Z3HdbtaS9FaYQ2HSbcNeEfhwj5aTFYtGN4SvaQXb2s7dhydrgUhdw1
+              1TxXDio728BjRvCOex4H2lmJSflGYwHGJpy1C5Q8upAAMhKMP11598i9Vw7JJI4t
+              wZ2vv3w728ApnQzDIiLzKMvNtvoEwQ7PlnSevL6V4sYAnsAmx6ZctEEv632nGPqk
+              f5XLlDaczcRDcpAC+nyJKER7T/+emWNFlV0Mj+JMQQKBgQDncR0EzPRWGCDBmH8K
+              e2hzzS0RmLb1nouhcFb6EiQR4WTvB8BjAJuf1Brq7gX1b/gGfWkYPS/9AKOI/JzO
+              YHACgQmvTaF2WMHcvhb2F/Z96cKIpsD++RIARClv7MSfbTBVcBXbwaboN/B89sGG
+              4+07ciy4uCwdK7wJP2gSyy3AsQKBgQDdGwDGppVdcGc4cStlCKoGQnT5owCidqP+
+              pLdF5d69pLKaFKFzUh92dUOwLh4qonuOgGGy574JE0oncKn72eie6biEesu+4uuR
+              Teu2qrKiHBPDtPlrBZrYnlyE6h9dftAie++bu0UzMSP4WtevxzF0xykELXtlJUx7
+              fSjZ7UnWEQKBgQC/qdPPQu/hUG/oAyLKCnLw22xEU0TI2XhmxEKzK0zFpfPRY4j2
+              M+2tCZkVDvLOU+CBd2AOG7Xe/qVvb0toOULpP/VGQLLC8DPzW1Rmjmep1Gkug3H2
+              dUtr/waV0uzt3h2V05G2gIN5ccHtquePjrfKb/4LJzIZIjvBKMpGLg6AsQKBgAs2
+              32cz88d1eAbI1qadNeJzZHN07QdQdSjpOdJ1wkJkJBrkiPvMYoQjlndNH4KSEyo7
+              ILluP5k+PTia4kQ/3SiSOiWeBM99uuz3wsjVB5JpUidO+oePFTd/cLndFhIr6GqX
+              VqPTb8MU7vodwWrM85k0sMPheqy6o5Jv2q6S9nfBAoGAai34NUJam3rAw+5EF1fI
+              9v1AQxFmCX1xPawaFqudGxwod+NtrU5T11O07gDOC9V1ZdDU5btTlEoDgDiy5GNo
+              9Bve6yCxr2L7ZaKNccw+yuqTrIzHD4JBpanHjafPCDB+auW0U1lP7Q7TDSzJ42E9
+              yq8V8FKKjAQ2hlGoSVfEvG0=
+              -----END PRIVATE KEY-----
+            publicKey: |-
+              -----BEGIN PUBLIC KEY-----
+              MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAx+UPrsyHX+8k1+ANt002
+              hkgjFOonilJoNqrESdP5Z5OdANHhUG/fLsf10/dKBKamvHaqZWu5YnNwSl3VqFGC
+              Ps5mrs3qUxNy9CGSQe1c0HD322YhRuzqxjwFLccc+BQWykgOxSZ3ISABLG5bMrtp
+              kMfs23mo50Etz/uqKg43crk+Scg452u1BWq6M8dWFxMcMnyrBLSD7jIf1C/6vNIL
+              Vm1wPZwN/Le75nasYYeDzHXR4EhJeiitvcqsB7IKVYP+WItLm4W4C0Gx5ul35QUC
+              tObeQKg9o+YfeIf3ZPVs6Fn7fP4WsSNzqhaGjjkJh3pkrNyiZ3S/j8sy++iQjJbB
+              wQIDAQAB
+              -----END PUBLIC KEY-----
+  
+defaults:
+  config:
+    schemeAdapter:
+      env:
+        VALIDATE_INBOUND_JWS: false
+        JWS_SIGN: true
+        PEER_ENDPOINT: beta.moja-lab.live/api/fspiop
+        ILP_SECRET: Quaixohyaesahju3thivuiChai5cahng
+        # CHECK_ILP: false

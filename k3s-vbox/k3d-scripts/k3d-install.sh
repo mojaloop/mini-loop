@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 # for multinode k3d/k3s vagrant / mojaloop installation 
 # see https://k3d.io
-# TODO: 
-#   - add kubctx 
-
 
 # various yum packages 
 apt install bash-completion -y
@@ -39,9 +36,12 @@ echo "complete -F __start_kubectl k " >> /home/vagrant/.bashrc
 echo 'alias ksetns="kubectl config set-context --current --namespace"'  >> /home/vagrant/.bashrc
 echo "alias ksetuser=\"kubectl config set-context --current --user\""  >> /home/vagrant/.bashrc
 
-#install kubens (to facilitate namespace switching)
+#install kubens & kubectx (to facilitate namespace & config switching)
 curl -s -L https://github.com/ahmetb/kubectx/releases/download/v0.9.4/kubens_v0.9.4_linux_x86_64.tar.gz | gzip -d -c | tar xf -
 mv ./kubens /usr/local/bin
+curl -s -L https://github.com/ahmetb/kubectx/releases/download/v0.9.4/kubectx_v0.9.4_linux_x86_64.tar.gz | gzip -d -c | tar xf -
+mv ./kubectx /usr/local/bin
+
 
 # install kustomize
 curl -s "https://raw.githubusercontent.com/\
@@ -51,12 +51,12 @@ mv ./kustomize /usr/local/bin
 # install helm
 echo "installing helm "
 echo "ID is `id`"
-cd $HOME
+cd /tmp
 curl -o $HOME/helm.tar.gz https://get.helm.sh/helm-v3.5.2-linux-amd64.tar.gz
 cat helm.tar.gz | gzip -d -c | tar xf -
 cp $HOME/linux-amd64/helm /usr/local/bin 
 
-# create k3d cluster with nginx ingress
+# prepare for nginx install into k3d cluster
 # see : https://en.sokube.ch/post/k3s-k3d-k8s-a-new-perfect-match-for-dev-and-test-1
 su - vagrant -c "wget -q https://raw.githubusercontent.com/rancher/k3d/main/docs/usage/guides/calico.yaml -P /home/vagrant"
 cat << !EOF > /home/vagrant/helm-ingress-nginx.yaml 

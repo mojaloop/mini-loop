@@ -2,6 +2,10 @@
 # install mojaloop into k3d 
 # uses Lewis Daly's ml-oss-sandbox
 # @see: github.com:vessels-tech/ml-oss-sandbox
+# TODO: 
+#   - check /vagrant/install/k3d-values-ttk-figmm.yaml and eggmm , are they correct helm chart values files ?
+#   - The hostnames and hostnames in the ingress's could be a lot tidier
+
 
 # add the mojaloop endpoints per doc at 
 echo "add /etc/hosts entries for local access to mojaloop endpoints" 
@@ -32,16 +36,16 @@ su - vagrant -c "helm repo update"
 su - vagrant -c "helm repo list"
 
 su - vagrant -c "kubectl create namespace ml-app"
-# Install the DBs
-su - vagrant -c "kubectl apply -f /vagrant/ml-oss-sandbox/charts/base/ss_mysql_td.yaml"
 
+# Install the DBs
+su - vagrant -c "kubectl apply -f /vagrant/install/k3d-ss-mysql.yaml"
 #todo Can I test DB install in this script or as a setup verification script ? 
 
 # Install the switch
-su - vagrant -c "helm upgrade --install --namespace ml-app mojaloop mojaloop/mojaloop -f  /vagrant/ml-oss-sandbox/config/td-values-oss-lab-v2.yaml"
+su - vagrant -c "helm upgrade --install --namespace ml-app mojaloop mojaloop/mojaloop -f  /vagrant/install/k3d--values-oss-lab-v2.yaml"
 
 # install-simulators for applebank and bananabank (at a minimum) and the ingress for the simulators 
-su - vagrant -c "helm upgrade --install --namespace ml-app simulators mojaloop/mojaloop-simulator -f /vagrant/ml-oss-sandbox/config/td-values-oss-lab-simulators.yaml"
+su - vagrant -c "helm upgrade --install --namespace ml-app simulators mojaloop/mojaloop-simulator -f /vagrant/install/k3d-values-oss-lab-simulators.yaml"
 
 # Install testing toolkit and the ingress for them 
 ## TODO: I think these values files for the TTK are wrong and can probably just leave out the --values flag and use the default from the 
