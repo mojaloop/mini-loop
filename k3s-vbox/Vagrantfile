@@ -5,7 +5,7 @@
 VAGRANTFILE_API_VERSION = "2"
 
 # define hostname
-NAME = "ml-k3s"
+NAME = "ml-k3d"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "hashicorp/bionic64"
@@ -19,7 +19,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network "forwarded_port", guest: 6443, host: 8282
   config.vm.network "forwarded_port", guest: 9000, host: 9000
   config.vm.network "forwarded_port", guest: 9001, host: 9001
-  config.vm.synced_folder "../../ml-oss-sandbox", "/vagrant/ml-oss-sandbox"
+  # config.vm.synced_folder "../../ml-oss-sandbox", "/vagrant/ml-oss-sandbox"
   config.vm.synced_folder "../../demo-mojawallet", "/vagrant/demo-mojawallet"
   config.vm.synced_folder "../../ml-bootstrap", "/vagrant/ml-bootstrap"
   
@@ -32,8 +32,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     vb.name = NAME
   end
 
-  config.vm.provision "file", source: "k3s-scripts",  \
-                              destination: "/vagrant/k3s-scripts"
+  # config.vm.provision "file", source: "k3d-scripts",  \
+  #                             destination: "/vagrant/k3d-scripts"
+  
+  # config.vm.provision "file", source: "install",  \
+  # destination: "/vagrant/install"
 
   # config.vm.provision "shell", inline: <<-SHELL
   #   # remove windows \r carriage return and run inline

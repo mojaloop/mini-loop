@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
 # for multinode k3d/k3s vagrant / mojaloop installation 
 # see https://k3d.io
+# TODO : update node if I need it.
+# this messages happened on last deployment test
+#  Node.js 10.x is no longer actively supported!
+
+#   You will not receive security or critical stability updates for this version.
+
+#   You should migrate to a supported version of Node.js as soon as possible.
+#   Use the installation script that corresponds to the version of Node.js you
+#   wish to install. e.g.
+
+#    * https://deb.nodesource.com/setup_12.x — Node.js 12 LTS "Erbium"
+#    * https://deb.nodesource.com/setup_14.x — Node.js 14 LTS "Fermium" (recommended)
+#    * https://deb.nodesource.com/setup_16.x — Node.js 16 "Gallium"
+
 
 # various yum packages 
 apt install bash-completion -y
@@ -52,9 +66,9 @@ mv ./kustomize /usr/local/bin
 echo "installing helm "
 echo "ID is `id`"
 cd /tmp
-curl -o $HOME/helm.tar.gz https://get.helm.sh/helm-v3.5.2-linux-amd64.tar.gz
-cat helm.tar.gz | gzip -d -c | tar xf -
-cp $HOME/linux-amd64/helm /usr/local/bin 
+curl -L -s -o ./helm.tar.gz https://get.helm.sh/helm-v3.6.2-linux-amd64.tar.gz
+cat ./helm.tar.gz | gzip -d -c | tar xf -
+cp ./linux-amd64/helm /usr/local/bin 
 
 # prepare for nginx install into k3d cluster
 # see : https://en.sokube.ch/post/k3s-k3d-k8s-a-new-perfect-match-for-dev-and-test-1

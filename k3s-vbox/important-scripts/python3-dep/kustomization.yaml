@@ -1,0 +1,5 @@
+resources:
+- ./python3-dep.yaml
+- ./python3-ingress.yaml
+- ./python3-service.yaml
+namespace: ml-app
