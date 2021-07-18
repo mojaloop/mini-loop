@@ -27,6 +27,12 @@ echo "complete -F __start_kubectl k " >> /home/vagrant/.bashrc
 echo 'alias ksetns="kubectl config set-context --current --namespace"'  >> /home/vagrant/.bashrc
 echo "alias ksetuser=\"kubectl config set-context --current --user\""  >> /home/vagrant/.bashrc
 
+#install kubens & kubectx (to facilitate namespace & config switching)
+curl -s -L https://github.com/ahmetb/kubectx/releases/download/v0.9.4/kubens_v0.9.4_linux_x86_64.tar.gz | gzip -d -c | tar xf -
+mv ./kubens /usr/local/bin
+curl -s -L https://github.com/ahmetb/kubectx/releases/download/v0.9.4/kubectx_v0.9.4_linux_x86_64.tar.gz | gzip -d -c | tar xf -
+mv ./kubectx /usr/local/bin
+
 # install kustomize
 curl -s "https://raw.githubusercontent.com/\
 kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
