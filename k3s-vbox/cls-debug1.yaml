@@ -22,7 +22,7 @@ metadata:
     kind: ReplicaSet
     name: mojaloop-centralledger-service-7cd7774d75
     uid: 9a9a4d31-d6fe-4a3e-ac84-3d0a5fda5ffa
-  resourceVersion: "8310"
+  resourceVersion: "12059"
   uid: f6aed068-2918-4e17-ae60-cd0a2733420e
 spec:
   containers:
@@ -220,26 +220,23 @@ status:
         finishedAt: "2021-07-26T07:14:49Z"
         reason: Completed
         startedAt: "2021-07-26T07:14:49Z"
-  - containerID: containerd://56d725c719700996ee547e56f39b15f423ec15421b0dfc40939c0df3a02da4c8
+  - containerID: containerd://e32359d965f762ab67d04178c897c9358cbefa1efce739681667938af6f58d87
     image: docker.io/mojaloop/central-ledger:v13.1.1
     imageID: docker.io/mojaloop/central-ledger@sha256:3148f786d2dbbe2c58da80b10afe17f44390d9dc501c8621155368153fed89bd
     lastState:
       terminated:
-        containerID: containerd://cf1a99ba7afbcd368d3aad70c258194f9fa885aa7645132876db22bd7cd85348
+        containerID: containerd://e32359d965f762ab67d04178c897c9358cbefa1efce739681667938af6f58d87
         exitCode: 1
-        finishedAt: "2021-07-26T07:21:22Z"
+        finishedAt: "2021-07-26T08:41:12Z"
         reason: Error
-        startedAt: "2021-07-26T07:21:21Z"
+        startedAt: "2021-07-26T08:41:10Z"
     name: run-migration
     ready: false
-    restartCount: 6
+    restartCount: 21
     state:
-      terminated:
-        containerID: containerd://56d725c719700996ee547e56f39b15f423ec15421b0dfc40939c0df3a02da4c8
-        exitCode: 1
-        finishedAt: "2021-07-26T07:24:04Z"
-        reason: Error
-        startedAt: "2021-07-26T07:24:03Z"
+      waiting:
+        message: back-off 5m0s restarting failed container=run-migration pod=mojaloop-centralledger-service-7cd7774d75-nqqw8_ml-app(f6aed068-2918-4e17-ae60-cd0a2733420e)
+        reason: CrashLoopBackOff
   phase: Pending
   podIP: 10.42.0.24
   podIPs:
