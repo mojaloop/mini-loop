@@ -3,10 +3,10 @@ central:
   enabled: true
   centralledger:
     centralledger-service:
-      containers:
-        api:
-          image:
-            tag: v13.1.1
+      # containers:
+        # api:
+          # image:
+            # tag: v13.1.1
       config:
         db_host: mysql-cl
         db_port: 3306
@@ -68,6 +68,26 @@ central:
         db_host: mysql-cl
         db_port: 3306
         db_password: password
+
+    centralsettlement-handler-deferredsettlement:
+      config:
+        db_host: mysql-cl
+        db_port: 3306
+        db_password: password
+    
+    centralsettlement-handler-rules:
+      config:
+        db_host: mysql-cl
+        db_port: 3306
+        db_password: password
+    
+    centralsettlement-handler-grosssettlement:
+      config:
+        db_host: mysql-cl
+        db_port: 3306
+        db_password: password
+          
+
 
 ml-api-adapter:
   # setting to false seems to have no effect

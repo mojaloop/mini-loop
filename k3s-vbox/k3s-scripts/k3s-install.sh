@@ -5,22 +5,34 @@
 # TLS for NGINX
 # Valid certificates
 
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit
+fi
+
+
 POSTMAN_TAG="v11.0.0"
 
-# install k3s w/o traefik (check on this maybe Mojaloop already has ingress)
-# as I am going to install nginx 
-#curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=traefik" sh -
+# install k3s w/o traefik as we install nginx below
+# will also install calico in future releases 
+# to clean-up and uninstall use : /usr/local/bin/k3s-uninstall.sh
 curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
                                INSTALL_K3S_EXEC="--no-deploy traefik \
-                               --kube-apiserver-arg=enable-admission-plugins=\
-		                   NodeRestriction,PodSecurityPolicy,ServiceAccount"  sh -
-#curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
-#      INSTALL_K3S_EXEC="--no-deploy traefik " sh 
+                               "  sh -
+
+# This install version is for enabling podsecurity policies 
+# again this is future work now (Aug 2021)
+# curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
+#                                INSTALL_K3S_EXEC="--no-deploy traefik \
+#                                --kube-apiserver-arg=enable-admission-plugins=\
+# 		                   NodeRestriction,PodSecurityPolicy,ServiceAccount"  sh -
+
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 cp /etc/rancher/k3s/k3s.yaml /home/vagrant/k3s.yaml
 chown vagrant /home/vagrant/k3s.yaml
 chmod 600 /home/vagrant/k3s.yaml 
 echo "export KUBECONFIG=/home/vagrant/k3s.yaml" >> /home/vagrant/.bashrc
+echo "export KUBECONFIG=/home/vagrant/k3s.yaml" >> /home/vagrant/.bashrc_profile
 echo "source <(kubectl completion bash)" >> /home/vagrant/.bashrc # add autocomplete permanently to your bash shell.
 echo "alias k=kubectl " >> /home/vagrant/.bashrc
 echo "complete -F __start_kubectl k " >> /home/vagrant/.bashrc
@@ -38,28 +50,12 @@ curl -s "https://raw.githubusercontent.com/\
 kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
 mv ./kustomize /usr/local/bin
 
-# add the mojaloop endpoints per doc at 
-echo "add /etc/hosts entries for local access to mojaloop endpoints" 
-ENDPOINTSLIST=(127.0.0.1    localhost forensic-logging-sidecar.local central-kms.local central-event-processor.local email-notifier.local central-ledger.local 
-central-settlement.local ml-api-adapter.local account-lookup-service.local 
- account-lookup-service-admin.local quoting-service.local moja-simulator.local 
- central-ledger central-settlement ml-api-adapter account-lookup-service 
- account-lookup-service-admin quoting-service simulator host.docker.internal)
-export ENDPOINTS=`echo ${ENDPOINTSLIST[*]}`
-
-perl -p -i.bak -e 's/127\.0\.0\.1.*localhost.*$/$ENV{ENDPOINTS} /' /etc/hosts
-ping  -c 2 account-lookup-service-admin 
-
 #install docker.io
 # apt update -y 
 # apt install docker.io -y 
 # groupadd docker
 # usermod -a -G docker vagrant
 # systemctl start docker
-
-# installing k3d (so we can have multi-node)
-# wget -q -O - https://raw.githubusercontent.com/rancher/k3d/main/install.sh | bash
-# 
 
 echo "install  version 10+ of node"
 curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash
@@ -80,10 +76,10 @@ git clone --branch $POSTMAN_TAG https://github.com/mojaloop/postman.git /vagrant
 # install helm
 echo "installing helm "
 echo "ID is `id`"
-cd $HOME
-curl -o $HOME/helm.tar.gz https://get.helm.sh/helm-v3.5.2-linux-amd64.tar.gz
-cat helm.tar.gz | gzip -d -c | tar xf -
-cp $HOME/linux-amd64/helm /usr/local/bin 
+cd /tmp
+curl -L -s -o ./helm.tar.gz https://get.helm.sh/helm-v3.6.2-linux-amd64.tar.gz
+cat ./helm.tar.gz | gzip -d -c | tar xf -
+cp ./linux-amd64/helm /usr/local/bin 
 
 echo "Mojaloop: add helm repos ..." 
 su - vagrant -c "helm repo add mojaloop http://mojaloop.io/helm/repo/"
@@ -102,19 +98,16 @@ su - vagrant -c "helm repo list"
 
 #install nginx 
 # install ingress ?  Not sure maybe use mojaloop's ingress -- check on this 
-#  
-#su - vagrant -c "export KUBECONFIG=~/k3s.yaml; \
-#      helm install ml-ingres nginx-stable/nginx-ingress"
+su - vagrant -c "export KUBECONFIG=~/k3s.yaml; \
+     helm install ml-ingres nginx-stable/nginx-ingress"
+
+
+echo "**** Infrastructure to install and run Mojaloop should now be installed and running ****"
+### notes and things for later #####$
 
 # install calico 
 #su - vagrant -c "kubectl create -f https://docs.projectcalico.org/manifests/tigera-operator.yaml"
 #su - vagrant -c "kubectl create -f https://docs.projectcalico.org/manifests/custom-resources.yaml"
-
-# install pod security policies 
-
-
-
-
 
 # optional install docker , here just for reference for the moment
 # see https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-20-04
@@ -126,7 +119,5 @@ su - vagrant -c "helm repo list"
 # apt-cache policy docker-ce
 # apt install docker-ce
 
-# then you can install a multi-node k3s cluster with k3d
-# see : https://www.suse.com/c/introduction-k3d-run-k3s-docker-src/
-# see : https://en.sokube.ch/post/k3s-k3d-k8s-a-new-perfect-match-for-dev-and-test-1
+
 
