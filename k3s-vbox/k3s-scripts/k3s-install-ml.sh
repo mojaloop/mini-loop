@@ -65,18 +65,18 @@ ping  -c 2 account-lookup-service-admin
 # uninstall the old chart if it exists
 helm uninstall ${RELEASE_NAME} -n ${NAMESPACE} || echo 'non fatal error uninstalling existing chart'
 
-echo "Mojaloop: add helm repos ..." 
-su - vagrant -c "helm repo add mojaloop http://mojaloop.io/helm/repo/"
-su - vagrant -c "helm repo add stable https://charts.helm.sh/stable"
-su - vagrant -c "helm repo add incubator https://charts.helm.sh/incubator"
-su - vagrant -c "helm repo add kiwigrid https://kiwigrid.github.io"
-su - vagrant -c "helm repo add elastic https://helm.elastic.co"
-su - vagrant -c "helm repo add bitnami https://charts.bitnami.com/bitnami"
-su - vagrant -c "helm repo add codecentric https://codecentric.github.io/helm-charts"
-su - vagrant -c "helm repo add nginx-stable https://helm.nginx.com/stable"
-#su - vagrant -c "helm repo add kong https://charts.konghq.com" 
-su - vagrant -c "helm repo update"
-su - vagrant -c "helm repo list"
+# echo "Mojaloop: add helm repos ..." 
+# su - vagrant -c "helm repo add mojaloop http://mojaloop.io/helm/repo/"
+# su - vagrant -c "helm repo add stable https://charts.helm.sh/stable"
+# su - vagrant -c "helm repo add incubator https://charts.helm.sh/incubator"
+# su - vagrant -c "helm repo add kiwigrid https://kiwigrid.github.io"
+# su - vagrant -c "helm repo add elastic https://helm.elastic.co"
+# su - vagrant -c "helm repo add bitnami https://charts.bitnami.com/bitnami"
+# su - vagrant -c "helm repo add codecentric https://codecentric.github.io/helm-charts"
+# su - vagrant -c "helm repo add nginx-stable https://helm.nginx.com/stable"
+# #su - vagrant -c "helm repo add kong https://charts.konghq.com" 
+# su - vagrant -c "helm repo update"
+# su - vagrant -c "helm repo list"
 
 su - vagrant -c "kubectl create namespace ml-app"
 
@@ -96,6 +96,12 @@ su - vagrant -c "helm upgrade --install --namespace ml-app simulators mojaloop/m
 su - vagrant -c "helm upgrade --install --namespace ml-app figmm-ttk mojaloop/ml-testing-toolkit -f /vagrant/install/k3d-values-ttk-figmm.yaml"
 su - vagrant -c "helm upgrade --install --namespace ml-app eggmm-ttk mojaloop/ml-testing-toolkit -f /vagrant/install/k3d-values-ttk-eggmm.yaml"
 su - vagrant -c "kubectl apply -f /vagrant/install/k3d-ingress_ttk.yaml"  
+
+# now load Lewis Daly's ml-oss-lab data
+#npx ml-bootstrap@0.3.16 -c ./ml-bootstrap/example/default.json5  
+
+
+
 
 
 ####### older stuff prior to incorporating Lewis Dalys ml-oss-lab configs #########################

@@ -1,29 +1,28 @@
 # apiVersion: networking.k8s.io/v1beta1 # for k3s < v1.19
 apiVersion: networking.k8s.io/v1
-#apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
-  name: apacheingress
+  name: helloingress
   annotations:
-    #kubernetes.io/ingress.class: nginx
+    kubernetes.io/ingress.class: nginx
     ingress.kubernetes.io/ssl-redirect: "false"
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
-  - host: apachehost
+  - host: fred
     http:
       paths:
       - path: "/"
         pathType: Prefix
         backend:
           service:
-            name: apache-service
+            name: hello-service
             port: 
-              number: 8282
-      - path: "/v2"
+              number: 8889
+      - path: "/hellov2"
         pathType: Prefix
         backend:
           service:
-            name: apache-service
+            name: hello-service
             port:
-              number: 8282
+              number: 8888

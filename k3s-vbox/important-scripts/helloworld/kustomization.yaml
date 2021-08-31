@@ -1,0 +1,5 @@
+resources:
+- ./hello-deployment.yaml
+- ./hello-ingress.yaml
+- ./hello-service.yaml
+namespace: ml-app

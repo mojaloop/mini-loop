@@ -22,7 +22,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # config.vm.synced_folder "../../ml-oss-sandbox", "/vagrant/ml-oss-sandbox"
   config.vm.synced_folder "../../demo-mojawallet", "/vagrant/demo-mojawallet"
   config.vm.synced_folder "../../ml-bootstrap", "/vagrant/ml-bootstrap"
-  config.vm.synced_folder "../../tdhelm", "/vagrant/helm"
+  config.vm.synced_folder "../../helm", "/vagrant/helm"
   
   #config.vm.synced_folder "../../../learn", "/vagrant/learn"
 

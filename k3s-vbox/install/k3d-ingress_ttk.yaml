@@ -10,6 +10,7 @@ metadata:
   namespace: ml-app
   name: ttk
   annotations:
+    kubernetes.io/ingress.class: nginx
     ingress.kubernetes.io/ssl-redirect: "false"
     nginx.ingress.kubernetes.io/rewrite-target: /
 

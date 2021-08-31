@@ -1,62 +1,64 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: apache-service
+  name: hello-service
   namespace: ml-app
 spec:
   ports:
-  - port: 8282
+  - port: 8888
     protocol: TCP
-    targetPort: 80
+    targetPort: 8080
   selector:
-    app: apache-app1
+    app: hello-app1
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: apache-app1
-  name: apachedep
+    app: hello-app1
+  name: hellodep
   namespace: ml-app
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: apache-app1
+      app: hello-app1
   template:
     metadata:
       labels:
-        app: apache-app1
+        app: hello-app1
     spec:
       containers:
-      - image: httpd:2.4.48
-        name: apache-container
+      - image: gcr.io/google-samples/node-hello:1.0
+        name: hello-container
         ports:
-        - containerPort: 80
+        - containerPort: 8080
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
     ingress.kubernetes.io/ssl-redirect: "false"
-  name: apacheingress
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  name: helloingress
   namespace: ml-app
 spec:
   rules:
-  - host: apachehost
+  - host: fred
     http:
       paths:
       - backend:
           service:
-            name: apache-service
+            name: hello-service
             port:
-              number: 8282
+              number: 8889
         path: /
         pathType: Prefix
       - backend:
           service:
-            name: apache-service
+            name: hello-service
             port:
-              number: 8282
-        path: /v2
+              number: 8888
+        path: /hellov2
         pathType: Prefix

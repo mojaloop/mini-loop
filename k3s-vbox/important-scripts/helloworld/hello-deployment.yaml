@@ -1,25 +1,25 @@
 #Deployment
-#apache 
+#hello 
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: apachedep
+  name: hellodep
   labels:
-    app: apache-app1
+    app: hello-app1
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: apache-app1
+      app: hello-app1
   template:
     metadata:
       labels:
-        app: apache-app1
+        app: hello-app1
     spec:
       #hostname: fred
       containers:
-      - name: apache-container
-        image: httpd:2.4.48
+      - name: hello-container
+        image: gcr.io/google-samples/node-hello:1.0
         ports:
-        - containerPort: 80
+        - containerPort: 8080

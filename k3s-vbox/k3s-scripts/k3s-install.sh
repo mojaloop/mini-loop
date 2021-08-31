@@ -32,7 +32,7 @@ cp /etc/rancher/k3s/k3s.yaml /home/vagrant/k3s.yaml
 chown vagrant /home/vagrant/k3s.yaml
 chmod 600 /home/vagrant/k3s.yaml 
 echo "export KUBECONFIG=/home/vagrant/k3s.yaml" >> /home/vagrant/.bashrc
-echo "export KUBECONFIG=/home/vagrant/k3s.yaml" >> /home/vagrant/.bashrc_profile
+echo "export KUBECONFIG=/home/vagrant/k3s.yaml" >> /home/vagrant/.bash_profile
 echo "source <(kubectl completion bash)" >> /home/vagrant/.bashrc # add autocomplete permanently to your bash shell.
 echo "alias k=kubectl " >> /home/vagrant/.bashrc
 echo "complete -F __start_kubectl k " >> /home/vagrant/.bashrc
@@ -89,18 +89,26 @@ su - vagrant -c "helm repo add kiwigrid https://kiwigrid.github.io"
 su - vagrant -c "helm repo add elastic https://helm.elastic.co"
 su - vagrant -c "helm repo add bitnami https://charts.bitnami.com/bitnami"
 su - vagrant -c "helm repo add codecentric https://codecentric.github.io/helm-charts"
-su - vagrant -c "helm repo add nginx-stable https://helm.nginx.com/stable"
+#su - vagrant -c "helm repo add nginx-stable https://helm.nginx.com/stable"
+su - vagrant -c "helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx"
 su - vagrant -c "helm repo add kong https://charts.konghq.com" 
 su - vagrant -c "helm repo update"
 su - vagrant -c "export KUBECONFIG=~/k3s.yaml; helm list"
 su - vagrant -c "helm repo list"
 
 
-#install nginx 
-# install ingress ?  Not sure maybe use mojaloop's ingress -- check on this 
-su - vagrant -c "export KUBECONFIG=~/k3s.yaml; \
-     helm install ml-ingres nginx-stable/nginx-ingress"
+#install nginx => beware which one  
+#
+# su - vagrant -c "export KUBECONFIG=~/k3s.yaml; \
+#      helm install ml-ingres nginx-stable/nginx-ingress"  <======= No wrong location 
 
+# for k8s < v1.22 need kubernetes nginx ingress 0.47.0 
+# see: https://kubernetes.io/blog/2021/07/26/update-with-ingress-nginx/
+# see also https://kubernetes.github.io/ingress-nginx/
+# use helm search repo -l nginx to find the chart version that corresponds to ingress release 0.47.x
+su - vagrant -c "export KUBECONFIG=~/k3s.yaml; \ 
+       helm install ingress-nginx ingress-nginx/ingress-nginx --version="3.33.0"
+"
 
 echo "**** Infrastructure to install and run Mojaloop should now be installed and running ****"
 ### notes and things for later #####$
