@@ -108,7 +108,6 @@ su - vagrant -c "helm repo list"
 # use helm search repo -l nginx to find the chart version that corresponds to ingress release 0.47.x
 su - vagrant -c "export KUBECONFIG=~/k3s.yaml; \ 
        helm install ingress-nginx ingress-nginx/ingress-nginx --version="3.33.0"
-"
 
 echo "**** Infrastructure to install and run Mojaloop should now be installed and running ****"
 ### notes and things for later #####$

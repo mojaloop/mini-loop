@@ -97,6 +97,23 @@ su - vagrant -c "helm upgrade --install --namespace ml-app figmm-ttk mojaloop/ml
 su - vagrant -c "helm upgrade --install --namespace ml-app eggmm-ttk mojaloop/ml-testing-toolkit -f /vagrant/install/k3d-values-ttk-eggmm.yaml"
 su - vagrant -c "kubectl apply -f /vagrant/install/k3d-ingress_ttk.yaml"  
 
+# verify the health of the deployment 
+# curl to http://ml-api-adapter.local/health and http://central-ledger.local/health
+if [[ `curl -s http://central-ledger.local/health | \
+    perl -nle '$count++ while /OK+/g; END {print $count}' ` -lt 3 ]] ; then
+    echo "central-leger endpoint healthcheck failed"
+    exit 1
+fi
+if [[ `curl -s http://ml-api-adapter.local/health | \
+    perl -nle '$count++ while /OK+/g; END {print $count}' ` -lt 2 ]] ; then
+    echo "ml-api-adapter endpoint healthcheck failed"
+    exit 1 
+fi
+
+echo "$RELEASE_NAME configuration of mojaloop deployed ok and passes initial health checks"
+#cleanup
+
+
 # now load Lewis Daly's ml-oss-lab data
 #npx ml-bootstrap@0.3.16 -c ./ml-bootstrap/example/default.json5  
 
