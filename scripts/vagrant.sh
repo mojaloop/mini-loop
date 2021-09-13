@@ -20,7 +20,7 @@ export ENDPOINTS=`echo ${ENDPOINTSLIST[*]}`
 perl -p -i.bak -e 's/127\.0\.0\.1.*localhost.*$/$ENV{ENDPOINTS} /' /etc/hosts
 ping  -c 2 account-lookup-service-admin 
 
-export KUBERNETES_RELEASE=1.20
+export KUBERNETES_RELEASE=1.21
 export PATH=$PATH:/snap/bin
 echo $PATH
 
@@ -47,7 +47,7 @@ apt install snapd -y
 echo "Mojaloop: installing microk8s release $KUBERNETES_RELEASE ... "
 sudo snap install microk8s --classic --channel=$KUBERNETES_RELEASE/stable
 
-microk8s.status --wait -ready
+microk8s.status --wait-ready
 
 echo "Mojaloop: enable helm ... "
 microk8s.enable helm3 
@@ -71,7 +71,7 @@ sudo chown -f -R vagrant ~/.kube
 
 echo "Mojaloop: add repos and deploy helm charts ..." 
 su - vagrant -c "microk8s.helm3 repo add mojaloop http://mojaloop.io/helm/repo/"
-su - vagrant -c "microk8s.helm3 repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator"
+#su - vagrant -c "microk8s.helm3 repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator"
 su - vagrant -c "microk8s.helm3 repo add kiwigrid https://kiwigrid.github.io"
 su - vagrant -c "microk8s.helm3 repo add elastic https://helm.elastic.co"
 su - vagrant -c "helm repo add bitnami https://charts.bitnami.com/bitnami"
