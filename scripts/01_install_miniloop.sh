@@ -29,7 +29,7 @@ function cleanup {
 # Environment Config
 ##
 MOJALOOP_WORKING_DIR=/vagrant
-RELEASE_NAME="mini-loop"
+RELEASE_NAME="ml"
 TIMEOUT_SECS="2400s"
 
 # uninstall the old chart if it exists
