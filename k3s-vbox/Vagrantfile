@@ -14,11 +14,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.define NAME
   config.vm.network "forwarded_port", guest: 80, host: 8080
   config.vm.network "forwarded_port", guest: 8181, host: 2223
-  config.vm.network "forwarded_port", guest: 3000, host: 3000
-  config.vm.network "forwarded_port", guest: 3001, host: 3001
-  config.vm.network "forwarded_port", guest: 6443, host: 8282
-  config.vm.network "forwarded_port", guest: 9000, host: 9000
-  config.vm.network "forwarded_port", guest: 9001, host: 9001
+  config.vm.network "forwarded_port", guest: 6060, host: 6060
+
   # config.vm.synced_folder "../../ml-oss-sandbox", "/vagrant/ml-oss-sandbox"
   config.vm.synced_folder "../../demo-mojawallet", "/vagrant/demo-mojawallet"
   config.vm.synced_folder "../../ml-bootstrap", "/vagrant/ml-bootstrap"
@@ -26,12 +23,25 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   
   #config.vm.synced_folder "../../../learn", "/vagrant/learn"
 
+  
   config.vm.provider "virtualbox" do |vb|
     vb.gui = false
     vb.memory = 8192
     vb.cpus = 2
     vb.name = NAME
   end
+
+  config.vm.provision "shell", inline: "rm -rf /vagrant/scripts"
+  config.vm.provision "file", source: "./k3s-scripts",  \
+                              destination: "/vagrant/scripts"
+
+  config.vm.provision "shell", inline: <<-SHELL
+    sed 's/\r$//' /vagrant/scripts/k3s-install.sh | /bin/bash
+  SHELL
+  
+  config.vm.provision "shell", inline: <<-SHELL
+    sed 's/\r$//' /vagrant/scripts/k3s-install-ml.sh | /bin/bash
+  SHELL
 
   # config.vm.provision "file", source: "k3d-scripts",  \
   #                             destination: "/vagrant/k3d-scripts"

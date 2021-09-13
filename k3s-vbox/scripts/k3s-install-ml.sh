@@ -77,8 +77,7 @@ su - vagrant -c "kubectl apply -f /vagrant/install/k3d-ss-mysql.yaml"
 #todo Can I test DB install in this script or as a setup verification script ? 
 
 # Install the switch
-#su - vagrant -c "helm upgrade --install --wait --timeout $TIMEOUT_SECS --namespace ml-app ml mojaloop/mojaloop -f  /vagrant/install/k3d-values-oss-lab-v2.yaml"
-su - vagrant -c "helm upgrade --install --namespace ml-app ml mojaloop/mojaloop "
+su - vagrant -c "helm upgrade --install --wait --timeout $TIMEOUT_SECS --namespace ml-app ml mojaloop/mojaloop -f  /vagrant/install/k3d-values-oss-lab-v2.yaml"
 
 # install-simulators for applebank and bananabank (at a minimum) and the ingress for the simulators 
 #su - vagrant -c "helm upgrade --install --namespace ml-app simulators mojaloop/mojaloop-simulator -f /vagrant/install/k3d-values-oss-lab-simulators.yaml"
@@ -108,7 +107,7 @@ fi
 echo "$RELEASE_NAME configuration of mojaloop deployed ok and passes initial health checks"
 #cleanup
 
-#su - vagrant -c "helm -n ml-app test ml --logs"
+su - vagrant -c "helm -n ml-app test ml --logs"
 
 # now load Lewis Daly's ml-oss-lab data
 #npx ml-bootstrap@0.3.16 -c ./ml-bootstrap/example/default.json5  
