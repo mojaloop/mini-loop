@@ -14,14 +14,19 @@ fi
 POSTMAN_TAG="v11.0.0"
 
 # install docker on k3s node (see #https://rancher.com/docs/k3s/latest/en/advanced/#using-docker-as-the-container-runtime)
-curl https://releases.rancher.com/install-docker/19.03.sh | sh
+#curl https://releases.rancher.com/install-docker/19.03.sh | sh
 
 # install k3s w/o traefik as we install nginx below
 # will also install calico in future releases 
 # to clean-up and uninstall use : /usr/local/bin/k3s-uninstall.sh
+# curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
+#                                INSTALL_K3S_CHANNEL="v1.20" \
+#                                INSTALL_K3S_EXEC=" --no-deploy traefik " sh  
+
+#v1.21 without docker 
 curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
-                               INSTALL_K3S_EXEC="--docker --no-deploy traefik \
-                               "  sh -
+                               INSTALL_K3S_CHANNEL="v1.21" \
+                               INSTALL_K3S_EXEC=" --no-deploy traefik " sh                                 
 
 # This install version is for enabling podsecurity policies 
 # again this is future work now (Aug 2021)
