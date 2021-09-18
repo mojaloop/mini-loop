@@ -39,6 +39,7 @@ kind: Ingress
 metadata:
   annotations:
     ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/rewrite-target: /
   name: apacheingress
   namespace: ml-app
 spec:
