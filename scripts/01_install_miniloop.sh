@@ -51,7 +51,7 @@ else
   echo "   vagrant ssh "
   echo "   kubectl get pods #if most are in running state maybe wait a little longer "
   echo "   /vagrant/scripts/02_seed_mojaloop.sh # to load the mojaloop test data." 
-  echo "  /vagrant/scripts/03_golden_path.sh # to run the golden path tests
+  echo "  /vagrant/scripts/03_golden_path.sh # to run the golden path tests " 
   exit 1
 fi 
 

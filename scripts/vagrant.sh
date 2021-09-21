@@ -20,7 +20,7 @@ export ENDPOINTS=`echo ${ENDPOINTSLIST[*]}`
 perl -p -i.bak -e 's/127\.0\.0\.1.*localhost.*$/$ENV{ENDPOINTS} /' /etc/hosts
 ping  -c 2 account-lookup-service-admin 
 
-export KUBERNETES_RELEASE=1.21
+export KUBERNETES_RELEASE=1.20
 export PATH=$PATH:/snap/bin
 echo $PATH
 
