@@ -18,10 +18,7 @@ set -u
 function cleanup {
   exit_status=$?
   echo 'Cleaning up'  
-  # we are finished with the http server, so clean it up by killing it.
-  py_proc=`ps -eaf | grep -i "python3 -m http.server" | grep -v grep | awk '{print $2}'`
-  if [[ ! -z "${py_proc}" ]]; then kill $py_proc; fi
-  
+
   exit $exit_status
 }
 
@@ -29,6 +26,7 @@ function cleanup {
 # Environment Config
 ##
 MOJALOOP_WORKING_DIR=/vagrant
+MOJALOOP_VERSION="13.0.2" 
 RELEASE_NAME="ml"
 TIMEOUT_SECS="2400s"
 
@@ -37,7 +35,7 @@ helm uninstall ${RELEASE_NAME} || echo 'non fatal error uninstalling existing ch
 
 # install the chart
 echo "install $RELEASE_NAME helm chart and wait for upto $TIMEOUT_SECS secs for it to be ready"
-helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  mojaloop/mojaloop
+helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  mojaloop/mojaloop --version $MOJALOOP_VERSION
 if [[ `helm status $RELEASE_NAME | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
   echo "$RELEASE_NAME deployed sucessfully "
 else 
@@ -50,8 +48,7 @@ else
   echo " additionally you might finsh the install by hand : login to the vm and continue to wait for the pods to be ready"
   echo "   vagrant ssh "
   echo "   kubectl get pods #if most are in running state maybe wait a little longer "
-  echo "   /vagrant/scripts/02_seed_mojaloop.sh # to load the mojaloop test data." 
-  echo "  /vagrant/scripts/03_golden_path.sh # to run the golden path tests " 
+  echo "   /vagrant/scripts/02_run_ttk.sh # to run the mojaloop testing toolkit." 
   exit 1
 fi 
 
@@ -68,5 +65,5 @@ if [[ `curl -s http://ml-api-adapter.local/health | \
     exit 1 
 fi
 
-echo "$RELEASE_NAME configuration of mojaloop deployed ok and passes initial health checks"
-#cleanup
+echo "$RELEASE_NAME configuration of mojaloop deployed ok and passes endpoint health checks"
+

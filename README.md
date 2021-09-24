@@ -1,4 +1,4 @@
-# Mini-loop
+# Mini-loop with K8s v1.20
 Opinionated Mojaloop 'in a box' using Vagrant, K8s and Helm
 
 Quick start
@@ -10,13 +10,11 @@ vagrant up
 
 ## Overview
 
-Mini-loop is a simple, opinonated 'out of the box' installation of [Mojaloop](https://mojaloop.io) for test and demonstration purposes. The goal is to make it easy and reliable to deploy Mojaloop both locally or in a cloud environment.
-This project essentially automates the instructions for the linux installation in the mojaloop documentation at https://mojaloop.io/documentation/deployment-guide/local-setup-linux.html#mojaloop-setup-for-linux-ubuntu.
-There are however some minor variations from these onboarding docs, such as using helm3 charts and enabling kubernetes version 1.18.  See [#1070-helm3](https://github.com/mojaloop/project/issues/1070) and [#219-kubernetes-version](https://github.com/mojaloop/helm/issues/219) for more deatils.
-
+Mini-loop is a simple, opinonated 'out of the box' installation of [Mojaloop](https://mojaloop.io) for test and demonstration purposes. The goal is to make it easy and reliable to deploy Mojaloop locally.
+This project automates the instructions for the linux installation in the mojaloop documentation at https://docs.mojaloop.io/documentation/deployment-guide/local-setup-linux.html. 
 ## Description / Approach
 
-Using Hashicorp Vagrant, a VirtualBox Ubnutu VM or Google Cloud VM is created and all of the components required to run mojaloop are automatically installed and configured into this VM. Once the VM is booted the mojaloop helm chart is deployed and the mojaloop kubernetes pods and services created, the mini-loop configuration automatically runs the /vagrant/scripts/02_seed_mojaloop.sh script to load test data into the mojaloop application and then executes the mojaloop postman/newman based Golden_Path test collections against this mojaloop installation using localhost.  
+Using Hashicorp Vagrant, a VirtualBox Ubuntu VM is created and all of the components required to run mojaloop are automatically installed and configured into this VM. Once the VM is booted the mojaloop helm chart is deployed and the mojaloop kubernetes pods and services created, the mini-loop configuration automatically runs the mojaloop testing toolkit (https://docs.mojaloop.io/documentation/mojaloop-technical-overview/ml-testing-toolkit/) using "helm testr ml". The testing toolkit then performs the data setup and executes the Golden_Path test collections against this mojaloop installation using localhost.  
 
 Once the golden_path tests have completed, users can interact with the installation. Refer to the instructions below on logging into the VM and running a transfer. 
 
@@ -62,48 +60,7 @@ git clone https://github.com/tdaly61/mini-loop.git
 cd mini-loop/vbox-deploy
 vagrant up #creates the virtualbox VM, boots and configures the OS
 ```
-
-### Google Cloud Services
-1. Assuming vagrant is installed and running and the google cloud prerequisites as detailed above established.
-
-```bash
-git clone https://github.com/tdaly61/mini-loop.git
-cd mini-loop/gcs-deploy
-```
-
-2. Copy the `.env.example` file to `.env`, and edit it for the following parameters:
-
-```bash
-cp .env.example .env
-```
-
-3. Edit the `.env` file and enter correct values for
-  - `GCP_PROJECT_ID` - the id of your project in Google Cloud
-  - `GCP_JSON_KEY_PATH` - The full path to your service account key `.json` file
-  - `CGP_SSH_USERNAME` - a username you 
-  - `CGP_SSH_KEY` - the path to the ssh private key you set up to use with GCP
-
-Here's an example of a completed `.env` file:
-
-```
-GCP_PROJECT_ID=my-new-project
-GCP_JSON_KEY_PATH=~/default.json
-CGP_SSH_USERNAME=alice
-CGP_SSH_KEY=~/.ssh/id_rsa
-```
-
-> Note: Having SSH troubles?
-> Check out the [vagrant-google](https://github.com/mitchellh/vagrant-google#ssh-support) section on SSH support
-
-
-4. Run `vagrant up --provider=google`!
-
-```bash
-# uses the vagrant google-plugin and creates the google cloud VM, boots and configures the OS
-vagrant up --provider=google 
-```
-
-## Make a Test Transfer
+## Using the testing Toolkit WebUI and Mobile Simulators 
 ensure your current directory is the directory from which you ran "vagrant up" 
 ```bash
 vagant ssh # to login as user you specified in the override.ssh.username = above
