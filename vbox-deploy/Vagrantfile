@@ -38,7 +38,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   
   config.vm.provision "shell", inline: <<-SHELL
     # su - vagrant -c "/vagrant/scripts/02_seed_mojaloop.sh"
-    su - vagrant -c "sed 's/\r$//' /vagrant/scripts/02_run_ttk.sh | /bin/bash"
+    sed 's/\r$//' /vagrant/scripts/02_run_ttk.sh | /bin/bash
   SHELL
 
   # config.vm.provision "shell", inline: <<-SHELL
