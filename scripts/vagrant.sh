@@ -19,20 +19,6 @@ export KUBERNETES_RELEASE=1.20
 export PATH=$PATH:/snap/bin
 echo $PATH
 
-##echo "install  version 10+ of node"
-#curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash
-#apt-get install -y nodejs
-
-#echo "installing packages"
-#apt install git -y
-#apt install npm -y
-#npm install npm@latest -g
-#npm install -g newman
-
-#echo "clone postman tests for Mojaloop"
-#rm -rf /vagrant/postman 
-#git clone --branch $POSTMAN_TAG https://github.com/mojaloop/postman.git /vagrant/postman 
-
 echo "Mojaloop: run update ..."
 apt update
 
@@ -52,13 +38,10 @@ echo "Mojaloop: enable storage ... "
 microk8s.enable storage
 echo "Mojaloop: enable ingress ... "
 microk8s.enable ingress
-#echo "Mojaloop: install postman ..."   
-#sudo snap install postman
 
 echo "Mojaloop: add convenient aliases..." 
 snap alias microk8s.kubectl kubectl
 snap alias microk8s.helm3 helm
-snap alias microk8s.docker docker
 
 echo "Mojaloop: add vagrant user to microk8s group"
 usermod -a -G microk8s vagrant
@@ -75,16 +58,3 @@ su - vagrant -c "microk8s.helm3 repo list"
 
 #TODO chamge the ingress port 
 #@see https://discuss.kubernetes.io/t/add-on-ingress-default-port-change-options/14428
-
-
-
-# echo "Mojaloop: add helm repos ..." 
-# su - vagrant -c "helm repo add mojaloop http://mojaloop.io/helm/repo/"
-# su - vagrant -c "helm repo add stable https://charts.helm.sh/stable"
-# su - vagrant -c "helm repo add incubator https://charts.helm.sh/incubator"
-# su - vagrant -c "helm repo add kiwigrid https://kiwigrid.github.io"
-# su - vagrant -c "helm repo add elastic https://helm.elastic.co"
-# su - vagrant -c "helm repo add bitnami https://charts.bitnami.com/bitnami"
-# su - vagrant -c "helm repo add codecentric https://codecentric.github.io/helm-charts"
-# #su - vagrant -c "helm repo add nginx-stable https://helm.nginx.com/stable"
-# su - vagrant -c "helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx"

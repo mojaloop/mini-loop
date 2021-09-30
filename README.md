@@ -134,23 +134,23 @@ mini-loop is tested so far with:
 
 1. I think it installed correctly, but how do I verify that everything is working?
 
-The Mini-loop automation runs the mojaloop Testing Toolkit and reports errors if 100% of the Golden Path tests do not pass, so if your logs on `vagrant up` look ok, then you can be confident that everything is up and running just fine.
+  The Mini-loop automation runs the mojaloop Testing Toolkit and reports errors if 100% of the Golden Path tests do not pass, so if your logs on `vagrant up` look ok, then you can be confident that everything is up and running just fine.
 
-You can also run the Testing Toolkit yourself from the Web UI (see instructions above)
+  You can also run the Testing Toolkit yourself from the Web UI (see instructions above)
 
 
 2. I'm having issues with `\r`'s on Windows (`$'\r': command not found`)
 
-When testing on Windows, we observed that carriage returns (`\r` characters) were being appended to our scripts, which causes some bash scripts to fail once Vagrant mounts the scripts into the vagrant box. Our workaround for the following is to remove them inline and pipe to bash, like so:
+  When testing on Windows, we observed that carriage returns (`\r` characters) were being appended to our scripts, which causes some bash scripts to fail once Vagrant mounts the scripts into the vagrant box. Our workaround for the following is to remove them inline and pipe to bash, like so:
 
-```bash
-sed 's/\r$//' /vagrant/scripts/02_run_ttk.sh | /bin/bash
-```
+  ```bash
+  sed 's/\r$//' /vagrant/scripts/02_run_ttk.sh | /bin/bash
+  ```
 
-You could also update the file in place like so:
-```bash
-sed -i 's/\r$//' /vagrant/scripts/02_run_ttk.sh
-/vagrant/scripts/02_run_ttk.sh
-```
+  You could also update the file in place like so:
+  ```bash
+  sed -i 's/\r$//' /vagrant/scripts/02_run_ttk.sh
+  /vagrant/scripts/02_run_ttk.sh
+  ```
 
-This however could create issues down the line where you may need to re-run the above script if you make changes to the `02_run_ttk.sh` script from the Windows host.
+  This however could create issues down the line where you may need to re-run the above script if you make changes to the `02_run_ttk.sh` script from the Windows host.
