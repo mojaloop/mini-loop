@@ -35,7 +35,7 @@ helm uninstall ${RELEASE_NAME} || echo 'non fatal error uninstalling existing ch
 
 # install the chart
 echo "install $RELEASE_NAME helm chart and wait for upto $TIMEOUT_SECS secs for it to be ready"
-helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  mojaloop/mojaloop --version $MOJALOOP_VERSION
+helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  mojaloop/mojaloop --version $MOJALOOP_VERSION -f $MOJALOOP_WORKING_DIR/miniloop_values.yaml
 if [[ `helm status $RELEASE_NAME | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
   echo "$RELEASE_NAME deployed sucessfully "
 else 
