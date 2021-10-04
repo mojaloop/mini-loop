@@ -7380,8 +7380,7 @@ ml-testing-toolkit:
               "endpoint": "http://ml-ml-api-adapter-service"
             }
           ]
-        },
-        "DEFAULT_ENVIRONMENT_FILE_NAME": "hub-k8s-default-environment.json",
+        }
       }
 
 
@@ -7718,7 +7717,7 @@ ml-testing-toolkit:
         ui:
           host: testing-toolkit.local
     config:
-      API_BASE_URL: http://testing-toolkit.local
+      API_BASE_URL: http://testing-toolkit.local:8080
 
 ml-ttk-posthook-setup:
   postInstallHook:
