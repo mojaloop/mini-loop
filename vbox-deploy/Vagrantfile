@@ -14,6 +14,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network "forwarded_port", guest: 80, host: 8080
   config.vm.network "forwarded_port", guest: 8181, host: 2223
 
+  config.vm.synced_folder "../../helm", "/vagrant/helm"
+  config.vm.synced_folder "../../charts", "/vagrant/charts"
+
   config.vm.provider "virtualbox" do |vb|
     # Display the VirtualBox GUI when booting the machine
     vb.gui = false
