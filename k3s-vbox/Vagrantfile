@@ -17,9 +17,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network "forwarded_port", guest: 6060, host: 6060
 
   # config.vm.synced_folder "../../ml-oss-sandbox", "/vagrant/ml-oss-sandbox"
-  config.vm.synced_folder "../../demo-mojawallet", "/vagrant/demo-mojawallet"
-  config.vm.synced_folder "../../ml-bootstrap", "/vagrant/ml-bootstrap"
+  #config.vm.synced_folder "../../demo-mojawallet", "/vagrant/demo-mojawallet"
+  #config.vm.synced_folder "../../ml-bootstrap", "/vagrant/ml-bootstrap"
   config.vm.synced_folder "../../helm", "/vagrant/helm"
+  config.vm.synced_folder "../../charts", "/vagrant/charts"
   
   #config.vm.synced_folder "../../../learn", "/vagrant/learn"
 
@@ -39,9 +40,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     sed 's/\r$//' /vagrant/scripts/k3s-install.sh | /bin/bash
   SHELL
   
-  config.vm.provision "shell", inline: <<-SHELL
-    sed 's/\r$//' /vagrant/scripts/k3s-install-ml.sh | /bin/bash
-  SHELL
+  # config.vm.provision "shell", inline: <<-SHELL
+  #   sed 's/\r$//' /vagrant/scripts/k3s-install-ml.sh | /bin/bash
+  # SHELL
 
   # config.vm.provision "file", source: "k3d-scripts",  \
   #                             destination: "/vagrant/k3d-scripts"

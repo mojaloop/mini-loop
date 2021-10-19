@@ -5,13 +5,14 @@
 # TLS for NGINX
 # Valid certificates
 
+# Globals 
+K8S_VERSION="v1.22"
+
+
 if [ "$EUID" -ne 0 ]
   then echo "Please run as root"
   exit
 fi
-
-
-POSTMAN_TAG="v11.0.0"
 
 # install docker on k3s node (see #https://rancher.com/docs/k3s/latest/en/advanced/#using-docker-as-the-container-runtime)
 #curl https://releases.rancher.com/install-docker/19.03.sh | sh
@@ -23,9 +24,9 @@ POSTMAN_TAG="v11.0.0"
 #                                INSTALL_K3S_CHANNEL="v1.20" \
 #                                INSTALL_K3S_EXEC=" --no-deploy traefik " sh  
 
-#v1.21 without docker 
+#without docker 
 curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
-                               INSTALL_K3S_CHANNEL="v1.21" \
+                               INSTALL_K3S_CHANNEL=$K8S_VERSION \
                                INSTALL_K3S_EXEC=" --no-deploy traefik " sh                                 
 
 # This install version is for enabling podsecurity policies 
@@ -78,10 +79,6 @@ apt install jq -y
 #npm install npm@latest -g
 #npm install -g newman
 
-#echo "clone postman tests for Mojaloop"
-#rm -rf /vagrant/postman 
-#git clone --branch $POSTMAN_TAG https://github.com/mojaloop/postman.git /vagrant/postman 
-
 # install helm
 echo "installing helm "
 echo "ID is `id`"
@@ -92,13 +89,11 @@ cp ./linux-amd64/helm /usr/local/bin
 
 echo "Mojaloop: add helm repos ..." 
 su - vagrant -c "helm repo add mojaloop http://mojaloop.io/helm/repo/"
-su - vagrant -c "helm repo add stable https://charts.helm.sh/stable"
-su - vagrant -c "helm repo add incubator https://charts.helm.sh/incubator"
+#su - vagrant -c "helm repo add stable https://charts.helm.sh/stable"
+#su - vagrant -c "helm repo add incubator https://charts.helm.sh/incubator"
 su - vagrant -c "helm repo add kiwigrid https://kiwigrid.github.io"
 su - vagrant -c "helm repo add elastic https://helm.elastic.co"
 su - vagrant -c "helm repo add bitnami https://charts.bitnami.com/bitnami"
-su - vagrant -c "helm repo add codecentric https://codecentric.github.io/helm-charts"
-#su - vagrant -c "helm repo add nginx-stable https://helm.nginx.com/stable"
 su - vagrant -c "helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx"
 #su - vagrant -c "helm repo add kong https://charts.konghq.com" 
 su - vagrant -c "helm repo update"
