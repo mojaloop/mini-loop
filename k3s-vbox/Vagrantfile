@@ -5,7 +5,7 @@
 VAGRANTFILE_API_VERSION = "2"
 
 # define hostname
-NAME = "ml-k3d"
+NAME = "ml-k3s"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "hashicorp/bionic64"
@@ -21,6 +21,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   #config.vm.synced_folder "../../ml-bootstrap", "/vagrant/ml-bootstrap"
   config.vm.synced_folder "../../helm", "/vagrant/helm"
   config.vm.synced_folder "../../charts", "/vagrant/charts"
+  config.vm.synced_folder "../../kowl", "/vagrant/kowl"
   
   #config.vm.synced_folder "../../../learn", "/vagrant/learn"
 
