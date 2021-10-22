@@ -16,9 +16,10 @@ function install_v14poc_charts {
   printf "\n========================================================================================\n"
   printf "installing mojaloop v14 PoC \n"
   printf "========================================================================================\n"
-        printf "==> install backend services <$BACKEND_NAME> helm chart. Wait upto $BE_TIMEOUT_SECS secs for ready state\n "
+        printf "==> install backend services <$BACKEND_NAME> helm chart. Wait upto $timeout_secs secs for ready state\n "
         start_timer=$(date +%s)
-        su - $k8s_user -c "helm upgrade --install --wait --timeout $BE_TIMEOUT_SECS $BACKEND_NAME \
+        
+        su - $k8s_user -c "helm upgrade --install --wait --timeout $timeout_secs $BACKEND_NAME \
                            $MOJALOOP_WORKING_DIR/dependencies/backend" >> /dev/null 2>&1
         end_timer=$(date +%s)
         elapsed_secs=$(echo "$end_timer - $start_timer" | bc )
@@ -26,12 +27,15 @@ function install_v14poc_charts {
                 printf "    helm release <$BACKEND_NAME> deployed sucessfully after <$elapsed_secs> secs \n\n"
         else 
                 echo "    Error: $BACKEND_NAME helm chart  deployment failed "
+                printf "  Command : \n"
+                printf "  su - $k8s_user -c \"helm upgrade --install --wait --timeout $timeout_secs "
+                printf "$BACKEND_NAME $MOJALOOP_WORKING_DIR/dependencies/backend\" \n "
                 exit 1
         fi 
 
-        printf "==> install v14 PoC services <$RELEASE_NAME> helm chart. Wait upto $ML_TIMEOUT_SECS secs for ready state\n"
+        printf "==> install v14 PoC services <$RELEASE_NAME> helm chart. Wait upto $timeout_secs secs for ready state\n"
         start_timer=$(date +%s)
-        su - $k8s_user -c "helm upgrade --install --wait --timeout $ML_TIMEOUT_SECS $RELEASE_NAME \
+        su - $k8s_user -c "helm upgrade --install --wait --timeout $timeout_secs $RELEASE_NAME \
                            $MOJALOOP_WORKING_DIR/mojaloop/mojaloop"  >> /dev/null 2>&1      
         end_timer=$(date +%s)
         elapsed_secs=$(echo "$end_timer - $start_timer" | bc )
@@ -39,6 +43,8 @@ function install_v14poc_charts {
                 printf "    helm release <$RELEASE_NAME> deployed sucessfully after <$elapsed_secs> secs \n\n "
         else 
                 printf "    Error: $RELEASE_NAME helm chart  deployment failed \n"
+                printf "    Command: su - $k8s_user -c \"helm upgrade --install --wait --timeout "
+                printf "$timeout_secs $RELEASE_NAME $MOJALOOP_WORKING_DIR/mojaloop/mojaloop\""
                 exit 1
         fi 
 }
@@ -62,7 +68,7 @@ function post_install_health_checks {
 function set_versions_to_test {
         # if the versions to test not specified -> use the default version.
         if [ -z ${versions+x} ] ; then
-                printf " -v flag not specified => defaulting to CURRENT_K8S_versions %s \n" $DEFAULT_VERSION
+                printf " -v flag not specified => defaulting to CURRENT_K8S_VERSIONS %s \n" $DEFAULT_VERSION
                 versions=$DEFAULT_VERSION
         fi
 
@@ -80,51 +86,70 @@ function set_versions_to_test {
         fi
 }
 
-function run_version_tests {
+function install_k8s {
+        
+        printf "==> Uninstalling any existing k8s installations\n"
+        /usr/local/bin/k3s-uninstall.sh > /dev/null 2>&1   
+        printf "==> Installing k8s version: %s\n" $1  
+        curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="600" \
+                                INSTALL_K3S_CHANNEL=$1 \
+                                INSTALL_K3S_EXEC=" --no-deploy traefik " sh  > /dev/null 2>&1
+
+        cp /etc/rancher/k3s/k3s.yaml /home/vagrant/k3s.yaml
+        chown vagrant /home/vagrant/k3s.yaml
+        chmod 600 /home/vagrant/k3s.yaml   
+        export KUBECONFIG=/home/vagrant/k3s.yaml  
+        sleep 30  
+        if [[ `su - $k8s_user -c "kubectl get nodes " > /dev/null 2>&1 ` -ne 0 ]] ; then 
+                printf "    Error: k8s server install failed\n"
+        fi           
+
+        printf "==> installing nginx-ingress version: %s\n" $nginx_version
+        if [[ $i == "v1.22" ]] ; then
+                nginx_version="4.0.6"
+        else 
+                nginx_version="3.33.0"     
+        fi
+
+        start_timer=$(date +%s)
+        su - $k8s_user -c "helm upgrade --install --wait --timeout 300s ingress-nginx \
+                                ingress-nginx/ingress-nginx --version=$nginx_version  " >> /dev/null 2>&1
+        end_timer=$(date +%s)
+        elapsed_secs=$(echo "$end_timer - $start_timer" | bc )
+        #su - $k8s_user -c "kubectl get pods --all-namespaces "
+        if [[ `helm status ingress-nginx | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
+                printf "    helm install of ingress-nginx sucessfull after <$elapsed_secs> secs \n\n"
+        else 
+                printf "    Error: ingress-nginx helm chart  deployment failed "
+                exit 1
+        fi 
+
+}
+
+function run_k8s_version_tests {
         printf "========================================================================================\n"
         printf "Running Mojaloop Version Tests \n"
         printf "========================================================================================\n"
         for i in ${versions_list[@]}; do
                 echo "CURRENT_K8S_VERSIONS{$i}"
-                printf "==> Uninstalling any existing k8s installations\n"
-                /usr/local/bin/k3s-uninstall.sh > /dev/null 2>&1   
-                printf "==> Installing k8s version: %s\n" $i  
-                curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="600" \
-                                        INSTALL_K3S_CHANNEL=$i \
-                                        INSTALL_K3S_EXEC=" --no-deploy traefik " sh  > /dev/null 2>&1
-
-                
-                cp /etc/rancher/k3s/k3s.yaml /home/vagrant/k3s.yaml
-                chown vagrant /home/vagrant/k3s.yaml
-                chmod 600 /home/vagrant/k3s.yaml   
-                export KUBECONFIG=/home/vagrant/k3s.yaml  
-                sleep 30             
-                if [[ `su - $k8s_user -c "kubectl get nodes "` -ne 0 ]] ; then 
-                        printf "    Error: k8s server install failed\n"
-                fi
-
-                if [[ $i == "v1.22" ]] ; then
-                        nginx_version="4.0.6"
-                else 
-                        nginx_version="3.33.0"     
-                fi
-                printf "==> installing nginx-ingress version: %s\n" $nginx_version
-                su - $k8s_user -c "helm upgrade --install --wait --timeout 300s ingress-nginx \
-                                   ingress-nginx/ingress-nginx --version=$nginx_version  " >> /dev/null 2>&1
-                #su - $k8s_user -c "kubectl get pods --all-namespaces "
-                if [[ `helm status ingress-nginx | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
-                        printf "    helm install of ingress-nginx sucessfull after <$elapsed_secs> secs \n\n"
-                else 
-                        printf "    Error: ingress-nginx helm chart  deployment failed "
-                        exit 1
-                fi 
-
+                install_k8s $i
                 # assuming this is ok so far => now install the v14.0 ML helm charts
                 # should check that the repo exists at this point and clone it if not existing.
                 install_v14poc_charts
                 post_install_health_checks
         done
 }
+
+function verify_user {
+# ensure that the user for k8s exists
+        if getent passwd "$k8s_user" >/dev/null; then
+                return
+        else
+                printf "    Error: The user %s does not exist\n" $k8s_user
+                exit 1 
+        fi
+}
+
 
 ################################################################################
 # Function: showUsage
@@ -144,6 +169,7 @@ Example 2 : version-test.sh -m install -v all  # tests charts against k8s versio
 
 Options:
 -m mode ............ install|noinstall (default : noinstall of k8s and nginx )
+-t timeout_secs .... seconds to wait for helm chart install (default:800)
 -v k8s versions .... all|v1.20|v1.21|v1.22 (default :  v1.22)
 -u user ............ non root user to run helm and k8s commands (default : vagrant)
 -h|H ............... display this message
@@ -164,8 +190,7 @@ SCRIPTNAME=$0
 MOJALOOP_WORKING_DIR=/vagrant/charts
 BACKEND_NAME="be" 
 RELEASE_NAME="ml"
-BE_TIMEOUT_SECS="600s"
-ML_TIMEOUT_SECS="600s"
+DEFAULT_TIMEOUT_SECS="800s"
 export KUBECONFIG="/etc/rancher/k3s/k3s.yaml"
 DEFAULT_VERSION="v1.22" # default version to test
 DEFAULT_K8S_USER="vagrant"
@@ -179,10 +204,6 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
-# chown root /etc/rancher/k3s/k3s.yaml
-# chmod 600 /etc/rancher/k3s/k3s.yaml
-
-
 # Check arguments
 # if [ $# -lt 1 ] ; then
 # 	showUsage
@@ -191,9 +212,11 @@ fi
 # fi
 
 # Process command line options as required
-while getopts "m:u:v:hH" OPTION ; do
+while getopts "m:t:u:v:hH" OPTION ; do
    case "${OPTION}" in
         m)	mode="${OPTARG}"
+        ;;
+        t)      timeout_secs="${OPTARG}"
         ;;
         v)	versions="${OPTARG}"
         ;;
@@ -209,13 +232,30 @@ while getopts "m:u:v:hH" OPTION ; do
     esac
 done
 
-printf "\n\n*** Mojaloop Kubernetes Version Testing Tool ***\n\n"
+printf "\n\n*** Mojaloop -  Kubernetes Version Testing Tool ***\n\n"
 
 # set the user to run k8s commands
 if [ -z ${k8s_user+x} ] ; then
         k8s_user=$DEFAULT_K8S_USER
 fi
+
 printf " running kubernetes and helm commands with user : %s\n" $k8s_user
+verify_user 
+
+# retval=`su - $k8s_user -c "kubectl get nodes "`
+# echo $retval
+
+# if timeout not set , use the default 
+# set the user to run k8s commands
+if [ -z ${timeout_secs+x} ] ; then
+        timeout_secs=$DEFAULT_TIMEOUT_SECS
+else 
+        # ensure theer is an s in timeout_secs
+        x=`echo $timeout_secs | tr -d "s"`
+        x+="s"
+        timeout_secs=$x
+        printf " helm timeout set to : %s \n" $timeout_secs
+fi
 
 # if the mode not specified -> default to not installing k8s server.
 # this allows testing to happen on previously deployed k8s server
@@ -228,12 +268,15 @@ fi
 if [[ "$mode" == "install" ]]  ; then
 	printf " -m install specified => k8s and nginx version(s) will be installed\n"
         set_versions_to_test
-        run_version_tests
+
+        # for each k8s version -> install server -> install charts -> check
+        run_k8s_version_tests
 
 elif [[ "$mode" == "noinstall" ]]  ; then
+        # just install the charts against already installed k8s
 	printf " k8s and nginx ingress will not be installed\n"
         printf " ignoring and/or clearing any setting for -v flag\n "
-        versions=$DEFAULT_VERSION
+        versions=$DEFAULT_VERSION 
         install_v14poc_charts
         post_install_health_checks
 fi
