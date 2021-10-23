@@ -12,6 +12,33 @@ trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
 # exit on unset vars
 set -u
 
+function add_hosts {
+        ENDPOINTSLIST=(127.0.0.1    localhost ml-api-adapter.local central-ledger.local account-lookup-service.local 
+                   account-lookup-service-admin.local quoting-service.local central-settlement-service.local 
+                   transaction-request-service.local central-settlement.local bulk-api-adapter.local 
+                   moja-simulator.local sim-payerfsp.local sim-payeefsp.local sim-testfsp1.local sim-testfsp2.local 
+                   sim-testfsp3.local sim-testfsp4.local mojaloop-simulators.local finance-portal.local
+                   operator-settlement.local settlement-management.local toolkit.local testing-toolkit-specapi.local
+                   admin-api-svc.local transfer-api-svc.local ) 
+
+        export ENDPOINTS=`echo ${ENDPOINTSLIST[*]}`
+
+        perl -p -i.bak -e 's/127\.0\.0\.1.*localhost.*$/$ENV{ENDPOINTS} /' /etc/hosts
+
+}
+
+function add_helm_repos { 
+  ## add the helm repos required to install and run ML and the v14 PoC
+        printf "==> add the helm repos required to install and run ML and the v14 PoC\n" 
+        su - vagrant -c "helm repo add mojaloop http://mojaloop.io/helm/repo/" > /dev/null 2>&1
+        su - vagrant -c "helm repo add kiwigrid https://kiwigrid.github.io" > /dev/null 2>&1
+        su - vagrant -c "helm repo add elastic https://helm.elastic.co" > /dev/null 2>&1
+        su - vagrant -c "helm repo add bitnami https://charts.bitnami.com/bitnami" > /dev/null 2>&1
+        su - vagrant -c "helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx" > /dev/null 2>&1
+        su - vagrant -c "helm repo update"
+}
+
+
 function install_v14poc_charts {
   printf "\n========================================================================================\n"
   printf "installing mojaloop v14 PoC \n"
@@ -104,16 +131,18 @@ function install_k8s {
                 printf "    Error: k8s server install failed\n"
         fi           
 
+        nginx_flags="--set controller.watchIngressWithoutClass=true"
         printf "==> installing nginx-ingress version: %s\n" $nginx_version
         if [[ $i == "v1.22" ]] ; then
                 nginx_version="4.0.6"
         else 
-                nginx_version="3.33.0"     
+                nginx_version="3.33.0"
+                nginx_flags=" "    
         fi
 
         start_timer=$(date +%s)
         su - $k8s_user -c "helm upgrade --install --wait --timeout 300s ingress-nginx \
-                                ingress-nginx/ingress-nginx --version=$nginx_version  " >> /dev/null 2>&1
+                                ingress-nginx/ingress-nginx --version=$nginx_version $nginx_flags " >> /dev/null 2>&1
         end_timer=$(date +%s)
         elapsed_secs=$(echo "$end_timer - $start_timer" | bc )
         #su - $k8s_user -c "kubectl get pods --all-namespaces "
@@ -234,6 +263,10 @@ done
 
 printf "\n\n*** Mojaloop -  Kubernetes Version Testing Tool ***\n\n"
 
+add_hosts
+add_helm_repos
+exit
+
 # set the user to run k8s commands
 if [ -z ${k8s_user+x} ] ; then
         k8s_user=$DEFAULT_K8S_USER
@@ -267,6 +300,7 @@ fi
 # if mode = install we install the k3s server and appropriate nginx 
 if [[ "$mode" == "install" ]]  ; then
 	printf " -m install specified => k8s and nginx version(s) will be installed\n"
+        add_hosts
         set_versions_to_test
 
         # for each k8s version -> install server -> install charts -> check

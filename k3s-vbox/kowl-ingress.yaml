@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    meta.helm.sh/release-name: be
+    meta.helm.sh/release-namespace: default
+  creationTimestamp: "2021-10-23T01:46:25Z"
+  generation: 1
+  labels:
+    app.kubernetes.io/instance: be
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kowl
+    app.kubernetes.io/version: v1.4.0
+    helm.sh/chart: kowl-2.0.1
+  name: be-kowl
+  namespace: default
+  resourceVersion: "771"
+  uid: 96dd8ff2-3251-4a42-86ab-96814c52d88b
+spec:
+  rules:
+  - host: chart-example.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: be-kowl
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+status:
+  loadBalancer: {}

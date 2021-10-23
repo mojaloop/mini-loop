@@ -1,0 +1,1307 @@
+NAME: td
+LAST DEPLOYED: Fri Oct 22 07:35:06 2021
+NAMESPACE: default
+STATUS: pending-install
+REVISION: 1
+TEST SUITE: None
+HOOKS:
+MANIFEST:
+---
+# Source: mojaloop/charts/admin-api-svc/templates/service-account.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: td-admin-api-svc
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: admin-api-svc
+    helm.sh/chart: admin-api-svc-12.0.0
+    app.kubernetes.io/instance: td
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: transfer-api-svc
+---
+# Source: mojaloop/charts/fspiop-transfer-api-svc/templates/service-account.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: td-fspiop-transfer-api-svc
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: fspiop-transfer-api-svc
+    helm.sh/chart: fspiop-transfer-api-svc-12.0.0
+    app.kubernetes.io/instance: td
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: transfer-api-svc
+---
+# Source: mojaloop/charts/admin-api-svc/templates/config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: td-admin-api-svc-config
+  labels:
+    app.kubernetes.io/name: admin-api-svc
+    helm.sh/chart: admin-api-svc-12.0.0
+    app.kubernetes.io/instance: td
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: admin-api-svc
+data:
+  knexfile.js: "'use strict'\n\nconst migrationsDirectory = '/opt/central-ledger/migrations'\nconst seedsDirectory = '/opt/central-ledger/seeds'\n\nconst Config = require('/opt/central-ledger/src/lib/config')\n\nmodule.exports = {\n    client: 'mysql',\n    connection: Config.DATABASE.connection,\n    pool: Config.DATABASE.pool,\n    migrations: {\n        directory: migrationsDirectory,\n        tableName: 'migration',\n        stub: `${migrationsDirectory}/migration.template`\n    },\n    seeds: {\n        directory: seedsDirectory,\n        loadExtensions: ['.js']\n    }\n}\n"
+  default.json: |
+    {
+        "PORT": 3001,
+        "HOSTNAME": "admin-api-svc.local",
+        "MIGRATIONS": {
+            "DISABLED": true,
+            "RUN_DATA_MIGRATIONS": true
+        },
+        "AMOUNT": {
+            "PRECISION": 18,
+            "SCALE": 4
+        },
+        "ERROR_HANDLING": {
+            "includeCauseExtension": false,
+            "truncateExtensions": true
+        },
+        "DATABASE": {
+            "DIALECT": "mysql",
+            "HOST": "mysql",
+            "PORT": 3306,
+            "USER": "user",
+            "SCHEMA": "default",
+            "POOL_MIN_SIZE": 10,
+            "POOL_MAX_SIZE": 30,
+            "ACQUIRE_TIMEOUT_MILLIS": 30000,
+            "CREATE_TIMEOUT_MILLIS": 30000,
+            "DESTROY_TIMEOUT_MILLIS": 5000,
+            "IDLE_TIMEOUT_MILLIS": 30000,
+            "REAP_INTERVAL_MILLIS": 1000,
+            "CREATE_RETRY_INTERVAL_MILLIS": 200,
+            "DEBUG": false
+        },
+        "MONGODB": {
+            "DISABLED": true,
+            "URI": "mongodb://$release_name-centralledger-obj:27017/mlos"
+        },
+        "HANDLERS": {
+            "DISABLED": true,
+            "API": {
+                "DISABLED": false
+            },
+            "TIMEOUT": {
+                "DISABLED": true,
+                "TIMEXP": "*/15 * * * * *",
+                "TIMEZONE": "UTC"
+            }
+        },
+        "INSTRUMENTATION": {
+            "METRICS": {
+                "DISABLED": false,
+                "labels": {
+                    "fspId": "*"
+                },
+                "config": {
+                    "timeout": 5000,
+                    "prefix": "moja_",
+                    "defaultLabels": {
+                        "serviceName": "central-service"
+                    }
+                }
+            }
+        },
+        "EMAIL_USER": "user",
+        "EMAIL_PASSWORD": "password",
+        "EMAIL_SMTP": "smtp.local",
+        "PARTICIPANT_INITIAL_POSITION": 0,
+        "HUB_PARTICIPANT": {
+            "ID": 1,
+            "NAME": "Hub",
+            "ACCOUNTS": [
+                "HUB_RECONCILIATION",
+                "HUB_MULTILATERAL_SETTLEMENT",
+                "HUB_FEE"
+            ]
+        },
+        "INTERNAL_TRANSFER_VALIDITY_SECONDS": "432000",
+        "CACHE": {
+            "CACHE_ENABLED": false,
+            "MAX_BYTE_SIZE": 1e+07,
+            "EXPIRES_IN_MS": 1000
+        },
+        "API_DOC_ENDPOINTS_ENABLED": true,
+        "KAFKA": {
+            "TOPIC_TEMPLATES": {
+                "PARTICIPANT_TOPIC_TEMPLATE": {
+                    "TEMPLATE": "topic-{{participantName}}-{{functionality}}-{{action}}",
+                    "REGEX": "topic-(.*)-(.*)-(.*)"
+                },
+                "GENERAL_TOPIC_TEMPLATE": {
+                    "TEMPLATE": "topic-{{functionality}}-{{action}}",
+                    "REGEX": "topic-(.*)-(.*)"
+                }
+            },
+            "CONSUMER": {
+                "BULK": {
+                    "PREPARE": {
+                        "config": {
+                            "options": {
+                                "mode": 2,
+                                "batchSize": 1,
+                                "pollFrequency": 10,
+                                "recursiveTimeout": 100,
+                                "messageCharset": "utf8",
+                                "messageAsJSON": true,
+                                "sync": true,
+                                "consumeTimeout": 1000
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "cl-con-bulk-prepare",
+                                "group.id": "cl-group-bulk-prepare",
+                                "socket.keepalive.enable": true,
+                                "allow.auto.create.topics": true
+                            },
+                            "topicConf": {
+                                "auto.offset.reset": "earliest"
+                            }
+                        }
+                    },
+                    "PROCESSING": {
+                        "config": {
+                            "options": {
+                                "mode": 2,
+                                "batchSize": 1,
+                                "pollFrequency": 10,
+                                "recursiveTimeout": 100,
+                                "messageCharset": "utf8",
+                                "messageAsJSON": true,
+                                "sync": true,
+                                "consumeTimeout": 1000
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",  
+                                "client.id": "cl-con-bulk-processing",
+                                "group.id": "cl-group-bulk-processing",
+                                "socket.keepalive.enable": true,
+                                "allow.auto.create.topics": true
+                            },
+                            "topicConf": {
+                                "auto.offset.reset": "earliest"
+                            }
+                        }
+                    },
+                    "FULFIL": {
+                        "config": {
+                            "options": {
+                                "mode": 2,
+                                "batchSize": 1,
+                                "pollFrequency": 10,
+                                "recursiveTimeout": 100,
+                                "messageCharset": "utf8",
+                                "messageAsJSON": true,
+                                "sync": true,
+                                "consumeTimeout": 1000
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "cl-con-bulk-fulfil",
+                                "group.id": "cl-group-bulk-fulfil",
+                                "socket.keepalive.enable": true,
+                                "allow.auto.create.topics": true
+                            },
+                            "topicConf": {
+                                "auto.offset.reset": "earliest"
+                            }
+                        }
+                    },
+                    "GET": {
+                        "config": {
+                            "options": {
+                                "mode": 2,
+                                "batchSize": 1,
+                                "pollFrequency": 10,
+                                "recursiveTimeout": 100,
+                                "messageCharset": "utf8",
+                                "messageAsJSON": true,
+                                "sync": true,
+                                "consumeTimeout": 1000
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "cl-con-bulk-get",
+                                "group.id": "cl-group-bulk-get",
+                                "socket.keepalive.enable": true,
+                                "allow.auto.create.topics": true
+                            },
+                            "topicConf": {
+                                "auto.offset.reset": "earliest"
+                            }
+                        }
+                    }
+                },
+                "TRANSFER": {
+                    "PREPARE": {
+                        "config": {
+                            "options": {
+                                "mode": 2,
+                                "batchSize": 1,
+                                "pollFrequency": 10,
+                                "recursiveTimeout": 100,
+                                "messageCharset": "utf8",
+                                "messageAsJSON": true,
+                                "sync": true,
+                                "consumeTimeout": 1000
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "cl-con-transfer-prepare",
+                                "group.id": "cl-group-transfer-prepare",
+                                "socket.keepalive.enable": true,
+                                "allow.auto.create.topics": true
+                            },
+                            "topicConf": {
+                                "auto.offset.reset": "earliest"
+                            }
+                        }
+                    },
+                    "POSITION": {
+                        "config": {
+                            "options": {
+                                "mode": 2,
+                                "batchSize": 1,
+                                "pollFrequency": 10,
+                                "recursiveTimeout": 100,
+                                "messageCharset": "utf8",
+                                "messageAsJSON": true,
+                                "sync": true,
+                                "consumeTimeout": 1000
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "cl-con-transfer-position",
+                                "group.id": "cl-group-transfer-position",
+                                "socket.keepalive.enable": true,
+                                "allow.auto.create.topics": true
+                            },
+                            "topicConf": {
+                                "auto.offset.reset": "earliest"
+                            }
+                        }
+                    },
+                    "FULFIL": {
+                        "config": {
+                            "options": {
+                                "mode": 2,
+                                "batchSize": 1,
+                                "pollFrequency": 10,
+                                "recursiveTimeout": 100,
+                                "messageCharset": "utf8",
+                                "messageAsJSON": true,
+                                "sync": true,
+                                "consumeTimeout": 1000
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "cl-con-transfer-fulfil",
+                                "group.id": "cl-group-transfer-fulfil",
+                                "socket.keepalive.enable": true,
+                                "allow.auto.create.topics": true
+                            },
+                            "topicConf": {
+                                "auto.offset.reset": "earliest"
+                            }
+                        }
+                    },
+                    "GET": {
+                        "config": {
+                            "options": {
+                                "mode": 2,
+                                "batchSize": 1,
+                                "pollFrequency": 10,
+                                "recursiveTimeout": 100,
+                                "messageCharset": "utf8",
+                                "messageAsJSON": true,
+                                "sync": true,
+                                "consumeTimeout": 1000
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "cl-con-transfer-get",
+                                "group.id": "cl-group-transfer-get",
+                                "socket.keepalive.enable": true,
+                                "allow.auto.create.topics": true
+                            },
+                            "topicConf": {
+                                "auto.offset.reset": "earliest"
+                            }
+                        }
+                    }
+                },
+                "ADMIN": {
+                    "TRANSFER": {
+                        "config": {
+                            "options": {
+                                "mode": 2,
+                                "batchSize": 1,
+                                "pollFrequency": 10,
+                                "recursiveTimeout": 100,
+                                "messageCharset": "utf8",
+                                "messageAsJSON": true,
+                                "sync": true,
+                                "consumeTimeout": 1000
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "cl-con-transfer-admin",
+                                "group.id": "cl-group-transfer-admin",
+                                "socket.keepalive.enable": true,
+                                "allow.auto.create.topics": true
+                            },
+                            "topicConf": {
+                                "auto.offset.reset": "earliest"
+                            }
+                        }
+                    }
+                }
+            },
+            "PRODUCER": {
+                "BULK": {
+                    "PROCESSING": {
+                        "config": {
+                            "options": {
+                                "messageCharset": "utf8"
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "cl-prod-bulk-processing",
+                                "event_cb": true,
+                                "dr_cb": false,
+                                "socket.keepalive.enable": true,
+                                "queue.buffering.max.messages": 10000000
+                            },
+                            "topicConf": {
+                                "request.required.acks": "all",
+                                "partitioner": "murmur2_random"
+                            }
+                        }
+                    }
+                },
+                "TRANSFER": {
+                    "PREPARE": {
+                        "config": {
+                            "options": {
+                                "messageCharset": "utf8"
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "cl-prod-transfer-prepare",
+                                "event_cb": true,
+                                "dr_cb": false,
+                                "socket.keepalive.enable": true,
+                                "queue.buffering.max.messages": 10000000
+                            },
+                            "topicConf": {
+                                "request.required.acks": "all",
+                                "partitioner": "murmur2_random"
+                            }
+                        }
+                    },
+                    "POSITION": {
+                        "config": {
+                            "options": {
+                                "messageCharset": "utf8"
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "cl-prod-transfer-position",
+                                "event_cb": true,
+                                "dr_cb": false,
+                                "socket.keepalive.enable": true,
+                                "queue.buffering.max.messages": 10000000
+                            },
+                            "topicConf": {
+                                "request.required.acks": "all",
+                                "partitioner": "murmur2_random"
+                            }
+                        }
+                    },
+                    "FULFIL": {
+                        "config": {
+                            "options": {
+                                "messageCharset": "utf8"
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "cl-prod-transfer-fulfil",
+                                "event_cb": true,
+                                "dr_cb": false,
+                                "socket.keepalive.enable": true,
+                                "queue.buffering.max.messages": 10000000
+                            },
+                            "topicConf": {
+                                "request.required.acks": "all",
+                                "partitioner": "murmur2_random"
+                            }
+                        }
+                    },
+                    "GET": {
+                        "config": {
+                            "options": {
+                                "messageCharset": "utf8"
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "cl-prod-transfer-get",
+                                "event_cb": true,
+                                "dr_cb": false,
+                                "socket.keepalive.enable": true,
+                                "queue.buffering.max.messages": 10000000
+                            },
+                            "topicConf": {
+                                "request.required.acks": "all",
+                                "partitioner": "murmur2_random"
+                            }
+                        }
+                    }
+                },
+                "NOTIFICATION": {
+                    "EVENT": {
+                        "config": {
+                            "options": {
+                                "messageCharset": "utf8"
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "cl-prod-notification-event",
+                                "event_cb": true,
+                                "dr_cb": false,
+                                "socket.keepalive.enable": true,
+                                "queue.buffering.max.messages": 10000000
+                            },
+                            "topicConf": {
+                                "request.required.acks": "all",
+                                "partitioner": "murmur2_random"
+                            }
+                        }
+                    }
+                },
+                "ADMIN": {
+                    "TRANSFER": {
+                        "config": {
+                            "options": {
+                                "messageCharset": "utf8"
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "admin-transfer-produce",
+                                "event_cb": true,
+                                "dr_cb": false,
+                                "socket.keepalive.enable": true,
+                                "queue.buffering.max.messages": 10000000
+                            },
+                            "topicConf": {
+                                "request.required.acks": "all",
+                                "partitioner": "murmur2_random"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+---
+# Source: mojaloop/charts/admin-api-svc/templates/config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: td-admin-api-svc-sidecar
+  labels:
+    app.kubernetes.io/name: admin-api-svc
+    helm.sh/chart: admin-api-svc-12.0.0
+    app.kubernetes.io/instance: td
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: admin-api-svc
+data:
+  default.json: |
+    {
+      "PORT": 4001,
+      "EVENT_LOGGER_GRPC_HOST": "localhost",
+      "EVENT_LOGGER_GRPC_PORT": 50051,
+      "INSTRUMENTATION": {
+        "METRICS": {
+          "DISABLED": false,
+          "labels": {
+            "eventId": "*"
+          },
+          "config": {
+            "timeout": 5000,
+            "prefix": "moja_",
+            "defaultLabels": {
+              "serviceName": "admin-api-svc-event-sidecar"
+            }
+          }
+        }
+      },
+      "KAFKA": {
+        "TOPIC_TEMPLATES": {
+          "GENERAL_TOPIC_TEMPLATE": {
+            "TEMPLATE": "topic-{{functionality}}",
+            "REGEX": "topic-(.*)"
+          }
+        },
+        "PRODUCER": {
+          "EVENT": {
+            "config": {
+              "options": {
+                "messageCharset": "utf8"
+              },
+              "rdkafkaConf": {
+                "metadata.broker.list": "kafka:9092",
+                "client.id": "es-prod-event",
+                "event_cb": true,
+                "dr_cb": true,
+                "socket.keepalive.enable": true,
+                "queue.buffering.max.messages": 10000000
+              },
+              "topicConf": {
+                "request.required.acks": "all",
+                "partitioner": "murmur2_random"
+              }
+            }
+          }
+        }
+      }
+    }
+---
+# Source: mojaloop/charts/fspiop-transfer-api-svc/templates/config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: td-fspiop-transfer-api-svc-config
+  labels:
+    app.kubernetes.io/name: fspiop-transfer-api-svc
+    helm.sh/chart: fspiop-transfer-api-svc-12.0.0
+    app.kubernetes.io/instance: td
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: fspiop-transfer-api-svc
+data:
+  default.json: |
+    {
+        "PORT": 3000,
+        "ENDPOINT_SOURCE_URL": "http://td-admin-api-svc:80",
+        "ENDPOINT_HEALTH_URL": "http://td-admin-api-svc:80/health",
+        "ENDPOINT_CACHE_CONFIG": {
+            "expiresIn": 180000,
+            "generateTimeout": 30000
+        },
+        "ENDPOINT_SECURITY":{
+            "JWS": {
+                "JWS_SIGN": false,
+                "FSPIOP_SOURCE_TO_SIGN": "switch",
+                "JWS_SIGNING_KEY_PATH": "secrets/jwsSigningKey.key"
+              },
+            "TLS": {
+                "rejectUnauthorized": true
+            }
+        },
+        "HOSTNAME": "transfer-api-svc.local",
+        "MAX_CALLBACK_TIME_LAG_DILATION_MILLISECONDS": 100,
+        "MAX_FULFIL_TIMEOUT_DURATION_SECONDS": 240,
+        "TRANSFERS": {
+            "SEND_TRANSFER_CONFIRMATION_TO_PAYEE": false
+        },
+        "AMOUNT": {
+            "PRECISION": 18,
+            "SCALE": 4
+        },
+        "ERROR_HANDLING": {
+            "includeCauseExtension": false,
+            "truncateExtensions": true
+        },
+        "HANDLERS": {
+            "DISABLED": true,
+            "API": {
+                "DISABLED": false
+            }
+        },
+        "INSTRUMENTATION": {
+            "METRICS": {
+                "DISABLED": false,
+                "config": {
+                    "timeout": 5000,
+                    "prefix": "moja_",
+                    "defaultLabels": {
+                        "serviceName": "ml-service"
+                    }
+                }
+            }
+        },
+        "KAFKA": {
+            "TOPIC_TEMPLATES": {
+                "GENERAL_TOPIC_TEMPLATE": {
+                    "TEMPLATE": "topic-{{functionality}}-{{action}}",
+                    "REGEX": "topic-(.*)-(.*)"
+                },
+                "PARTICIPANT_TOPIC_TEMPLATE": {
+                    "TEMPLATE": "topic-{{participantName}}-{{functionality}}-{{action}}",
+                    "REGEX": "topic-(.*)-(.*)-(.*)"
+                },
+                "NOTIFICATION_TOPIC_TEMPLATE": {
+                    "TEMPLATE": "topic-notification-event",
+                    "REGEX": "topic-notification-event"
+                },
+                "FULFIL_TOPIC_TEMPLATE": {
+                    "TEMPLATE": "topic-transfer-fulfil",
+                    "REGEX": "topic-transfer-fulfil"
+                },
+                "GET_TRANSFERS_TOPIC_TEMPLATE": {
+                    "TEMPLATE": "topic-transfer-get",
+                    "REGEX": "topic-transfer-get"
+                }
+            },
+            "CONSUMER": {
+                "NOTIFICATION": {
+                    "EVENT": {
+                        "config": {
+                            "options": {
+                                "mode": 2,
+                                "batchSize": 1,
+                                "recursiveTimeout": 100,
+                                "messageCharset": "utf8",
+                                "messageAsJSON": true,
+                                "sync": true,
+                                "consumeTimeout": 1000
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "ml-con-notification-event",
+                                "group.id": "ml-group-notification-event",
+                                "socket.keepalive.enable": true,
+                                "allow.auto.create.topics": true
+                            },
+                            "topicConf": {
+                                "auto.offset.reset": "earliest"
+                            }
+                        }
+                    }
+                }
+            },
+            "PRODUCER": {
+                "TRANSFER": {
+                    "PREPARE": {
+                        "config": {
+                            "options": {
+                                "messageCharset": "utf8"
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "ml-prod-transfer-prepare",
+                                "event_cb": true,
+                                "dr_cb": false,
+                                "socket.keepalive.enable": true,
+                                "queue.buffering.max.messages": 10000000
+                            },
+                            "topicConf": {
+                                "request.required.acks": "all",
+                                "partitioner": "murmur2_random"
+                            }
+                        }
+                    },
+                    "FULFIL": {
+                        "config": {
+                            "options": {
+                                "messageCharset": "utf8"
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "ml-prod-transfer-fulfil",
+                                "event_cb": true,
+                                "dr_cb": false,
+                                "socket.keepalive.enable": true,
+                                "queue.buffering.max.messages": 10000000
+                            },
+                            "topicConf": {
+                                "request.required.acks": "all",
+                                "partitioner": "murmur2_random"
+                            }
+                        }
+                    },
+                    "GET": {
+                        "config": {
+                            "options": {
+                                "messageCharset": "utf8"
+                            },
+                            "rdkafkaConf": {
+                                "metadata.broker.list": "kafka:9092",
+                                "client.id": "ml-prod-transfer-get",
+                                "event_cb": true,
+                                "dr_cb": false,
+                                "socket.keepalive.enable": true,
+                                "queue.buffering.max.messages": 10000000
+                            },
+                            "topicConf": {
+                                "request.required.acks": "all",
+                                "partitioner": "murmur2_random"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+---
+# Source: mojaloop/charts/fspiop-transfer-api-svc/templates/config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: td-fspiop-transfer-api-svc-sidecar
+  labels:
+    app.kubernetes.io/name: fspiop-transfer-api-svc
+    helm.sh/chart: fspiop-transfer-api-svc-12.0.0
+    app.kubernetes.io/instance: td
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: fspiop-transfer-api-svc
+data:
+  default.json: |
+    {
+      "PORT": 4001,
+      "EVENT_LOGGER_GRPC_HOST": "localhost",
+      "EVENT_LOGGER_GRPC_PORT": 50051,
+      "INSTRUMENTATION": {
+        "METRICS": {
+          "DISABLED": false,
+          "labels": {
+            "eventId": "*"
+          },
+          "config": {
+            "timeout": 5000,
+            "prefix": "moja_",
+            "defaultLabels": {
+              "serviceName": "fspiop-transfer-api-svc-event-sidecar"
+            }
+          }
+        }
+      },
+      "KAFKA": {
+        "TOPIC_TEMPLATES": {
+          "GENERAL_TOPIC_TEMPLATE": {
+            "TEMPLATE": "topic-{{functionality}}",
+            "REGEX": "topic-(.*)"
+          }
+        },
+        "PRODUCER": {
+          "EVENT": {
+            "config": {
+              "options": {
+                "messageCharset": "utf8"
+              },
+              "rdkafkaConf": {
+                "metadata.broker.list": "kafka:9092",
+                "client.id": "es-prod-event",
+                "event_cb": true,
+                "dr_cb": true,
+                "socket.keepalive.enable": true,
+                "queue.buffering.max.messages": 10000000
+              },
+              "topicConf": {
+                "request.required.acks": "all",
+                "partitioner": "murmur2_random"
+              }
+            }
+          }
+        }
+      }
+    }
+---
+# Source: mojaloop/charts/admin-api-svc/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: td-admin-api-svc
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: admin-api-svc
+    helm.sh/chart: admin-api-svc-12.0.0
+    app.kubernetes.io/instance: td
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: admin-api-svc-12.0.0
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3001
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: admin-api-svc
+    app.kubernetes.io/instance: td
+    app.kubernetes.io/component: admin-api-svc-12.0.0
+---
+# Source: mojaloop/charts/fspiop-transfer-api-svc/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: td-fspiop-transfer-api-svc
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: fspiop-transfer-api-svc
+    helm.sh/chart: fspiop-transfer-api-svc-12.0.0
+    app.kubernetes.io/instance: td
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: fspiop-transfer-api-svc-12.0.0
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: fspiop-transfer-api-svc
+    app.kubernetes.io/instance: td
+    app.kubernetes.io/component: fspiop-transfer-api-svc-12.0.0
+---
+# Source: mojaloop/charts/admin-api-svc/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: td-admin-api-svc
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: admin-api-svc
+    helm.sh/chart: admin-api-svc-12.0.0
+    app.kubernetes.io/instance: td
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: admin-api-svc-12.0.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: admin-api-svc
+      app.kubernetes.io/instance: td
+      app.kubernetes.io/component: admin-api-svc-12.0.0
+  template:
+    metadata:
+      annotations: 
+        checksum/config: 5add80b0a300123a627606e39a76f053c83f5cfd4b2d460c8b9c7c54f33d9dc9
+        prometheus.io/port: "3001"
+        prometheus.io/scrape: "true"
+      labels:
+        app.kubernetes.io/name: admin-api-svc
+        helm.sh/chart: admin-api-svc-12.0.0
+        app.kubernetes.io/instance: td
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: admin-api-svc-12.0.0
+        app.kubernetes.io/version: 12.0.0
+    spec:
+      serviceAccountName: td-admin-api-svc
+      
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: admin-api-svc
+                    app.kubernetes.io/instance: td
+                    app.kubernetes.io/component: fspiop-transfer-api-svc
+                namespaces:
+                  - "default"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      securityContext:
+        fsGroup: 1001
+      initContainers:
+        - command:
+          - sh
+          - -c
+          - until ./bin/kafka-broker-api-versions.sh --bootstrap-server ${KAFKA_HOST}:${KAFKA_PORT};
+            do echo --------------------; echo Waiting for Kafka...; sleep 2; done; echo ====================;
+            echo Kafka ok!;
+          env:
+          - name: KAFKA_HOST
+            value: 'kafka'
+          - name: KAFKA_PORT
+            value: '9092'
+          image: solsson/kafka
+          imagePullPolicy: IfNotPresent
+          name: wait-for-kafka
+        - command:
+          - sh
+          - -c
+          - until mysql -h ${DB_HOST} -P ${DB_PORT} -u ${DB_USER} --password=${DB_PASSWORD}  ${DB_DATABASE}
+            -e 'select version()' ; do echo --------------------; echo Waiting for MySQL...;
+            sleep 2; done; echo ====================; echo MySQL ok!;
+          env:
+          - name: DB_HOST
+            value: 'mysql'
+          - name: DB_PORT
+            value: '3306'
+          - name: DB_USER
+            value: 'user'
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: 'mysql-password'
+                name: 'mysql'
+          - name: DB_DATABASE
+            value: 'default'
+          image: mysql
+          imagePullPolicy: IfNotPresent
+          name: wait-for-mysql
+        - command:
+          - sh
+          - -c
+          - npm run migrate
+          env:
+          - name: CLEDG_MIGRATIONS__RUN_DATA_MIGRATIONS
+            value: "true"
+          - name: CLEDG_DATABASE__PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: 'mysql-password'
+                name: 'mysql'
+          image: 'docker.io/mojaloop/central-ledger:v13.14.0'
+          imagePullPolicy: IfNotPresent
+          name: run-migration
+          volumeMounts:
+          - mountPath: /opt/central-ledger/config
+            name: config-volume
+      containers:
+        - name: admin-api-svc
+          image: docker.io/mojaloop/central-ledger:v13.14.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1001
+          command:
+            - node
+            - src/api/index.js
+          ports:
+            - name: http
+              containerPort: 3001
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          volumeMounts:
+            - name: config-volume
+              mountPath: /opt/central-ledger/config
+          env:
+            - name: CLEDG_DATABASE__PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: 'mysql'
+                  key: 'mysql-password'
+            - name: LOG_LEVEL
+              value: "info"
+            - name: LOG_FILTER
+              value: "error, warn, info"
+            - name: CSL_LOG_TRANSPORT
+              value: "file"
+            - name: EVENT_SDK_LOG_FILTER
+              value: "audit:*, log:warn, log:error"
+            - name: EVENT_SDK_LOG_METADATA_ONLY
+              value: "false"
+            - name: EVENT_SDK_SIDECAR_DISABLED
+              value: "false"
+            - name: EVENT_SDK_SERVER_HOST
+              value: "localhost"
+            - name: EVENT_SDK_SERVER_PORT
+              value: "50051"
+            - name: EVENT_SDK_VENDOR_PREFIX
+              value: "mojaloop"
+            - name: EVENT_SDK_TRACESTATE_HEADER_ENABLED
+              value: "true"
+            - name: EVENT_SDK_ASYNC_OVERRIDE_EVENTS
+              value: "log,trace"
+            - name: EVENT_SDK_TRACEID_PER_VENDOR
+              value: "false"
+            - name: LIB_RESOURCE_VERSIONS
+              value: transfers=1.1,participants=1.1,quotes=1.0
+        - name: admin-api-svc-sidecar
+          image: "mojaloop/event-sidecar:v11.0.1"
+          imagePullPolicy: IfNotPresent
+          command:
+            - npm
+            - run
+            - start
+          ports:
+            - containerPort: 4001
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4001
+            initialDelaySeconds: 120
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4001
+            initialDelaySeconds: 90
+            periodSeconds: 15
+          volumeMounts:
+            - name: sidecar-volume
+              mountPath: /opt/event-sidecar/config
+          env:
+            - name: LOG_LEVEL
+              value: "info"
+            - name: LOG_FILTER
+              value: "error, warn, info"
+            - name: EVENT_SDK_LOG_FILTER
+              value: "audit:*, log:info, log:warn, log:error"
+            - name: EVENT_SDK_LOG_METADATA_ONLY
+              value: "true"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: td-admin-api-svc-config
+            items:
+            - key: default.json
+              path: default.json
+            - key: knexfile.js
+              path: knexfile.js
+        - name: sidecar-volume
+          configMap:
+            name: td-admin-api-svc-sidecar
+            items:
+            - key: default.json
+              path: default.json
+---
+# Source: mojaloop/charts/fspiop-transfer-api-svc/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: td-fspiop-transfer-api-svc
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: fspiop-transfer-api-svc
+    helm.sh/chart: fspiop-transfer-api-svc-12.0.0
+    app.kubernetes.io/instance: td
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: fspiop-transfer-api-svc-12.0.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fspiop-transfer-api-svc
+      app.kubernetes.io/instance: td
+      app.kubernetes.io/component: fspiop-transfer-api-svc-12.0.0
+  template:
+    metadata:
+      annotations: 
+        checksum/config: d5ec5d136927df4f0cb0e91bde4ece780f77ef8458700f8f0109d834d3b64d69
+        prometheus.io/port: "3000"
+        prometheus.io/scrape: "true"
+      labels:
+        app.kubernetes.io/name: fspiop-transfer-api-svc
+        helm.sh/chart: fspiop-transfer-api-svc-12.0.0
+        app.kubernetes.io/instance: td
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: fspiop-transfer-api-svc-12.0.0
+        app.kubernetes.io/version: 12.0.0
+    spec:
+      serviceAccountName: td-fspiop-transfer-api-svc
+      
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: fspiop-transfer-api-svc
+                    app.kubernetes.io/instance: td
+                    app.kubernetes.io/component: fspiop-transfer-api-svc
+                namespaces:
+                  - "default"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      securityContext:
+        fsGroup: 1001
+      initContainers:
+        - command:
+          - sh
+          - -c
+          - until ./bin/kafka-broker-api-versions.sh --bootstrap-server ${KAFKA_HOST}:${KAFKA_PORT};
+            do echo --------------------; echo Waiting for Kafka...; sleep 2; done; echo ====================;
+            echo Kafka ok!;
+          env:
+          - name: KAFKA_HOST
+            value: 'kafka'
+          - name: KAFKA_PORT
+            value: '9092'
+          image: solsson/kafka
+          imagePullPolicy: IfNotPresent
+          name: wait-for-kafka
+      containers:
+        - name: fspiop-transfer-api-svc
+          image: docker.io/mojaloop/ml-api-adapter:v11.1.6
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1001
+          command:
+            - node
+            - src/api/index.js
+          ports:
+            - name: http
+              containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          volumeMounts:
+            - name: td-fspiop-transfer-api-svc-config-volume
+              mountPath: /opt/ml-api-adapter/config
+          env:
+            - name: LOG_LEVEL
+              value: "info"
+            - name: LOG_FILTER
+              value: "error, warn, info"
+            - name: CSL_LOG_TRANSPORT
+              value: "file"
+            - name: EVENT_SDK_LOG_FILTER
+              value: "audit:*, log:warn, log:error"
+            - name: EVENT_SDK_LOG_METADATA_ONLY
+              value: "false"
+            - name: EVENT_SDK_SIDECAR_DISABLED
+              value: "false"
+            - name: EVENT_SDK_SERVER_HOST
+              value: "localhost"
+            - name: EVENT_SDK_SERVER_PORT
+              value: "50051"
+            - name: EVENT_SDK_VENDOR_PREFIX
+              value: "mojaloop"
+            - name: EVENT_SDK_TRACESTATE_HEADER_ENABLED
+              value: "true"
+            - name: EVENT_SDK_ASYNC_OVERRIDE_EVENTS
+              value: "log,trace"
+            - name: EVENT_SDK_TRACEID_PER_VENDOR
+              value: "false"
+            - name: LIB_RESOURCE_VERSIONS
+              value: transfers=1.1,participants=1.1,quotes=1.0
+        - name: fspiop-transfer-api-svc-sidecar
+          image: "mojaloop/event-sidecar:v11.0.1"
+          imagePullPolicy: IfNotPresent
+          command:
+            - npm
+            - run
+            - start
+          ports:
+            - containerPort: 4001
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4001
+            initialDelaySeconds: 120
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4001
+            initialDelaySeconds: 90
+            periodSeconds: 15
+          volumeMounts:
+            - name: td-fspiop-transfer-api-svc-sidecar-volume
+              mountPath: /opt/event-sidecar/config
+          env:
+            - name: LOG_LEVEL
+              value: "info"
+            - name: LOG_FILTER
+              value: "error, warn, info"
+            - name: EVENT_SDK_LOG_FILTER
+              value: "audit:*, log:info, log:warn, log:error"
+            - name: EVENT_SDK_LOG_METADATA_ONLY
+              value: "true"
+      volumes:
+        - name: td-fspiop-transfer-api-svc-config-volume
+          configMap:
+            name: td-fspiop-transfer-api-svc-config
+            items:
+            - key: default.json
+              path: default.json
+        - name: td-fspiop-transfer-api-svc-sidecar-volume
+          configMap:
+            name: td-fspiop-transfer-api-svc-sidecar
+            items:
+            - key: default.json
+              path: default.json
+---
+# Source: mojaloop/charts/admin-api-svc/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: td-admin-api-svc
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: admin-api-svc
+    helm.sh/chart: admin-api-svc-12.0.0
+    app.kubernetes.io/instance: td
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: admin-api-svc-12.0.0
+spec:
+  ## TODO: add this as an option, and it depends on stable API ingress version
+  # ingressClassName: "external-lb"
+  rules:
+    - host: admin-api-svc.local
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: td-admin-api-svc
+                port:
+                  name: http
+---
+# Source: mojaloop/charts/fspiop-transfer-api-svc/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: td-fspiop-transfer-api-svc
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: fspiop-transfer-api-svc
+    helm.sh/chart: fspiop-transfer-api-svc-12.0.0
+    app.kubernetes.io/instance: td
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: fspiop-transfer-api-svc-12.0.0
+spec:
+  ## TODO: add this as an option, and it depends on stable API ingress version
+  # ingressClassName: "external-lb"
+  rules:
+    - host: transfer-api-svc.local
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: td-fspiop-transfer-api-svc
+                port:
+                  name: http
+
+NOTES:
+1. Get the application URL by running these commands:
+TBD
