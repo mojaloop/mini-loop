@@ -30,12 +30,12 @@ function add_hosts {
 function add_helm_repos { 
   ## add the helm repos required to install and run ML and the v14 PoC
         printf "==> add the helm repos required to install and run ML and the v14 PoC\n" 
-        su - vagrant -c "helm repo add mojaloop http://mojaloop.io/helm/repo/" > /dev/null 2>&1
-        su - vagrant -c "helm repo add kiwigrid https://kiwigrid.github.io" > /dev/null 2>&1
-        su - vagrant -c "helm repo add elastic https://helm.elastic.co" > /dev/null 2>&1
-        su - vagrant -c "helm repo add bitnami https://charts.bitnami.com/bitnami" > /dev/null 2>&1
-        su - vagrant -c "helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx" > /dev/null 2>&1
-        su - vagrant -c "helm repo update"
+        su - vagrant -c "helm repo add mojaloop http://mojaloop.io/helm/repo/ > /dev/null 2>&1 "
+        su - vagrant -c "helm repo add kiwigrid https://kiwigrid.github.io  > /dev/null 2>&1 "
+        su - vagrant -c "helm repo add elastic https://helm.elastic.co  > /dev/null 2>&1 "
+        su - vagrant -c "helm repo add bitnami https://charts.bitnami.com/bitnami > /dev/null 2>&1 "
+        su - vagrant -c "helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx  > /dev/null 2>&1 "
+        su - vagrant -c "helm repo update > /dev/null 2>&1 "
 }
 
 
@@ -71,7 +71,7 @@ function install_v14poc_charts {
         else 
                 printf "    Error: $RELEASE_NAME helm chart  deployment failed \n"
                 printf "    Command: su - $k8s_user -c \"helm upgrade --install --wait --timeout "
-                printf "$timeout_secs $RELEASE_NAME $MOJALOOP_WORKING_DIR/mojaloop/mojaloop\""
+                printf "$timeout_secs $RELEASE_NAME $MOJALOOP_WORKING_DIR/mojaloop/mojaloop\" \n "
                 exit 1
         fi 
 }
@@ -101,8 +101,8 @@ function set_versions_to_test {
 
         # test we get valid k8S versions selected
         if [[ "$versions" == "all" ]]  ; then
-                echo "testing k8s versions ${CURRENT_K8S_VERSIONS[*]}"
-                versions_list=${CURRENT_CURRENT_K8S_VERSIONS[*]}
+                versions_list=${CURRENT_K8S_VERSIONS[*]}
+                printf  "testing k8s versions: %s " ${versions_list[*]} 
         elif [[ " ${CURRENT_K8S_VERSIONS[*]} " =~ "$versions" ]]; then
                 printf  " testing k8s version : %s\n" $versions
                 versions_list=($versions)
@@ -132,13 +132,13 @@ function install_k8s {
         fi           
 
         nginx_flags="--set controller.watchIngressWithoutClass=true"
-        printf "==> installing nginx-ingress version: %s\n" $nginx_version
         if [[ $i == "v1.22" ]] ; then
-                nginx_version="4.0.6"
+                nginx_version="4.0.6"        
         else 
                 nginx_version="3.33.0"
-                nginx_flags=" "    
+                nginx_flags=" "          
         fi
+        printf "==> installing nginx-ingress version: %s\n" $nginx_version  
 
         start_timer=$(date +%s)
         su - $k8s_user -c "helm upgrade --install --wait --timeout 300s ingress-nginx \
@@ -192,7 +192,7 @@ function showUsage {
 		echo "Incorrect number of arguments passed to function $0"
 		exit 1
 	else
-echo  "USAGE: $0 [ -m mode ] [ -v version(s)] [-u user]  [-h|H]
+echo  "USAGE: $0 [-m mode] [-v version(s)] [-u user] [-t secs] [-u user] [-h|H]
 Example 1 : version-test.sh -m noinstall # helm install charts on current k8s & ingress 
 Example 2 : version-test.sh -m install -v all  # tests charts against k8s versions 1.20,1.21 and 1.22
 
@@ -225,7 +225,7 @@ DEFAULT_VERSION="v1.22" # default version to test
 DEFAULT_K8S_USER="vagrant"
 
 CURRENT_K8S_VERSIONS=("v1.20" "v1.21"  "v1.22")
-versions_list=("")
+versions_list=(" ")
 nginx_version=""
 
 if [ "$EUID" -ne 0 ]
@@ -263,10 +263,6 @@ done
 
 printf "\n\n*** Mojaloop -  Kubernetes Version Testing Tool ***\n\n"
 
-add_hosts
-add_helm_repos
-exit
-
 # set the user to run k8s commands
 if [ -z ${k8s_user+x} ] ; then
         k8s_user=$DEFAULT_K8S_USER
@@ -301,6 +297,7 @@ fi
 if [[ "$mode" == "install" ]]  ; then
 	printf " -m install specified => k8s and nginx version(s) will be installed\n"
         add_hosts
+        add_helm_repos
         set_versions_to_test
 
         # for each k8s version -> install server -> install charts -> check
