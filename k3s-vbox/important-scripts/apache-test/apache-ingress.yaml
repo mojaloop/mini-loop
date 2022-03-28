@@ -9,9 +9,9 @@ metadata:
     ingress.kubernetes.io/ssl-redirect: "false"
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
+  ingressClassName: nginx
   rules:
-  - host: apachehost
-    http:
+  - http:
       paths:
       - path: "/"
         pathType: Prefix
@@ -19,11 +19,11 @@ spec:
           service:
             name: apache-service
             port: 
-              number: 8282
+              number: 80
       - path: "/v2"
         pathType: Prefix
         backend:
           service:
             name: apache-service
             port:
-              number: 8282
+              number: 80

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# a demo / test myswl deployment 
+# a demo / test mysql deployment 
 
 echo "To test this mysql instance " ....
 echo "kubectl run -it --rm --image=mysql:5.6 --restart=Never mysql-client -- mysql -h mysql -ppassword"

@@ -1,0 +1,206 @@
+apiVersion: v1
+entries:
+  account-lookup-service:
+  - apiVersion: v2
+    appVersion: 'account-lookup-service: v11.8.0; als-oracle-pathfinder: v11.0.0'
+    created: "2022-03-16T11:11:15.828284595Z"
+    dependencies:
+    - name: common
+      repository: file://../common
+      tags:
+      - moja-common
+      version: 1.0.0
+    - condition: account-lookup-service.enabled
+      name: account-lookup-service
+      repository: file://../chart-service
+      version: 12.4.0
+    - condition: account-lookup-service-admin.enabled
+      name: account-lookup-service-admin
+      repository: file://../chart-admin
+      version: 12.4.0
+    description: Account Lookup Service Helm Chart for Mojaloop
+    digest: c8f22e428a29387b62210d303a13aa08d88ec98b0c14c369b06d04fc5777660f
+    home: http://mojaloop.io
+    icon: http://mojaloop.io/images/logo.png
+    maintainers:
+    - email: miguel.debarros@modusbox.com
+      name: Miguel de Barros
+    - email: tdaly61@gmail.com
+      name: Tom Daly
+    name: account-lookup-service
+    sources:
+    - https://github.com/mojaloop/mojaloop
+    - https://github.com/mojaloop/helm
+    - https://github.com/mojaloop/ml-api-adapter
+    urls:
+    - https://docs.mojaloop.io/charts/repo/account-lookup-service-13.0.0.tgz
+    version: 13.0.0
+  account-lookup-service-admin:
+  - apiVersion: v2
+    appVersion: 11.8.0
+    created: "2022-03-16T11:11:15.835783667Z"
+    dependencies:
+    - name: common
+      repository: file://../common
+      tags:
+      - moja-common
+      version: 1.0.0
+    description: account lookup service admin
+    digest: ae279517bd466fc5fd6f5a61ab3fe3c37d54b6d20aaa9b0fd403777d2002a4c9
+    maintainers:
+    - email: tdaly61@gmail.com
+      name: Tom Daly
+    - email: miguel.debarros@modusbox.com
+      name: Miguel de Barros
+    name: account-lookup-service-admin
+    urls:
+    - https://docs.mojaloop.io/charts/repo/account-lookup-service-admin-13.0.0.tgz
+    version: 13.0.0
+  backend:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2022-03-16T11:11:15.872645624Z"
+    dependencies:
+    - alias: kafka
+      condition: kafka.enabled
+      name: kafka
+      repository: https://charts.bitnami.com/bitnami
+      tags:
+      - mojaloop
+      - dependency
+      - backend
+      - kafka
+      version: 14.1.1
+    - alias: mysql
+      condition: mysql.enabled
+      name: mysql
+      repository: https://charts.bitnami.com/bitnami
+      tags:
+      - mojaloop
+      - dependency
+      - backend
+      - kafka
+      version: 8.8.8
+    - alias: reporting-events-db
+      condition: reporting-events-db.enabled
+      name: mongodb
+      repository: https://charts.bitnami.com/bitnami
+      tags:
+      - mojaloop
+      - dependency
+      - backend
+      - reporting-events-db
+      - mongodb
+      version: 10.28.1
+    - alias: kowl
+      condition: kowl.enabled
+      name: kowl
+      repository: https://raw.githubusercontent.com/cloudhut/charts/master/archives
+      tags:
+      - mojaloop
+      - dependency
+      - backend
+      - kafka
+      version: 2.0.1
+    - alias: keto
+      condition: keto.enabled
+      name: keto
+      repository: https://k8s.ory.sh/helm/charts
+      tags:
+      - mojaloop
+      - dependency
+      - backend
+      - keto
+      - bof
+      version: 0.19.5
+    - alias: keto-db
+      condition: keto-db.enabled
+      name: mysql
+      repository: https://charts.bitnami.com/bitnami
+      tags:
+      - mojaloop
+      - dependency
+      - backend
+      - mysql
+      - keto
+      - bof
+      version: 8.8.8
+    - alias: oathkeeper
+      condition: oathkeeper.enabled
+      name: oathkeeper
+      repository: https://k8s.ory.sh/helm/charts
+      tags:
+      - mojaloop
+      - dependency
+      - backend
+      - oathkeeper
+      - bof
+      version: 0.19.6
+    - alias: kratos
+      condition: kratos.enabled
+      name: kratos
+      repository: https://k8s.ory.sh/helm/charts
+      tags:
+      - mojaloop
+      - dependency
+      - backend
+      - kratos
+      - bof
+      version: 0.14.1
+    - alias: kratos-db
+      condition: kratos-db.enabled
+      name: mysql
+      repository: https://charts.bitnami.com/bitnami
+      tags:
+      - mojaloop
+      - dependency
+      - backend
+      - mysql
+      - kratos
+      - bof
+      version: 8.8.8
+    description: A Helm chart containing example Mojaloop Backend Dependencies. This
+      should be used for development/poc purposes only!
+    digest: 2ae464326790c14cb3ac8e2e433ed6f8f8d7731f0090332ce98cd643ed519376
+    name: backend
+    type: application
+    urls:
+    - https://docs.mojaloop.io/charts/repo/backend-0.1.0.tgz
+    version: 0.1.0
+  mojaloop:
+  - apiVersion: v2
+    appVersion: 14.0.0
+    created: "2022-03-16T11:11:15.893448885Z"
+    dependencies:
+    - name: common
+      repository: file://../common
+      tags:
+      - mojaloop
+      - common
+      version: 1.0.0
+    - name: fspiop-transfer-api-svc
+      repository: file://../fspiop-transfer-api-svc
+      tags:
+      - mojaloop
+      - fspiop-transfer
+      version: 12.0.0
+    - name: admin-api-svc
+      repository: file://../admin-api-svc
+      tags:
+      - mojaloop
+      - admin
+      version: 12.0.0
+    - name: account-lookup-service
+      repository: file://../account-lookup-service
+      tags:
+      - mojaloop
+      - admin
+      version: 12.4.0
+    description: A Helm chart for Kubernetes
+    digest: ef720511b1eb1ea4d04f7a55ad2fc3ed42b7220f23b318568ac7456fe51ec3f5
+    name: mojaloop
+    type: application
+    urls:
+    - https://docs.mojaloop.io/charts/repo/mojaloop-14.0.0.tgz
+    version: 14.0.0
+generated: "2022-03-16T11:11:15.815125455Z"

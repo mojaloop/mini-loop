@@ -8,7 +8,7 @@ metadata:
   labels:
     app: apache-app1
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: apache-app1
@@ -23,3 +23,15 @@ spec:
         image: httpd:2.4.48
         ports:
         - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 15
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 15

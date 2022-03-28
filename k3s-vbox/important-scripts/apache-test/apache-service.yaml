@@ -8,7 +8,7 @@ spec:
     app: apache-app1
   ports:
     - protocol: TCP
-      port: 8282
+      port: 80
       targetPort: 80
 #      nodePort: 30036
 
