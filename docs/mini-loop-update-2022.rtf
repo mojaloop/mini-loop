@@ -1,0 +1,67 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2636
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fmodern\fcharset0 CourierNewPSMT;\f2\fswiss\fcharset0 Helvetica-Bold;
+\f3\fmodern\fcharset0 Courier;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red255\green255\blue102;\red255\green255\blue255;
+\red0\green0\blue0;}
+{\*\expandedcolortbl;;\csgenericrgb\c0\c0\c0;\cssrgb\c99953\c98836\c47266\c80751;\cssrgb\c100000\c100000\c100000;
+\cssrgb\c0\c0\c0;}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{hyphen\}}{\leveltext\leveltemplateid2\'01\uc0\u8259 ;}{\levelnumbers;}\fi-360\li1440\lin1440 }{\listname ;}\listid1}}
+{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}}
+\paperw11900\paperh16840\margl1440\margr1440\vieww17820\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Building mini-loop remotely \
+\pard\tx220\tx720\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\li720\fi-720\pardirnatural\partightenfactor0
+\ls1\ilvl0\cf0 {\listtext	\uc0\u8226 	}install code visual studio remote-ssh package\
+{\listtext	\uc0\u8226 	}add mojaloop to .etc/hosts on mac \
+{\listtext	\uc0\u8226 	}checkout repo including correct branch \
+{\listtext	\uc0\u8226 	}on remote:  login and set git username and email \
+\pard\tx940\tx1440\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\li1440\fi-1440\pardirnatural\partightenfactor0
+\ls1\ilvl1\cf0 {\listtext	\uc0\u8259 	}
+\f1\fs28 \cf2 \cb3 \CocoaLigature0 git config  user.name "tdaly61"\
+\ls1\ilvl1
+\f0\fs24 \cf0 \cb1 \CocoaLigature1 {\listtext	\uc0\u8259 	}
+\f1\fs28 \cf2 \cb3 \CocoaLigature0 git config user.email "tdaly61@gmail.com"
+\f0\fs24 \cf0 \cb1 \CocoaLigature1 \
+\pard\tx220\tx720\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\li720\fi-720\pardirnatural\partightenfactor0
+\ls1\ilvl0\cf0 {\listtext	\uc0\u8226 	}note pushing to repo requires authentication and code visual studio seems to handle this nicely with github from within cvs itself.\
+{\listtext	\uc0\u8226 	}\
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+\cf0 \
+\
+Running mini-loop remotely\
+
+\f2\b OCI free-tier i.e. arm64 \
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+\cf0 issues:\
+
+\f0\b0 	- my initial look at fixing the ingress issues show that it , could be done via perl or python but that it is a bit more work than I had hoped.  It is doable BUT don't want to re-do the v14 work.  MAYBE this is work a day's python coding ... maybe. \
+ 	- I struck issues using v1.20 of k3s on arm64 , k3s v1.22 seems to work fine , but of course this requires the ingress updates not mandatory on k8s v1.20\
+	- seems like there is no arm64 kafka container nor helm chart \
+	- using microk8s v1.20 seems to be ok (not sure about ingress yet) but there are issues with helm, mysql chart for instance now needs helm 3.1 but microk8s v1.20 uses helm 3.0.x \
+\
+Docker to ctr images\
+================\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+\cf0 docker save tom/kafka:1 > /tmp/tomkafka.tar\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+\cf2 \cb4 \CocoaLigature0 microk8s ctr image import /tmp/tomkafka.tar\cf0 \cb1 \CocoaLigature1 \
+\
+remove all the solsson images in ctr \
+
+\f1\fs28 \cf2 \cb3 \CocoaLigature0 microk8s ctr images ls | grep -i kafka | cut -d " " -f1 |xargs microk8s ctr images rm\
+\
+\pard\pardeftab720\partightenfactor0
+
+\f3\fs26 \cf0 \cb1 \expnd0\expndtw0\kerning0
+\CocoaLigature1 \outl0\strokewidth0 \strokec5 find . -type f -print0 |\
+    xargs -0 perl -pe "s/solsson/tom/" -i.bak\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 \
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+\cf0 \
+OCI : todo\
+
+\f2\b \
+	}
