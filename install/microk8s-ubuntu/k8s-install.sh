@@ -144,12 +144,12 @@ if [ "$EUID" -ne 0 ]
   exit 1
 fi
 
-Check arguments
-if [ $# -lt 1 ] ; then
-	showUsage
-	echo "Not enough arguments -m mode must be specified "
-	exit 1
-fi
+#Check arguments
+# if [ $# -lt 1 ] ; then
+# 	showUsage
+# 	echo "Not enough arguments -m mode must be specified "
+# 	exit 1
+# fi
 
 # Process command line options as required
 while getopts "m:v:u:rhH" OPTION ; do
@@ -180,10 +180,12 @@ verify_user
 
 ## if -r flag => remove k8s and exit 
 ## else: go ahead and do the installation 
-if [[ ! -z ${fremove_k8sx} ]] ; then 
+if [[ ! -z ${remove_k8sx} ]] ; then 
     print "Removing any existing K8s installation \n"
-    snap remove microk8
+    #snap remove microk8
 else 
+    echo "installing "
+    exit 
     add_hosts
     do_k8s_install
     add_helm_repos 
