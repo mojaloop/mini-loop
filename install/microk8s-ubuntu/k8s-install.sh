@@ -180,12 +180,10 @@ verify_user
 
 ## if -r flag => remove k8s and exit 
 ## else: go ahead and do the installation 
-if [[ ! -z ${remove_k8sx} ]] ; then 
-    print "Removing any existing K8s installation \n"
-    #snap remove microk8
+if [[ ! -z ${remove_k8s+x} ]] ; then 
+    printf "Removing any existing K8s installation \n"
+    snap remove microk8
 else 
-    echo "installing "
-    exit 
     add_hosts
     do_k8s_install
     add_helm_repos 
