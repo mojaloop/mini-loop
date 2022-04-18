@@ -11,19 +11,6 @@
 #           @see https://discuss.kubernetes.io/t/add-on-ingress-default-port-change-options/14428
 
 
-
-# # Configure the installation
-# export KUBERNETES_RELEASE=1.20
-# export PATH=$PATH:/snap/bin
-
-# # user that will own the mojaloop software installation 
-# MLUSER=tdaly
-# echo $PATH
-
-## check running as root 
-
-## check user exists and if not create the user (warn that user will be created)
-
 function add_hosts {
     printf "========================================================================================\n"
     printf "Mojaloop k8s install : update hosts file \n"
@@ -41,36 +28,47 @@ function add_hosts {
     ping  -c 2 account-lookup-service-admin 
 }
 
+function set_k8_version {
+    printf "========================================================================================\n"
+    printf "Mojaloop k8s install : set k8s version to install (only v1.20 supported right now) \n"
+    printf "========================================================================================\n"
+    if [[ "$k8s_version" == "1.20" ]]  ; then
+            printf  " k8s version set correctly to : %s\n" $k8s_version
+    else 
+            printf "Note -v flag not specified or invalid  => k8s version will use default:  %s \n" $DEFAULT_K8S_VERSION
+            k8s_version=$DEFAULT_K8S_VERSION
+    fi
+}
+
 function do_k8s_install {
     printf "========================================================================================\n"
     printf "Mojaloop k8s install : Installing Kubernetes and tools (helm etc) \n"
     printf "========================================================================================\n"
     
-    echo "Mojaloop Microk8s Install: run update ..."
+    echo "==> Mojaloop Microk8s Install: run update ..."
     apt update
 
-    echo "Mojaloop Microk8s Install: installing snapd ..."
+    echo "==> Mojaloop Microk8s Install: installing snapd ..."
     apt install snapd -y 
 
-    echo "Mojaloop Microk8s Install: installing microk8s release $KUBERNETES_RELEASE ... "
-    snap install microk8s --classic --channel=$KUBERNETES_RELEASE/stable
-
+    echo "==> Mojaloop Microk8s Install: installing microk8s release $k8s_version ... "
+    snap install microk8s --classic --channel=$k8s_version/stable
     microk8s.status --wait-ready
 
-    echo "Mojaloop Microk8s Install: enable helm ... "
+    echo "==> Mojaloop Microk8s Install: enable helm ... "
     microk8s.enable helm3 
-    echo "Mojaloop Microk8s Install: enable dns ... "
+    echo "==> Mojaloop Microk8s Install: enable dns ... "
     microk8s.enable dns
-    echo "Mojaloop: enable storage ... "
+    echo "==> Mojaloop: enable storage ... "
     microk8s.enable storage
-    echo "Mojaloop: enable ingress ... "
+    echo "==> Mojaloop: enable ingress ... "
     microk8s.enable ingress
 
-    echo "Mojaloop: add convenient aliases..." 
+    echo "==> Mojaloop: add convenient aliases..." 
     snap alias microk8s.kubectl kubectl
     snap alias microk8s.helm3 helm
 
-    echo "Mojaloop: add $k8s_user user to microk8s group"
+    echo "==> Mojaloop: add $k8s_user user to microk8s group"
     usermod -a -G microk8s $k8s_user
     sudo chown -f -R $k8s_user ~/.kube
 
@@ -83,16 +81,35 @@ function add_helm_repos {
     su - $k8s_user -c "microk8s.helm3 repo add elastic https://helm.elastic.co"
     su - $k8s_user -c "helm repo add bitnami https://charts.bitnami.com/bitnami"
     su - $k8s_user -c "microk8s.helm3 repo update"
+
+    # TODO  use the helm list and repo list to verify that all the repos got added ok
+    #       removed for now to prevent noise
     su - $k8s_user -c "microk8s.helm3 list"
     su - $k8s_user -c "microk8s.helm3 repo list"
 }
 
+function configure_k8s_user_env { 
+    # TODO : this is pretty ugly as is appends multiple times to the .bashrc => fix that up
+    # TODO : this assumes user is using bash shell 
+    # TODO : verify that this all worked ok 
+    printf "==> configure $k8s_user k8s environment by adding kubectl nicities to .basrc (bash only for now)  \n" 
+    echo "source <(kubectl completion bash)" >> /home/$k8s_user/.bashrc # add autocomplete permanently to your bash shell.
+    echo "alias k=kubectl " >> /home/$k8s_user/.bashrc
+    echo "complete -F __start_kubectl k " >> /home/$k8s_user/.bashrc
+    echo 'alias ksetns="kubectl config set-context --current --namespace"'  >> /home/$k8s_user/.bashrc
+    echo "alias ksetuser=\"kubectl config set-context --current --user\""  >> /home/$k8s_user/.bashrc
+    
+}
+
+
 function verify_user {
 # ensure that the user for k8s exists
-        if id -u "$k8s_user" >/dev/null; then
+        if id -u "$k8s_user" >/dev/null 2>&1 ; then
                 return
         else
-                printf "    Error: The user %s does not exist\n" $k8s_user
+                printf "    Error: The user [ %s ] does not exist in the operating system \n" $k8s_user
+                printf "    mojaloop is the default user for $0 script , you can either create the mojaloop user \n"
+                printf "    or specify a (non root) existing user with $0 -u existing_user_name \n"
                 exit 1 
         fi
 }
@@ -109,11 +126,13 @@ function showUsage {
 		echo "Incorrect number of arguments passed to function $0"
 		exit 1
 	else
-echo  "USAGE: $0 [-m mode] [-v k8 version] [-u user]
-Example 1 : version-test.sh -m install -v 1.20 # install k8s version 1.20
+echo  "USAGE: $0 -m [mode] [-v k8 version] [-u user]
+Example 1 : version-test.sh -m install -u ubuntu -v 1.20 # install k8s version 1.20
+Example 2 : version-test.sh -m remove -u ubuntu -v 1.20 # install k8s version 1.20
+
 
 Options:
--m mode ............ install (install is only option right now)
+-m mode ............ install|remove (-m is required)
 -v k8s version ..... v1.20 (only v1.20 right now )
 -u user ............ non root user to run helm and k8s commands and to own mojaloop (default : mojaloop)
 -r remove .......... remove k8s insallation (** be cautious using this option) 
@@ -129,38 +148,32 @@ Options:
 ##
 # Environment Config
 ##
-SCRIPTNAME=$0
-# Program paths
 BASE_DIR=$( cd $(dirname "$0")/../.. ; pwd )
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-CHARTS_WORKING_DIR=${CHARTS_WORKING_DIR:-"/vagrant/charts"}
-DEFAULT__K8S_VERSION="v1.20" # default version to test
+DEFAULT_K8S_VERSION="1.20" # default version to test
 DEFAULT_K8S_USER="mojaloop"
-HEALTH_ENDPOINTS_LIST=("admin-api-svc" "transfer-api-svc" "account-lookup-service-admin" "account-lookup-service")
-CURRENT_K8S_VERSIONS=("v1.20" "v1.21"  "v1.22")
 
+# ensure we are running as root 
 if [ "$EUID" -ne 0 ]
   then echo "Please run as root"
   exit 1
 fi
 
-#Check arguments
-# if [ $# -lt 1 ] ; then
-# 	showUsage
-# 	echo "Not enough arguments -m mode must be specified "
-# 	exit 1
-# fi
+# Check arguments
+if [ $# -lt 1 ] ; then
+	showUsage
+	echo "Not enough arguments -m mode must be specified "
+	exit 1
+fi
 
 # Process command line options as required
-while getopts "m:v:u:rhH" OPTION ; do
+while getopts "m:v:u:hH" OPTION ; do
    case "${OPTION}" in
         m)	    mode="${OPTARG}"
         ;;
-        v)	    version="${OPTARG}"
+        v)	    k8s_version="${OPTARG}"
         ;;
         u)      k8s_user="${OPTARG}"
-        ;;
-        r)      remove_k8s="true"
         ;;
         h|H)	showUsage
                 exit 0
@@ -172,21 +185,25 @@ while getopts "m:v:u:rhH" OPTION ; do
     esac
 done
 
-# set the user to run k8s commands
-if [ -z ${k8s_user+x} ] ; then
-        k8s_user=$DEFAULT_K8S_USER
-fi
-verify_user 
 
-## if -r flag => remove k8s and exit 
-## else: go ahead and do the installation 
-if [[ ! -z ${remove_k8s+x} ]] ; then 
-    printf "Removing any existing K8s installation \n"
-    snap remove microk8
-else 
+
+if [[ "$mode" == "install" ]]  ; then
+    echo "installing"
+    # set the user to run k8s commands
+    if [ -z ${k8s_user+x} ] ; then
+            k8s_user=$DEFAULT_K8S_USER
+    fi
+    verify_user 
+    set_k8_version
     add_hosts
     do_k8s_install
     add_helm_repos 
+    configure_k8s_user_env
+elif [[ "$mode" == "remove" ]]  ; then
+    printf "Removing any existing k8s installation \n"
+    snap remove microk8s
+else 
+    showUsage
 fi 
 
 
