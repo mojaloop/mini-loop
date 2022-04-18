@@ -1,0 +1,9 @@
+compartment_name = "mojaloop"
+tenancy_id ="ocid1.tenancy.oc1..aaaaaaaawoenbneapvpzru37ec4sugqrwjvdgmlq3siqj3jybwi6qdhf3mla"
+user_id="ocid1.user.oc1..aaaaaaaad5betbkry7lkufalee5i5tzwcycu5urrfx5qlrgjj5bgzhtekncq"
+region="ap-melbourne-1"
+operating_system="Canonical Ubuntu"
+shape="VM.Standard.A1.Flex"
+instance_name1="ubuntu1"
+instance_shape_config_memory_in_gbs=8
+instance_shape_config_ocpus=4
