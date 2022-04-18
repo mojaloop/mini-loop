@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # k8s-install.sh 
 # install microk8s , setup helm and all of the infrastructure ready for mojaloop installation
-
+# Note: curently prepares for ML version 13.x 
 
 # TODO : add command line params to enable selection of which release etc 
 #        maybe even allow configuration of microk8s or k3s later from command line 
@@ -50,10 +50,10 @@ function do_k8s_install {
     apt update
 
     echo "Mojaloop Microk8s Install: installing snapd ..."
-    apt install snapd -y
+    apt install snapd -y 
 
     echo "Mojaloop Microk8s Install: installing microk8s release $KUBERNETES_RELEASE ... "
-    sudo snap install microk8s --classic --channel=$KUBERNETES_RELEASE/stable
+    snap install microk8s --classic --channel=$KUBERNETES_RELEASE/stable
 
     microk8s.status --wait-ready
 
@@ -70,27 +70,21 @@ function do_k8s_install {
     snap alias microk8s.kubectl kubectl
     snap alias microk8s.helm3 helm
 
-    echo "Mojaloop: add $MLUSER user to microk8s group"
-    usermod -a -G microk8s $MLUSER
-    sudo chown -f -R $MLUSER ~/.kube
+    echo "Mojaloop: add $k8s_user user to microk8s group"
+    usermod -a -G microk8s $k8s_user
+    sudo chown -f -R $k8s_user ~/.kube
 
 }
 
 function add_helm_repos { 
-  ## add the helm repos required to install and run ML and the v14 PoC
-        printf "==> add the helm repos required to install and run ML and the v14 PoC\n" 
-        su - $k8s_user -c "helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx  > /dev/null 2>&1 "
-        su - $k8s_user -c "helm repo update > /dev/null 2>&1 "
-
-    echo "Mojaloop: add repos and deploy helm charts ..." 
-su - $MLUSER -c "microk8s.helm3 repo add mojaloop http://mojaloop.io/helm/repo/"
-su - $MLUSER -c "microk8s.helm3 repo add kiwigrid https://kiwigrid.github.io"
-su - $MLUSER -c "microk8s.helm3 repo add elastic https://helm.elastic.co"
-su - $MLUSER -c "helm repo add bitnami https://charts.bitnami.com/bitnami"
-su - $MLUSER -c "microk8s.helm3 repo update"
-su - $MLUSER -c "microk8s.helm3 list"
-su - $MLUSER -c "microk8s.helm3 repo list"
-
+    printf "==> add the helm repos required to install and run Mojaloop version 13.x \n" 
+    su - $k8s_user -c "microk8s.helm3 repo add mojaloop http://mojaloop.io/helm/repo/"
+    su - $k8s_user -c "microk8s.helm3 repo add kiwigrid https://kiwigrid.github.io"
+    su - $k8s_user -c "microk8s.helm3 repo add elastic https://helm.elastic.co"
+    su - $k8s_user -c "helm repo add bitnami https://charts.bitnami.com/bitnami"
+    su - $k8s_user -c "microk8s.helm3 repo update"
+    su - $k8s_user -c "microk8s.helm3 list"
+    su - $k8s_user -c "microk8s.helm3 repo list"
 }
 
 function verify_user {
@@ -122,6 +116,7 @@ Options:
 -m mode ............ install (install is only option right now)
 -v k8s version ..... v1.20 (only v1.20 right now )
 -u user ............ non root user to run helm and k8s commands and to own mojaloop (default : mojaloop)
+-r remove .......... remove k8s insallation (** be cautious using this option) 
 -h|H ............... display this message
 "
 	fi
@@ -139,8 +134,8 @@ SCRIPTNAME=$0
 BASE_DIR=$( cd $(dirname "$0")/../.. ; pwd )
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CHARTS_WORKING_DIR=${CHARTS_WORKING_DIR:-"/vagrant/charts"}
-DEFAULT__K8S_VERSION="v1.22" # default version to test
-DEFAULT_K8S_USER="vagrant"
+DEFAULT__K8S_VERSION="v1.20" # default version to test
+DEFAULT_K8S_USER="mojaloop"
 HEALTH_ENDPOINTS_LIST=("admin-api-svc" "transfer-api-svc" "account-lookup-service-admin" "account-lookup-service")
 CURRENT_K8S_VERSIONS=("v1.20" "v1.21"  "v1.22")
 
@@ -157,13 +152,15 @@ if [ $# -lt 1 ] ; then
 fi
 
 # Process command line options as required
-while getopts "m:v:u:hH" OPTION ; do
+while getopts "m:v:u:rhH" OPTION ; do
    case "${OPTION}" in
         m)	    mode="${OPTARG}"
         ;;
         v)	    version="${OPTARG}"
         ;;
         u)      k8s_user="${OPTARG}"
+        ;;
+        r)      remove_k8s="true"
         ;;
         h|H)	showUsage
                 exit 0
@@ -181,8 +178,16 @@ if [ -z ${k8s_user+x} ] ; then
 fi
 verify_user 
 
+## if -r flag => remove k8s and exit 
+## else: go ahead and do the installation 
+if [[ ! -z ${fremove_k8sx} ]] ; then 
+    print "Removing any existing K8s installation \n"
+    snap remove microk8
+else 
+    add_hosts
+    do_k8s_install
+    add_helm_repos 
+fi 
 
-add_hosts
-do_k8s_install
-add_helm_repos 
+
 
