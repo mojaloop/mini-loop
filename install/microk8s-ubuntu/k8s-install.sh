@@ -7,9 +7,28 @@
 #        maybe even allow configuration of microk8s or k3s later from command line 
 #       - check the ububntu release using lsb_release -a 
 #       - put this into circle-ci and merge with k8s-versions-test.sh so that no code is duplicated
-#       - chamge the ingress port 
+#       - change the ingress port 
 #           @see https://discuss.kubernetes.io/t/add-on-ingress-default-port-change-options/14428
+#       - Check that python3 and python3-pip installed and ruamel module for python3 (this
+#          is required to run mod_charts.py : pip3 install ruamel.yaml )
+#   
+function check_pi {
 
+    if [ -f "/proc/device-tree/model" ]; then
+        model=`cat /proc/device-tree/model | cut -d " " -f 3`
+        printf "Warning : hardware is Raspberry PI model : [%s] \n" $model
+        printf " for Ubuntu 20 need to append  cgroup_enable=cpuset cgroup_enable=memory cgroup_memory=1 to /boot/cmdline.txt \n"
+        printf " and reboot the PI"     
+    fi    
+}
+
+function install_prerequisites {
+    apt update
+    apt install python3-pip
+    pip3 install ruamel.yaml
+    exit
+
+}
 
 function add_hosts {
     printf "========================================================================================\n"
@@ -31,8 +50,8 @@ function add_hosts {
 function set_k8_version {
     printf "========================================================================================\n"
     printf "Mojaloop k8s install : set k8s version to install (only v1.20 supported right now) \n"
-    printf "========================================================================================\n"
-    if [[ "$k8s_version" == "1.20" ]]  ; then
+    printf "========================================================================================\n\n"
+    if [[ "$k8s_version" == "1.20"  ||  "$k8s_version" == "1.22" ]]  ; then
             printf  " k8s version set correctly to : %s\n" $k8s_version
     else 
             printf "Note -v flag not specified or invalid  => k8s version will use default:  %s \n" $DEFAULT_K8S_VERSION
@@ -41,6 +60,7 @@ function set_k8_version {
 }
 
 function do_k8s_install {
+    # TODO : Microk8s can complain that This is insecure. Location: /var/snap/microk8s/2952/credentials/client.config
     printf "========================================================================================\n"
     printf "Mojaloop k8s install : Installing Kubernetes and tools (helm etc) \n"
     printf "========================================================================================\n"
@@ -84,11 +104,12 @@ function add_helm_repos {
 
     # TODO  use the helm list and repo list to verify that all the repos got added ok
     #       removed for now to prevent noise
-    su - $k8s_user -c "microk8s.helm3 list"
-    su - $k8s_user -c "microk8s.helm3 repo list"
+    #su - $k8s_user -c "microk8s.helm3 list"
+    #su - $k8s_user -c "microk8s.helm3 repo list"
 }
 
 function configure_k8s_user_env { 
+    # TODO : Ensure the kubeconfig is setup correctly for the k8s_user 
     # TODO : this is pretty ugly as is appends multiple times to the .bashrc => fix that up
     # TODO : this assumes user is using bash shell 
     # TODO : verify that this all worked ok 
@@ -193,7 +214,9 @@ if [[ "$mode" == "install" ]]  ; then
     if [ -z ${k8s_user+x} ] ; then
             k8s_user=$DEFAULT_K8S_USER
     fi
+    check_pi  # note microk8s on my pi still has some issues around cgroups 
     verify_user 
+    install_prerequisites 
     set_k8_version
     add_hosts
     do_k8s_install
