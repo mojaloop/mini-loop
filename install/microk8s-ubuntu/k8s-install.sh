@@ -135,6 +135,15 @@ function verify_user {
         fi
 }
 
+
+function deploy_mojaloop {
+    printf "========================================================================================\n"
+    printf "Mojaloop k8s install : deploying Mojaloop \n"
+    printf "========================================================================================\n\n"
+
+    printf "coming soon"
+}
+
 ################################################################################
 # Function: showUsage
 ################################################################################
@@ -188,8 +197,10 @@ if [ $# -lt 1 ] ; then
 fi
 
 # Process command line options as required
-while getopts "m:v:u:hH" OPTION ; do
+while getopts "m:v:u:d:hH" OPTION ; do
    case "${OPTION}" in
+        d)      chart_dir="${OPTARG}"
+        ;;
         m)	    mode="${OPTARG}"
         ;;
         v)	    k8s_version="${OPTARG}"
@@ -222,6 +233,8 @@ if [[ "$mode" == "install" ]]  ; then
     do_k8s_install
     add_helm_repos 
     configure_k8s_user_env
+elif [[ "$mode" == "deploy" ]]  ; then
+     deploy_mojaloop
 elif [[ "$mode" == "remove" ]]  ; then
     printf "Removing any existing k8s installation \n"
     snap remove microk8s
