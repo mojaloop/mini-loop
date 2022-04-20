@@ -26,7 +26,6 @@ function install_prerequisites {
     apt update
     apt install python3-pip
     pip3 install ruamel.yaml
-    exit
 
 }
 
