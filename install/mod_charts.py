@@ -295,7 +295,7 @@ def main(argv) :
         # modify the template files 
         for vf in p.rglob('*.tpl'): 
             backupfile= Path(vf.parent) / f"{vf.name}_bak"
-            print(f"{vf} : {backupfile}")
+            #print(f"{vf} : {backupfile}")
             #copyfile(vf, backupfile)
             with FileInput(files=[vf], inplace=True) as f:
             #with fileinput.input(files=([vf]), inplace=True)  as f:
@@ -309,7 +309,7 @@ def main(argv) :
         # modify the ingress.yaml files 
         for vf in p.rglob('*/ingress.yaml'): 
             backupfile= Path(vf.parent) / f"{vf.name}_bak"
-            print(f"{vf} : {backupfile}")
+            #print(f"{vf} : {backupfile}")
             #copyfile(vf, backupfile)
 
             with FileInput(files=[vf], inplace=True) as f:
@@ -338,22 +338,23 @@ def main(argv) :
                         #servicePort {{ .Values.containers.api.service.ports.api.externalPort }}
                     elif re.search("spec:" , line ):
                         print(line)
-                        print("  ingressClassName: nginx")
+                        print("  ingressClassName: public")  # well at least it is "public" for microk8s v1.22 => TODO fully figure the chamges and settings out here and simplify!
                     else :  
                         print(line)
 
-
         for vf in p.rglob('*/values.yaml'):
             with open(vf) as f:
+
+                #print(f"{vf.parent}/{vf.name}")
                 skip = False
                 for fn in yaml_files_check_list : 
                     if  vf == Path(fn) :
                         print(f"This yaml file needs checking skipping load/processing for now =>  {Path(fn)} ")
                         skip=True
                 if not skip : 
-                    print(f"      Loading yaml for ==> {vf.parent}/{vf.name}", end="")
+                    #print(f"      Loading yaml for ==> {vf.parent}/{vf.name}", end="")
                     data = yaml.load(f)
-                    print("  :[ok]")
+                    #print("  :[ok]")
 
                 # => use these for now 
                 # TODO: update to later DB and get rid of default passwords 
@@ -365,6 +366,12 @@ def main(argv) :
                         value['image'] = "mysql/mysql-server"
                         value['imageTag'] = "5.6"
                         value['pullPolicy'] = "ifNotPresent"
+
+                ### need to set nameOverride  for mysql for ml-testing-toolkit as it appears to be missing
+                if vf == Path('mojaloop/values.yaml') : 
+                    print("Updating the ml-testing-toolkit / mysql config ")
+                    for x, value in lookup("ml-testing-toolkit", data):  
+                        value['mysql'] = { "nameOverride" : "ttk-mysql" }
 
             with open(vf, "w") as f:
                 yaml.dump(data, f)
