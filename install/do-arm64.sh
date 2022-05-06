@@ -58,6 +58,7 @@ Example 1 : do_arm64.sh -m all
 Options:
 -m mode .............build|convert_images|convert_images_force_replace|update_charts
 -i image_name ...... name of the single inage to convert to containerd
+-d build dir ....... The directory to use for building (default = $HOME/build)
 -h|H ............... display this message
 "
 	fi
@@ -71,7 +72,7 @@ Options:
 # Environment Config
 ##
 SCRIPTNAME=$0
-WORKING_DIR=$HOME/build
+DEFAULT_WORKING_DIR=$HOME/build
 HELM_CHARTS_DIR=$HOME/helm
 SCRIPT_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 REPO_BASE=https://github.com/mojaloop
@@ -111,8 +112,7 @@ declare -A GIT_REPO_ARRAY=(
 # mojaloop/thirdparty-sdk
 
 
-cd $WORKING_DIR
-pwd
+
 
 
 # if [ "$EUID" -ne 0 ]
@@ -128,11 +128,13 @@ pwd
 # fi
 
 # Process command line options as required
-while getopts "m:i:hH" OPTION ; do
+while getopts "m:i:d:hH" OPTION ; do
    case "${OPTION}" in
         m)	MODE="${OPTARG}"
         ;;
         i)  IMAGENAME="${OPTARG}"
+        ;;
+        d)  BUILD_DIR="${OPTARG}"
         ;;
         h|H)	showUsage
                 exit 0
@@ -144,10 +146,30 @@ while getopts "m:i:hH" OPTION ; do
     esac
 done
 
-printf "\n\n*** Mojaloop -  building arm images and convert to containerd  ***\n\n"
- 
+printf "\n\n*** Mojaloop -  building arm images and helm charts ***\n\n"
+
+cd $WORKING_DIR
+pwd
+
+
+# node is just a place holder flag right now. 
 if [[ "$MODE" == "build" ]]  ; then
 	printf " running arm updating of ML \n\n"
+
+    if [[ ! -z "$BUILD_DIR"  ]] ; then 
+        WORKING_DIR=${BUILD_DIR}
+    else 
+        WORKING_DIR=$DEFAULT_WORKING_DIR
+    fi 
+
+    if [ -d $WORKING_DIR] ; then 
+        cd $WORKING_DIR 
+        pwd
+    else
+        printf " Error : working directory not found %s " $WORKING_DIR
+    fi
+
+    exit
 
     for key in  ${!GIT_REPO_ARRAY[@]}; do
         if [ ! -d $key ]; then
