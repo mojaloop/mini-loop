@@ -50,7 +50,7 @@ function set_k8_version {
     printf "========================================================================================\n"
     printf "Mojaloop k8s install : set k8s version to install (only v1.20 supported right now) \n"
     printf "========================================================================================\n\n"
-    if [[ "$k8s_version" == "1.20"  ||  "$k8s_version" == "1.22" ]]  ; then
+    if [[ "$k8s_version" == "1.20"  ||  "$k8s_version" == "1.21" ]]  ; then
             printf  " k8s version set correctly to : %s\n" $k8s_version
     else 
             printf "Note -v flag not specified or invalid  => k8s version will use default:  %s \n" $DEFAULT_K8S_VERSION
@@ -163,8 +163,7 @@ Example 2 : version-test.sh -m remove -u ubuntu -v 1.20 # install k8s version 1.
 Options:
 -m mode ............ install|remove (-m is required)
 -v k8s version ..... v1.20 (only v1.20 right now )
--u user ............ non root user to run helm and k8s commands and to own mojaloop (default : mojaloop)
--r remove .......... remove k8s insallation (** be cautious using this option) 
+-u user ............ non root user to run helm and k8s commands and to own mojaloop (default : mojaloop) 
 -h|H ............... display this message
 "
 	fi

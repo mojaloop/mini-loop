@@ -8,7 +8,9 @@
 function update_dockerfile {
     printf "Modifying Dockerfile [$1] \n"
     perl -i.bak-1 -pe 's/FROM \S+/FROM $ENV{DOCKER_BASE_IMAGE}/g' $1/Dockerfile
-    perl -i.bak-2 -pe 's/python\s/python3 /g' $1/Dockerfile
+    perl -i -pe 's/python\s/python3 /g' $1/Dockerfile
+    perl -i -pe 's/-g node-gyp.*$/-g node-gyp --python=\/usr\/bin\/python3/g' $1/Dockerfile
+    perl -i -pe 's/npm ci.*$/npm ci --python=\/usr\/bin\/python3/g' $1/Dockerfile
 }
 
 function build_docker_image {
@@ -30,7 +32,7 @@ function convert_to_containerd_image {
     else 
         #todo make sure microk8s in installed 
         #TODO : how does this work for k3s ? 
-        printf "converting image [$1] \n"
+        printf "converting image [$build_image] \n"
         DOCKER_SAVE_FILE=/tmp/docker_save.tar
         rm -rf $DOCKER_SAVE_FILE
         docker save $build_image > $DOCKER_SAVE_FILE
@@ -54,7 +56,7 @@ echo  "USAGE: $0
 Example 1 : do_arm64.sh -m all 
 
 Options:
--m mode .............build|convert_images|update_charts
+-m mode .............build|convert_images|convert_images_force_replace|update_charts
 -i image_name ...... name of the single inage to convert to containerd
 -h|H ............... display this message
 "
@@ -82,7 +84,6 @@ declare -A GIT_REPO_ARRAY=(
     [auth-service]=auth_service_local
     [bulk-api-adapter]=buld_api_adapter_local
     [central-event-processor]=central_event_processor_local 
-    [central-kms]=central_kms_local
     [central-ledger]=central_ledger_local 
     [central-settlement]=central_settlement_local 
     [email-notifier]=email_notifier_local
@@ -143,9 +144,8 @@ while getopts "m:i:hH" OPTION ; do
     esac
 done
 
-printf "\n\n*** Mojaloop -  building arm images and helm charts ***\n\n"
+printf "\n\n*** Mojaloop -  building arm images and convert to containerd  ***\n\n"
  
-# node is just a place holder flag right now. 
 if [[ "$MODE" == "build" ]]  ; then
 	printf " running arm updating of ML \n\n"
 
@@ -188,84 +188,20 @@ if [[ "$MODE" == "build" ]]  ; then
 
 fi 
 
-if [[ "$MODE" == "convert_images" ]]  ; then
+if [[ "$MODE" == "convert_images" || "$MODE" == "convert_images_force" ]]  ; then
     printf "\n========================================================================================\n"
     printf " Converting docker images to containerd (cri) \n"
     printf "========================================================================================\n"
     if [ ! -z ${IMAGENAME} ] ; then
         printf "converting single image ...\n"
         convert_to_containerd_image $IMAGENAME
-    else : 
+    else 
         for key in  ${!GIT_REPO_ARRAY[@]}; do
-            printf "convert_to_containerd_image $key " 
+            if [[ "$MODE" == "convert_images_force" ]] ; then 
+                # check to see if containerd image exists already
+                printf " this is still WIP \n"
+            fi 
+            convert_to_containerd_image $key 
         done  
     fi   
 fi 
-
-# if [[ "$MODE" == "update_charts" ]]  ; then
-#     printf "\n========================================================================================\n"
-#     printf " Updating helm charts to use correct images \n"
-#     printf "========================================================================================\n\n"
-#     printf "Updating Central chart \n"
-#     #cd $HELM_CHARTS_DIR
-#     cd $HOME/tmp
-#     rm -rf central*
-#     pwd
-#     cp -r ../helm/central* .
-
-#     # replace kafka references 
-#     find . -type f -name values.yaml -print0 | xargs -0 perl -i.bak-1 -pe's/repository:\s*solsson\/kafka/repository: kymeric\/cp-kafka/g'
-#     # replace kafka start-up check 
-#     find . -type f -name values.yaml -print0 | xargs -0 perl -i.bak-2 -pe's/\.\/bin\/kafka-broker-api-versions.sh --bootstrap-server/nc -vz -w 1/g'
-#     until ./bin/kafka-broker-api-versions.sh --bootstrap-server
-#     until nc -vz -w 1 $kafka_host $kafka_port; do echo waiting for Kafka; sleep 2; done;
-#     # replace mysql references 
-#     find . -type f -name values.yaml -print0 | xargs -0 perl -i.bak-3 -pe's/repository:\s*mysql/repository: mysql\/mysql/g'
-#     # disable prometheus 
-  
-
-
-#     #find . -type f -name values.yaml  -print0 | xargs -0 perl -ne 'print if /repository:\s?mysql/' 
-    
-#     # replace repository: mojaloop: central-ledger references 
-#     # replace central_event_processor_local 
-#     # replace central_settlement
-#     # replace event-sidecar
-
-# fi 
-# "percona/percona-xtradb-cluster"
-# bitnami/mongodb
-# bowerswilkins/awaitpostgres
-# forekshub/percona-mongodb-exporter
-# mojaloop/account-lookup-service
-# mojaloop/als-consent-oracle
-# mojaloop/als-oracle-pathfinder
-# mojaloop/auth-service
-# mojaloop/bulk-api-adapter
-# mojaloop/central-end-user-registry
-# mojaloop/central-event-processor
-# mojaloop/central-kms
-# mojaloop/central-ledger
-# mojaloop/central-settlement
-# mojaloop/email-notifier
-# mojaloop/event-sidecar
-# mojaloop/event-stream-processor
-# mojaloop/finance-portal-backend-service
-# mojaloop/finance-portal-ui
-# mojaloop/forensic-logging-sidecar
-# mojaloop/ml-api-adapter
-# mojaloop/ml-testing-toolkit
-# mojaloop/ml-testing-toolkit-ui
-# mojaloop/mojaloop-simulator
-# mojaloop/ntpd
-# mojaloop/operator-settlement
-# mojaloop/quoting-service
-# mojaloop/sdk-scheme-adapter
-# mojaloop/settlement-management
-# mojaloop/simulator
-# mojaloop/thirdparty-api-svc
-# mojaloop/thirdparty-sdk
-# mojaloop/transaction-requests-service
-# mysql
-# redis
-# solsson/kafka
