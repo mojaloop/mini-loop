@@ -11,22 +11,53 @@
 #           @see https://discuss.kubernetes.io/t/add-on-ingress-default-port-change-options/14428
 #       - Check that python3 and python3-pip installed and ruamel module for python3 (this
 #          is required to run mod_charts.py : pip3 install ruamel.yaml )
+#       - Can I make this work for windows ?  Is there any demand ? 
 #   
 function check_pi {
-
+    # this is to enable experimentation on raspberry PI which is WIP
     if [ -f "/proc/device-tree/model" ]; then
         model=`cat /proc/device-tree/model | cut -d " " -f 3`
-        printf "Warning : hardware is Raspberry PI model : [%s] \n" $model
+        printf "** Warning : hardware is Raspberry PI model : [%s] \n" $model
         printf " for Ubuntu 20 need to append  cgroup_enable=cpuset cgroup_enable=memory cgroup_memory=1 to /boot/cmdline.txt \n"
-        printf " and reboot the PI"     
+        printf " and reboot the PI ** \n"     
     fi    
+}
+
+function check_os_ok {
+    # check this is ubuntu OS and a recent version => all ok ; else warn user it is not well tested
+    ok=false
+    # make sure the utility to check the operating system type and version exists
+    if [ -x "/usr/bin/lsb_release" ]; then
+        # now check that this os is Ubuntu (for now this is all that is tested)
+        os=`lsb_release --d | perl -ne 'print  if s/^.*Ubuntu.*(\d+).(\d+).*$/Ubuntu/' `
+        if [[ $os == "Ubuntu" ]] ; then 
+            printf "Identified operating system as %s [ok] \n" $os   
+            # now check that the Ubuntu version is reasonably recent 
+            ver=`/usr/bin/lsb_release --d | perl -ne 'print $&  if m/(\d+)/' `
+            for i in "${OS_VERSIONS_LIST[@]}"; do
+                if  [[ "$ver" == "$i" ]]; then
+                     ok=true
+                     printf "Identified operating system release as %s [ok] \n" "$i" 
+                     break
+                fi  
+            done
+        fi
+    fi
+
+    if [[ "$ok" == "false" ]]; then 
+        printf "** Error:  either the operating system is not Ubuntu or \n" "$ok"
+        printf "   it is older than version 16 of Ubuntu or newer than version 20 \n" "$ok"
+        printf "   Currently this script is only well tested against versions of Ubuntu 16 to 20  ** \n "
+        printf "* Note: if you are confident you could proceed by editing this script and commenting out the check_os_ok test \n"
+        printf "   and then re-run but I have not tested it outside of recent Ubuntu releases * \n"
+        exit 1
+    fi 
 }
 
 function install_prerequisites {
     apt update
     apt install python3-pip
     pip3 install ruamel.yaml
-
 }
 
 function add_hosts {
@@ -48,9 +79,9 @@ function add_hosts {
 
 function set_k8_version {
     printf "========================================================================================\n"
-    printf "Mojaloop k8s install : set k8s version to install (only v1.20 supported right now) \n"
+    printf "Mojaloop k8s install : set k8s version to install (default and minimum is 1.21) \n"
     printf "========================================================================================\n\n"
-    if [[ "$k8s_version" == "1.20"  ||  "$k8s_version" == "1.21" ]]  ; then
+    if [[ "$k8s_version" == "1.21" ]]  ; then
             printf  " k8s version set correctly to : %s\n" $k8s_version
     else 
             printf "Note -v flag not specified or invalid  => k8s version will use default:  %s \n" $DEFAULT_K8S_VERSION
@@ -100,47 +131,43 @@ function add_helm_repos {
     su - $k8s_user -c "microk8s.helm3 repo add elastic https://helm.elastic.co"
     su - $k8s_user -c "helm repo add bitnami https://charts.bitnami.com/bitnami"
     su - $k8s_user -c "microk8s.helm3 repo update"
-
-    # TODO  use the helm list and repo list to verify that all the repos got added ok
-    #       removed for now to prevent noise
-    #su - $k8s_user -c "microk8s.helm3 list"
-    #su - $k8s_user -c "microk8s.helm3 repo list"
 }
 
 function configure_k8s_user_env { 
-    # TODO : Ensure the kubeconfig is setup correctly for the k8s_user 
     # TODO : this is pretty ugly as is appends multiple times to the .bashrc => fix that up
     # TODO : this assumes user is using bash shell 
-    # TODO : verify that this all worked ok 
-    printf "==> configure $k8s_user k8s environment by adding kubectl nicities to .basrc (bash only for now)  \n" 
+    printf "==> configure kubernetes environment for user [%s] by adding kubectl nicities to .basrc (bash only for now) [ok]  \n" "$k8s_user" 
     echo "source <(kubectl completion bash)" >> /home/$k8s_user/.bashrc # add autocomplete permanently to your bash shell.
     echo "alias k=kubectl " >> /home/$k8s_user/.bashrc
     echo "complete -F __start_kubectl k " >> /home/$k8s_user/.bashrc
     echo 'alias ksetns="kubectl config set-context --current --namespace"'  >> /home/$k8s_user/.bashrc
-    echo "alias ksetuser=\"kubectl config set-context --current --user\""  >> /home/$k8s_user/.bashrc
-    
+    echo "alias ksetuser=\"kubectl config set-context --current --user\""  >> /home/$k8s_user/.bashrc    
 }
-
 
 function verify_user {
 # ensure that the user for k8s exists
+        if [[ -z "$k8s_user" ]]; then 
+            printf "    Error: The operating system user has not been specified with the -u flag \n" 
+            printf "           the user specified with the -u flag must exist and not be the root user \n" 
+            exit 1
+        fi
+
         if id -u "$k8s_user" >/dev/null 2>&1 ; then
                 return
         else
                 printf "    Error: The user [ %s ] does not exist in the operating system \n" $k8s_user
-                printf "    mojaloop is the default user for $0 script , you can either create the mojaloop user \n"
-                printf "    or specify a (non root) existing user with $0 -u existing_user_name \n"
+                printf "            please try again and specify an existing user \n"
                 exit 1 
-        fi
+        fi    
 }
 
-
-function deploy_mojaloop {
-    printf "========================================================================================\n"
-    printf "Mojaloop k8s install : deploying Mojaloop \n"
-    printf "========================================================================================\n\n"
-
-    printf "coming soon"
+function check_k8s_installed { 
+    k8s_ready=`su - $k8s_user -c "kubectl get nodes" | perl -ne 'print  if s/^.*Ready.*$/Ready/'`
+    if [[ ! "$k8s_ready" == "Ready" ]]; then 
+        printf "** Error : kubernetes is not installed , please run $0 -m install -u $k8s_user \n"
+        printf "           before trying to install mojaloop \n "
+        exit 1 
+    fi
 }
 
 ################################################################################
@@ -155,14 +182,14 @@ function showUsage {
 		echo "Incorrect number of arguments passed to function $0"
 		exit 1
 	else
-echo  "USAGE: $0 -m [mode] [-v k8 version] [-u user]
-Example 1 : version-test.sh -m install -u ubuntu -v 1.20 # install k8s version 1.20
-Example 2 : version-test.sh -m remove -u ubuntu -v 1.20 # install k8s version 1.20
+echo  "USAGE: $0 -m [mode] -u [ user] [-v k8 version]
+Example 1 : k8s-install.sh -m install -u ubuntu -v 1.20 # install k8s version 1.20
+Example 2 : k8s-install.sh -m remove -u ubuntu -v 1.20 # install k8s version 1.20
 
 
 Options:
 -m mode ............ install|remove (-m is required)
--v k8s version ..... v1.20 (only v1.20 right now )
+-v k8s version ..... 1.20 (default : 1.20 only right now due to  https://github.com/mojaloop/project/issues/2447 )
 -u user ............ non root user to run helm and k8s commands and to own mojaloop (default : mojaloop) 
 -h|H ............... display this message
 "
@@ -177,9 +204,11 @@ Options:
 # Environment Config
 ##
 BASE_DIR=$( cd $(dirname "$0")/../.. ; pwd )
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+#SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 DEFAULT_K8S_VERSION="1.20" # default version to test
-DEFAULT_K8S_USER="mojaloop"
+#DEFAULT_K8S_USER="mojaloop"
+OS_VERSIONS_LIST=(16 18 20 )
 
 # ensure we are running as root 
 if [ "$EUID" -ne 0 ]
@@ -195,10 +224,8 @@ if [ $# -lt 1 ] ; then
 fi
 
 # Process command line options as required
-while getopts "m:v:u:d:hH" OPTION ; do
+while getopts "m:v:u:hH" OPTION ; do
    case "${OPTION}" in
-        d)      chart_dir="${OPTARG}"
-        ;;
         m)	    mode="${OPTARG}"
         ;;
         v)	    k8s_version="${OPTARG}"
@@ -215,24 +242,25 @@ while getopts "m:v:u:d:hH" OPTION ; do
     esac
 done
 
-
-
 if [[ "$mode" == "install" ]]  ; then
     echo "installing"
     # set the user to run k8s commands
     if [ -z ${k8s_user+x} ] ; then
             k8s_user=$DEFAULT_K8S_USER
     fi
-    check_pi  # note microk8s on my pi still has some issues around cgroups 
-    verify_user 
-    install_prerequisites 
-    set_k8_version
-    add_hosts
-    do_k8s_install
-    add_helm_repos 
+    
+    # check_pi  # note microk8s on my pi still has some issues around cgroups 
+    # check_os_ok # check this is an ubuntu OS v18.04 or later 
+    # verify_user 
+    # install_prerequisites 
+    # set_k8_version
+    # add_hosts
+    # do_k8s_install
+    # add_helm_repos 
     configure_k8s_user_env
-elif [[ "$mode" == "deploy" ]]  ; then
-     deploy_mojaloop
+    printf "==> The kubernetes environment is now configured for user [%s] and ready for mojaloop deployment \n" "$k8s_user"
+    printf "    To deploy mojaloop, please su - %s from root  or login as user [%s] and then \n"  "$k8s_user" "$k8s_user"
+    printf "    execute the %s/01_install_miniloop.sh script \n"  "$SCRIPT_DIR"    
 elif [[ "$mode" == "remove" ]]  ; then
     printf "Removing any existing k8s installation \n"
     snap remove microk8s
