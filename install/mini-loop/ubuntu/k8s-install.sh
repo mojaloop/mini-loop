@@ -1,17 +1,14 @@
 #!/usr/bin/env bash
 # k8s-install.sh 
-# install microk8s , setup helm and all of the infrastructure ready for mojaloop installation
-# Note: curently prepares for ML version 13.x 
+# install kubernetes (currently microk8s)  , setup helm and all of the infrastructure ready for mojaloop installation
+# Note: curently prepares for ML version 13.1.x 
 
-# TODO : add command line params to enable selection of which release etc 
-#        maybe even allow configuration of microk8s or k3s later from command line 
-#       - check the ububntu release using lsb_release -a 
-#       - put this into circle-ci and merge with k8s-versions-test.sh so that no code is duplicated
+# TODO : add command line params to enable selection of which ML release etc 
+#        maybe even allow selection of microk8s or k3s later from command line 
+#       - put this into circle-ci and merge with k8s-versions-test.sh in charts repo so that little/no code is duplicated
 #       - change the ingress port 
 #           @see https://discuss.kubernetes.io/t/add-on-ingress-default-port-change-options/14428
-#       - Check that python3 and python3-pip installed and ruamel module for python3 (this
-#          is required to run mod_charts.py : pip3 install ruamel.yaml )
-#       - Can I make this work for windows ?  Is there any demand ? 
+#       - Can I make this work for MacOS , other linux or windows ?  Is there any need demand ? 
 #   
 function check_pi {
     # this is to enable experimentation on raspberry PI which is WIP
@@ -134,9 +131,9 @@ function add_helm_repos {
 }
 
 function configure_k8s_user_env { 
-    # TODO : this is pretty ugly as is appends multiple times to the .bashrc => fix that up
+    # TODO : this is pretty ugly as if it is re-run it appends multiple times to the .bashrc => fix that up
     # TODO : this assumes user is using bash shell 
-    printf "==> configure kubernetes environment for user [%s] by adding kubectl nicities to .basrc (bash only for now) [ok]  \n" "$k8s_user" 
+    printf "==> configure kubernetes environment for user [%s] by adding kubectl utilities to .basrc (bash only for now) [ok]  \n" "$k8s_user" 
     echo "source <(kubectl completion bash)" >> /home/$k8s_user/.bashrc # add autocomplete permanently to your bash shell.
     echo "alias k=kubectl " >> /home/$k8s_user/.bashrc
     echo "complete -F __start_kubectl k " >> /home/$k8s_user/.bashrc
@@ -204,8 +201,14 @@ Options:
 # Environment Config
 ##
 BASE_DIR=$( cd $(dirname "$0")/../.. ; pwd )
-#SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+RUN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" # the directory that this script is run from 
+SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
+
+echo $BASE_DIR
+echo $RUN_DIR
+echo $SCRIPTS_DIR
+
+
 DEFAULT_K8S_VERSION="1.20" # default version to test
 #DEFAULT_K8S_USER="mojaloop"
 OS_VERSIONS_LIST=(16 18 20 )
@@ -249,18 +252,18 @@ if [[ "$mode" == "install" ]]  ; then
             k8s_user=$DEFAULT_K8S_USER
     fi
     
-    # check_pi  # note microk8s on my pi still has some issues around cgroups 
-    # check_os_ok # check this is an ubuntu OS v18.04 or later 
-    # verify_user 
-    # install_prerequisites 
-    # set_k8_version
-    # add_hosts
-    # do_k8s_install
-    # add_helm_repos 
+    check_pi  # note microk8s on my pi still has some issues around cgroups 
+    check_os_ok # check this is an ubuntu OS v18.04 or later 
+    verify_user 
+    install_prerequisites 
+    set_k8_version
+    add_hosts
+    do_k8s_install
+    add_helm_repos 
     configure_k8s_user_env
     printf "==> The kubernetes environment is now configured for user [%s] and ready for mojaloop deployment \n" "$k8s_user"
     printf "    To deploy mojaloop, please su - %s from root  or login as user [%s] and then \n"  "$k8s_user" "$k8s_user"
-    printf "    execute the %s/01_install_miniloop.sh script \n"  "$SCRIPT_DIR"    
+    printf "    execute the %s/01_install_miniloop.sh script \n"  "$SCRIPTS_DIR"    
 elif [[ "$mode" == "remove" ]]  ; then
     printf "Removing any existing k8s installation \n"
     snap remove microk8s
