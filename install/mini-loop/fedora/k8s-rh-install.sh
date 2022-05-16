@@ -25,33 +25,18 @@ function check_os_ok {
     # check this is ubuntu OS and a recent version => all ok ; else warn user it is not well tested
     ok=false
     # make sure the utility to check the operating system type and version exists
-    if [ -x "/usr/bin/lsb_release" ]; then
-        # now check that this os is Ubuntu (for now this is all that is tested)
-        LINUX_OS_TYPE=`lsb_release --d | perl -ne 'print  if s/^.*Ubuntu.*(\d+).(\d+).*$/ubuntu/' `
-        if [[ $os == "ubuntu" ]] ; then 
-            printf "Identified operating system as %s [ok] \n" $os   
-            # now check that the Ubuntu version is reasonably recent 
-            ver=`/usr/bin/lsb_release --d | perl -ne 'print $&  if m/(\d+)/' `
-            for i in "${OS_VERSIONS_LIST[@]}"; do
-                if  [[ "$ver" == "$i" ]]; then
-                     ok=true
-                     printf "Identified operating system release as %s [ok] \n" "$i" 
-                     break
-                fi  
-            done
-        fi
-    elif [ -f /etc/redhat-release ]; then 
+    if [ -f /etc/redhat-release ] || [ -f /etc/fedora-release ]; then
         # TODO figure out what minimuns to support here e.g. RHEL ? Fedora ? and Oracle ? etc 
         LINUX_OS_TYPE="redhat"  
-        ok=true      
-    fi 
+        ok=true
+    fi
 
     if [[ "$ok" == "false" ]]; then 
-        printf "** Error:  either the operating system is not Ubuntu or \n" "$ok"
-        printf "   it is older than version 16 of Ubuntu or newer than version 20 \n" "$ok"
-        printf "   Currently this script is only well tested against versions of Ubuntu 16 to 20  ** \n "
+        printf "** Error:  either the operating system is not Fedora or \n" "$ok"
+        printf "   it is older than version ?? of Fedora or newer than version ?? \n" "$ok"
+        printf "   Currently this script is only well tested against versions of Fedora ?? to ??  ** \n "
         printf "* Note: if you are confident you could proceed by editing this script and commenting out the check_os_ok test \n"
-        printf "   and then re-run but I have not tested it outside of recent Ubuntu releases * \n"
+        printf "   and then re-run but I have not tested it outside of recent Fedora releases * \n"
         exit 1
     fi 
 }
@@ -267,7 +252,7 @@ if [[ "$mode" == "install" ]]  ; then
     
     check_pi  # note microk8s on my pi still has some issues around cgroups 
     check_os_ok # check this is an ubuntu OS v18.04 or later 
-    set_linux_os 
+    #@jason removed for now: [set_linux_os] function not avail
     verify_user 
     install_prerequisites 
     set_k8_version
@@ -276,7 +261,7 @@ if [[ "$mode" == "install" ]]  ; then
     add_helm_repos 
     configure_k8s_user_env
     printf "==> The kubernetes environment is now configured for user [%s] and ready for mojaloop deployment \n" "$k8s_user"
-    printf "    To deploy mojaloop, please su - %s from root  or login as user [%s] and then \n"  "$k8s_user" "$k8s_user"
+    printf "    To deploy mojaloop, please su - %s from root or login as user [%s] and then \n"  "$k8s_user" "$k8s_user"
     printf "    execute the %s/01_install_miniloop.sh script \n"  "$SCRIPTS_DIR"    
 elif [[ "$mode" == "remove" ]]  ; then
     printf "Removing any existing k8s installation \n"

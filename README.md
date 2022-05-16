@@ -8,6 +8,7 @@ cd $HOME
 git clone https://github.com/tdaly61/mini-loop.git                   # clone the mini-loop scripts into the mluser home directory
 sudo su -                                                            # su to root alternatively login in as root 
 ~mluser/install/mini-loop/ubuntu/k8s-install.sh -m install -u mluser # this will install and configure microk8s kubernetes and prepare for mojaloop deployment
+# Log out from root, and log-in with `mluser`
 ~mluser/install/mini-loop/scripts/01_install_miniloop.sh             # this will delploy and configure the mojaloop helm chart 
 ```
 

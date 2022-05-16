@@ -98,7 +98,7 @@ printf  " ==> install %s helm chart and wait for upto %s  secs for it to be read
 #printf  "     executing helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  mojaloop/mojaloop --version $MOJALOOP_VERSION -f $ETC_DIR/miniloop_values.yaml \n "
 helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  --namespace "$NAMESPACE"  mojaloop/mojaloop --version $MOJALOOP_VERSION -f $ETC_DIR//miniloop_values.yaml 
 if [[ `helm status $RELEASE_NAME  --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
-  printf " ==> [%s] deployed sucessfully \n" "$RELEASE_NAME"
+  printf " ==> [%s] deployed successfully \n" "$RELEASE_NAME"
 else 
   printf "** Error: %s helm chart deployment failed \n" "$RELEASE_NAME"
   printf "   Possible reasons include : - \n"
