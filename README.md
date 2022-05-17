@@ -1,7 +1,7 @@
 # mini-loop v2.0 with K8s v1.20
 Simple, scripted/automated installation of Mojaloop (http://mojaloop.io) 
 
-Just do this ...
+## Instructions
 Assuming you have an x86_64 environment running Ubuntu release 16, 18 or 20 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                      # i.e. login as an existing non-root user we use mluser just as an example
@@ -51,7 +51,7 @@ Essentially this project automates the instructions for the linux installation i
 - please note that the installation adds the /etc/hosts entries for the endpoints configured in the $ETC_DIR/miniloop_values.yaml file if you 
   use different values you will likely have to adjust the /etc/hosts endpoints
 
-## notable changes in mini-loop v2.0
+## Notable changes in mini-loop v2.0
 - re-worked all the scripts to function in any running ubuntu enviroment as described above
 - updated to default to Mojaloop v13.1.1
 - updated K8s version to v1.20.x
@@ -62,7 +62,7 @@ Essentially this project automates the instructions for the linux installation i
 ## FAQ
 
 1. I think it installed correctly, but how do I verify that everything is working?
-   The mini-loop scripts test several of the mojaloop API /health endpoints and will report an errors other also `helm test` is your friend!  
+   The mini-loop scripts test several of the mojaloop API /health endpoints and will report an errors.  Also `helm test` is your friend!  
    See the instructions at the end of the mojaloop deployment for instructions on running the tests and also refer to the testing section of 
    https://github.com/mojaloop/helm 
 
