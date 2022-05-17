@@ -39,25 +39,25 @@ Essentially this project automates the instructions for the linux installation i
 
 ## Notes:
 - the mini-loop scripts output messages to help guide your deployment , please pay attention to these messages
-- other versions of ubuntu and other linux OS's are being tested at this time and will not work "nicely"
+- other versions of ubuntu and other linux OS's are being tested at this time and sadly currently will not work "nicely"
 - each of the scripts has a -h flag to show params and give examples of how to use and customise
-- helm chart modification is enabled by providing your own values file, simply change the help deploy command in the  01_install_miniloop.sh to point to your
+- helm chart modification is enabled by providing your own values file, simply change the `helm deploy` command in the  01_install_miniloop.sh to point to your
   customised values i.e. alter the -f value in the line 
   `helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  --namespace "$NAMESPACE"  mojaloop/mojaloop --version $MOJALOOP_VERSION -f $ETC_DIR/miniloop_values.yaml `
-- mini-loop 2.0 deploys a single node kubernetes environment , this might change in the future
-- reading the scripts can be a useful way to learn about both kubernetes (microk8s) and mojaloop deployment. As well as the automation the scripts are intended 
-  to provide a starting point, for further customisation. For instance it should be easy for the user to add extra nodes to the microk8s cluster or as 
-  mentioned above to modify the mojaloop configuration etc. 
+- mini-loop 2.0 currently deploys a single node kubernetes environment. 
+- reading the scripts can be a useful way to learn about both kubernetes (microk8s) and mojaloop deployment.
+- The the scripts are intended to provide a starting point, for further customisation. For instance it should be easy for the user to 
+  add extra nodes to the microk8s cluster or as mentioned above to modify the mojaloop configuration etc. 
 - please note that the installation adds the /etc/hosts entries for the endpoints configured in the $ETC_DIR/miniloop_values.yaml file if you 
-  use different values you will have to adjust the /etc/hosts endpoints
+  use different values you will likely have to adjust the /etc/hosts endpoints
 
 ## notable changes in mini-loop v2.0
 - re-worked all the scripts to function in any running ubuntu enviroment as described above
-- updated to Mojaloop v13.1.1
+- updated to default to Mojaloop v13.1.1
 - updated K8s version to v1.20.x
 - removed all automation that created the ubuntu enviromnent, this is now left to the user. It became obvious that the utility of mini-loop install would be far 
   improved by making this change
-- removed the script to run the testing toolkit, instead `helm test` is utilised and the user guided as how to run helm test from the mini-loop scripts
+- removed the script to run the testing toolkit, currently `helm test` is utilised and the user guided as how to run helm test from the mini-loop scripts
 
 ## FAQ
 
