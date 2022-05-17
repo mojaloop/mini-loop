@@ -52,7 +52,13 @@ function check_os_ok {
 }
 
 function install_prerequisites {
+    printf "==> Install prerequisites: run update ...\n"
     apt update
+
+    printf "==> Install prerequisites: installing snapd ...\n"
+    apt install snapd -y 
+
+    printf "==> Install prerequisites: installing python and python libs ...\n"
     apt install python3-pip
     pip3 install ruamel.yaml
 }
@@ -91,12 +97,6 @@ function do_k8s_install {
     printf "========================================================================================\n"
     printf "Mojaloop k8s install : Installing Kubernetes and tools (helm etc) \n"
     printf "========================================================================================\n"
-    
-    echo "==> Mojaloop Microk8s Install: run update ..."
-    apt update
-
-    echo "==> Mojaloop Microk8s Install: installing snapd ..."
-    apt install snapd -y 
 
     echo "==> Mojaloop Microk8s Install: installing microk8s release $k8s_version ... "
     snap install microk8s --classic --channel=$k8s_version/stable
@@ -144,16 +144,23 @@ function configure_k8s_user_env {
 function verify_user {
 # ensure that the user for k8s exists
         if [[ -z "$k8s_user" ]]; then 
-            printf "    Error: The operating system user has not been specified with the -u flag \n" 
-            printf "           the user specified with the -u flag must exist and not be the root user \n" 
+            printf "** Error: The operating system user has not been specified with the -u flag \n" 
+            printf "          the user specified with the -u flag must exist and not be the root user \n" 
+            printf "** \n"
             exit 1
         fi
+
+        if [[ `id -u $k8s_user` == 0 ]]; then 
+            printf "** Error: The user specified by -u should be a non-root user ** \n"
+            exit 1
+        fi 
 
         if id -u "$k8s_user" >/dev/null 2>&1 ; then
                 return
         else
-                printf "    Error: The user [ %s ] does not exist in the operating system \n" $k8s_user
+                printf "** Error: The user [ %s ] does not exist in the operating system \n" $k8s_user
                 printf "            please try again and specify an existing user \n"
+                printf "** \n"
                 exit 1 
         fi    
 }

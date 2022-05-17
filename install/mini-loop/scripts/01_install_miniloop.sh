@@ -89,14 +89,13 @@ printf " ==> Setting NAMESPACE to %s \n" "$NAMESPACE"
 
 # uninstall the old chart if it exists
 printf " ==> uninstalling any previous mojaloop deployment "
-#helm uninstall ${RELEASE_NAME} --namespace "$NAMESPACE"  >/dev/null 2>&1
-helm uninstall ${RELEASE_NAME} --namespace "$NAMESPACE" 
+helm uninstall ${RELEASE_NAME} --namespace "$NAMESPACE"  >/dev/null 2>&1
 printf "  [ok] \n\n"
 
 # install the chart
 printf  " ==> install %s helm chart and wait for upto %s  secs for it to be ready \n" "$RELEASE_NAME" "$TIMEOUT_SECS"
 #printf  "     executing helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  mojaloop/mojaloop --version $MOJALOOP_VERSION -f $ETC_DIR/miniloop_values.yaml \n "
-helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  --namespace "$NAMESPACE"  mojaloop/mojaloop --version $MOJALOOP_VERSION -f $ETC_DIR//miniloop_values.yaml 
+helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  --namespace "$NAMESPACE"  mojaloop/mojaloop --version $MOJALOOP_VERSION -f $ETC_DIR/miniloop_values.yaml 
 if [[ `helm status $RELEASE_NAME  --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
   printf " ==> [%s] deployed sucessfully \n" "$RELEASE_NAME"
 else 

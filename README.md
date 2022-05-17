@@ -4,11 +4,13 @@ Simple, scripted/automated installation of Mojaloop (http://mojaloop.io)
 Just do this ...
 Assuming you have an x86_64 environment running Ubuntu release 16, 18 or 20 and are logged in as a non-root user (e.g. mluser)
 ```bash
-cd $HOME
+login as mluser                                                      # i.e. login as an existing non-root user we use mluser just as an example
+cd $HOME                                                      
 git clone https://github.com/tdaly61/mini-loop.git                   # clone the mini-loop scripts into the mluser home directory
 sudo su -                                                            # su to root alternatively login in as root 
-~mluser/install/mini-loop/ubuntu/k8s-install.sh -m install -u mluser # this will install and configure microk8s kubernetes and prepare for mojaloop deployment
-~mluser/install/mini-loop/scripts/01_install_miniloop.sh             # this will delploy and configure the mojaloop helm chart 
+~mluser/install/mini-loop/ubuntu/k8s-install.sh -m install -u mluser # install and configure microk8s kubernetes, prepare for mojaloop deploy
+login as ml user or su - mluser                                      # you need a fresh login as mluser to ensure .bashrc is sourced.
+~mluser/install/mini-loop/scripts/01_install_miniloop.sh             # delploy and configure the mojaloop helm chart 
 ```
 
 ## Description 
@@ -37,13 +39,17 @@ Essentially this project automates the instructions for the linux installation i
 
 ## Notes:
 - the mini-loop scripts output messages to help guide your deployment , please pay attention to these messages
-- other versions of ubuntu and other linux OS's will likely work but are not really tested at this time
+- other versions of ubuntu and other linux OS's are being tested at this time and will not work "nicely"
 - each of the scripts has a -h flag to show params and give examples of how to use and customise
-- Helm chart modification is enabled by providing your own values file, simply change the help deploy command in the  01_install_miniloop.sh to point to your customised values i.e. alter 
-  the -f value in the line `helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  --namespace "$NAMESPACE"  mojaloop/mojaloop --version $MOJALOOP_VERSION -f $ETC_DIR/miniloop_values.yaml `
+- helm chart modification is enabled by providing your own values file, simply change the help deploy command in the  01_install_miniloop.sh to point to your
+  customised values i.e. alter the -f value in the line 
+  `helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  --namespace "$NAMESPACE"  mojaloop/mojaloop --version $MOJALOOP_VERSION -f $ETC_DIR/miniloop_values.yaml `
 - mini-loop 2.0 deploys a single node kubernetes environment , this might change in the future
-- reading the scripts can be a useful way to learn about both kubernetes (microk8s) and mojaloop deployment. As well as the automation the scripts are intended to provide a starting point, for further customisation. 
-  For instance it should be easy for the user to add extra nodes to the microk8s cluster or as mentioned above to modify the mojaloop configuration etc. 
+- reading the scripts can be a useful way to learn about both kubernetes (microk8s) and mojaloop deployment. As well as the automation the scripts are intended 
+  to provide a starting point, for further customisation. For instance it should be easy for the user to add extra nodes to the microk8s cluster or as 
+  mentioned above to modify the mojaloop configuration etc. 
+- please note that the installation adds the /etc/hosts entries for the endpoints configured in the $ETC_DIR/miniloop_values.yaml file if you 
+  use different values you will have to adjust the /etc/hosts endpoints
 
 ## notable changes in mini-loop v2.0
 - re-worked all the scripts to function in any running ubuntu enviroment as described above
