@@ -59,7 +59,7 @@ function install_prerequisites {
     apt install snapd -y 
 
     printf "==> Install prerequisites: installing python and python libs ...\n"
-    apt install python3-pip
+    apt install python3-pip -y 
     pip3 install ruamel.yaml
 }
 
@@ -77,7 +77,7 @@ function add_hosts {
     perl -p -i.bak -e 's/127\.0\.0\.1.*localhost.*$/$ENV{ENDPOINTS} /' /etc/hosts
     # TODO check the ping actually works > suggest cloud network rules if it doesn't
     #      also for cloud VMs might need to use something other than curl e.g. netcat ? 
-    ping  -c 2 account-lookup-service-admin 
+    ping  -c 2 account-lookup-service-admin.local
 }
 
 function set_k8_version {
