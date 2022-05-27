@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: python3-service
+  namespace: ml-app
+spec:
+  ports:
+  - nodePort: 30036
+    port: 8888
+    protocol: TCP
+    targetPort: 8282
+  selector:
+    app: python3a
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: python3a
+  name: python3dep
+  namespace: ml-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: python3a
+  template:
+    metadata:
+      labels:
+        app: python3a
+    spec:
+      containers:
+      - args:
+        - -c
+        - python -m http.server 8282
+        command:
+        - /bin/sh
+        image: python:3
+        name: python3cont
+        ports:
+        - containerPort: 8282
+      hostname: mypython3
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  name: python3ingress
+  namespace: ml-app
+spec:
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: python3-service
+            port:
+              number: 8889
+        path: /
+        pathType: Prefix
+      - backend:
+          service:
+            name: python3-service
+            port:
+              number: 8888
+        path: /v2
+        pathType: Prefix

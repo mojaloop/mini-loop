@@ -1,0 +1,25 @@
+#Deployment
+#hello 
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hellodep
+  labels:
+    app: hello-app1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-app1
+  template:
+    metadata:
+      labels:
+        app: hello-app1
+    spec:
+      #hostname: fred
+      containers:
+      - name: hello-container
+        image: gcr.io/google-samples/node-hello:1.0
+        ports:
+        - containerPort: 8080

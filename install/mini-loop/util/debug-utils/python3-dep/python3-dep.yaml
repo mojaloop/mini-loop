@@ -1,0 +1,27 @@
+#Deployment
+#apache 
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python3dep
+  labels:
+    app: python3a
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: python3a
+  template:
+    metadata:
+      labels:
+        app: python3a
+    spec:
+      hostname: mypython3
+      containers:
+      - name: python3cont
+        image: python:3
+        command: ["/bin/sh" ] 
+        args: ["-c", "python -m http.server 8282"]
+        ports:
+        - containerPort: 8282

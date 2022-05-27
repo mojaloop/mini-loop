@@ -1,0 +1,25 @@
+#Deployment
+#apache 
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apachedep
+  labels:
+    app: apache-app1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apache-app1
+  template:
+    metadata:
+      labels:
+        app: apache-app1
+    spec:
+      #hostname: fred
+      containers:
+      - name: apache-container
+        image: httpd:2.4.48
+        ports:
+        - containerPort: 80
