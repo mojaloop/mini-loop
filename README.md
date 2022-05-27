@@ -1,17 +1,25 @@
 # mini-loop v2.0 with K8s v1.20
 Simple, scripted/automated installation of Mojaloop (http://mojaloop.io) 
 
-## Instructions
+## Deployment Instructions
 Assuming you have an x86_64 environment running Ubuntu release 16, 18 or 20 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                      # i.e. login as an existing non-root user we use mluser just as an example
 cd $HOME                                                      
 git clone https://github.com/tdaly61/mini-loop.git                   # clone the mini-loop scripts into the mluser home directory
 sudo su -                                                            # su to root alternatively login in as root 
-~mluser/install/mini-loop/ubuntu/k8s-install.sh -m install -u mluser # install and configure microk8s kubernetes, prepare for mojaloop deploy
+~mluser/mini-loop/install/mini-loop/ubuntu/k8s-install.sh -m install -u mluser # install and configure microk8s kubernetes, prepare for mojaloop deploy
 login as ml user or su - mluser                                      # you need a fresh login as mluser to ensure .bashrc is sourced.
-~mluser/install/mini-loop/scripts/01_install_miniloop.sh             # delploy and configure the mojaloop helm chart 
+~mluser/mini-loop/install/mini-loop/scripts/01_install_miniloop.sh             # delploy and configure the mojaloop helm chart 
 ```
+
+## Running the Testing Toolkit via ```helm test```
+as the non-root user (e.g. mluser)
+```
+helm test ml --logs 
+```
+For more detailed instructions on running the helm tests see "Testing Deployments" section of : https://github.com/mojaloop/helm
+
 
 ## Description 
 
@@ -34,7 +42,7 @@ Essentially this project automates the instructions for the linux installation i
 - git installed   
 - min 6GB ram available  (8GB or more recommended) 
 - min 64GB storage available
-- broadband internet connection (for downloading helm charts and container images )
+- broadband internet connection from the ubuntu OS (for downloading helm charts and container images )
 
 
 ## Notes:
@@ -50,6 +58,11 @@ Essentially this project automates the instructions for the linux installation i
   add extra nodes to the microk8s cluster or as mentioned above to modify the mojaloop configuration etc. 
 - please note that the installation adds the /etc/hosts entries for the endpoints configured in the $ETC_DIR/miniloop_values.yaml file if you 
   use different values you will likely have to adjust the /etc/hosts endpoints
+
+## known issues
+- Again this is only tested properly with ubuntu as specified above, there are issues with other linux distros right now such as Redhat, Fedora, Oracle Linux etc
+- *there seems* to be an issue on certain AWS instances where a number of the pods continually restart. This is actively being worked and I expect to identify a fix in the next week.
+
 
 ## Notable changes in mini-loop v2.0
 - re-worked all the scripts to function in any running ubuntu enviroment as described above
