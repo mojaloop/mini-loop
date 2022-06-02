@@ -80,6 +80,7 @@ function print_ok_oses {
 function install_prerequisites {
     printf " ==> installing prerequisites for [%s] \n" "$LINUX_OS"
     if [[ "$LINUX_OS" == "Fedora" ]]; then 
+        dnf install kernel_modules -y
         dnf install snapd -y 
         ln -s /var/lib/snapd/snap /snap
         # yum update -y 
@@ -251,11 +252,11 @@ UBUNTU_OK_VERSIONS_LIST=(16 18 20 )
 FEDORA_OK_VERSIONS_LIST=( 36 )
 REDHAT_OK_VERSIONS_LIST=( 8 )
 
-# ensure we are running as root 
-# if [ "$EUID" -ne 0 ]
-#   then echo "Please run as root"
-#   exit 1
-# fi
+#ensure we are running as root 
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit 1
+fi
 
 # Check arguments
 if [ $# -lt 1 ] ; then
