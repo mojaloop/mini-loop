@@ -22,34 +22,72 @@ function check_pi {
 
 
 function check_os_ok {
-    # check this is ubuntu OS and a recent version => all ok ; else warn user it is not well tested
+    printf " ==> check that this os and version is tested with mojaloop (mini-loop scripts)\n"
     ok=false
-    # make sure the utility to check the operating system type and version exists
-    if [ -f /etc/redhat-release ] || [ -f /etc/fedora-release ]; then
-        # TODO figure out what minimuns to support here e.g. RHEL ? Fedora ? and Oracle ? etc 
-        LINUX_OS_TYPE="redhat"  
-        ok=true
+    # check for redhat family OS 
+    # TODO figure out what minimums to support here e.g. RHEL 8 Fedora 36 and Oracle 8 etc 
+    if [ -f /etc/redhat-release ] || [ -f /etc/fedora-release ]; then    
+        LINUX_OS=`cat /etc/redhat-release | cut -d " " -f1` 
+        if [[ "$LINUX_OS" == "Fedora" ]]; then 
+            ver=`cat /etc/redhat-release | cut -d " " -f3`
+            printf "     Linux Operating System is [Fedora] and version is [%s]\n" "$ver"
+            for i in "${FEDORA_OK_VERSIONS_LIST[@]}"; do
+                if  [[ "$ver" == "$i" ]]; then
+                     ok=true         
+                     break
+                fi  
+            done
+        fi
+    fi
+    # check for Ubuntu 
+    if [ -x "/usr/bin/lsb_release" ]; then
+        LINUX_OS=`lsb_release --d | perl -ne 'print  if s/^.*Ubuntu.*(\d+).(\d+).*$/Ubuntu/' `
+        if [[ $LINUX_OS == "Ubuntu" ]] ; then 
+            printf "Identified operating system as %s [ok] \n" $os   
+            ver=`/usr/bin/lsb_release --d | perl -ne 'print $&  if m/(\d+)/' `
+            for i in "${UBUNTU_OK_VERSIONS_LIST[@]}"; do
+                if  [[ "$ver" == "$i" ]]; then
+                     ok=true
+                     break
+                fi  
+            done
+        fi
     fi
 
     if [[ "$ok" == "false" ]]; then 
-        printf "** Error:  either the operating system is not Fedora or \n" "$ok"
-        printf "   it is older than version ?? of Fedora or newer than version ?? \n" "$ok"
-        printf "   Currently this script is only well tested against versions of Fedora ?? to ??  ** \n "
-        printf "* Note: if you are confident you could proceed by editing this script and commenting out the check_os_ok test \n"
-        printf "   and then re-run but I have not tested it outside of recent Fedora releases * \n"
+        printf "** Error : This operating system and/or version seems to be untested with mini-loop ** \n" 
+        printf "   Tested os types and versions are ... \n" 
+        print_ok_oses
         exit 1
+    else
+        printf "     os and version check  [ok] \n"
     fi 
 }
 
+function print_ok_oses {
+    printf "      Fedora versions: " 
+    for i in "${FEDORA_OK_VERSIONS_LIST[@]}"; do
+        printf " [%s]" "$i"
+    done
+    printf "\n"
+    printf "      Ubuntu versions: " 
+    for i in "${UBUNTU_OK_VERSIONS_LIST[@]}"; do
+        printf " [%s]" "$i"
+    done
+    printf "\n"
+}
+
 function install_prerequisites {
-    printf " ==> installing prerequisites \n"
-    if [[ "$LINUX_OS_TYPE" == "redhat" ]]; then 
-        yum update -y 
-        yum install -y snapd
-        systemctl enable --now snapd.socket
+    printf " ==> installing prerequisites for [%s] \n" "$LINUX_OS"
+    if [[ "$LINUX_OS" == "Fedora" ]]; then 
+        dnf install snapd -y 
         ln -s /var/lib/snapd/snap /snap
+        # yum update -y 
+        # yum install -y snapd
+        # systemctl enable --now snapd.socket
+        # ln -s /var/lib/snapd/snap /snap
     fi 
-    if [[ "$LINUX_OS_TYPE" == "ubuntu" ]]; then 
+    if [[ "$LINUX_OS" == "ubuntu" ]]; then 
         apt update -y 
         apt install snapd -y 
         apt install -y python3-pip
@@ -209,13 +247,15 @@ echo $SCRIPTS_DIR
 
 DEFAULT_K8S_VERSION="1.20" # default version to test
 #DEFAULT_K8S_USER="mojaloop"
-OS_VERSIONS_LIST=(16 18 20 )
+UBUNTU_OK_VERSIONS_LIST=(16 18 20 )
+FEDORA_OK_VERSIONS_LIST=( 36 )
+REDHAT_OK_VERSIONS_LIST=( 8 )
 
 # ensure we are running as root 
-if [ "$EUID" -ne 0 ]
-  then echo "Please run as root"
-  exit 1
-fi
+# if [ "$EUID" -ne 0 ]
+#   then echo "Please run as root"
+#   exit 1
+# fi
 
 # Check arguments
 if [ $# -lt 1 ] ; then
