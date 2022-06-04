@@ -143,37 +143,68 @@ function do_microk8s_install {
 
 }
 
-
 function do_k3s_install {
     printf "========================================================================================\n"
     printf "Mojaloop k3s install : Installing Kubernetes k3s engine and tools (helm/ingress etc) \n"
     printf "========================================================================================\n"
 
-    # first do docker (this can go once the percona chart issue is resolved )
-    if [[ ! -f "/usr/bin/docker" ]]; then 
-        curl https://releases.rancher.com/install-docker/19.03.sh | sh
-    fi 
-    printf "=> creating docker group, adding user and restarting docker \n"
-    groupadd docker > /dev/null 2>&1
-    usermod -a -G docker $k8s_user > /dev/null 2>&1
-    systemctl restart docker > /dev/null 2>&1
+    # # first do docker (this can go once the percona chart issue is resolved )
+    # if [[ ! -f "/usr/bin/docker" ]]; then 
+    #     curl https://releases.rancher.com/install-docker/19.03.sh | sh
+    # fi 
+    # printf "=> creating docker group, adding user and restarting docker \n"
+    # groupadd docker > /dev/null 2>&1
+    # usermod -a -G docker $k8s_user > /dev/null 2>&1
+    # systemctl restart docker > /dev/null 2>&1
 
-    # install k3s with docker 
-    printf "=> installing k3s using  docker\n"
-    curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
-                               INSTALL_K3S_CHANNEL=$K8S_VERSION \
-                               INSTALL_K3S_EXEC=" --no-deploy traefik --docker " sh 
+    # # install k3s with docker 
+    # printf "=> installing k3s using  docker\n"
+    # curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
+    #                            INSTALL_K3S_CHANNEL=$K8S_VERSION \
+    #                            INSTALL_K3S_EXEC=" --no-deploy traefik --docker " sh 
 
-    echo "ok here "
-    export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-    cp /etc/rancher/k3s/k3s.yaml  $k8s_user_home/k3s.yaml
-    echo "ok here after copy is done "
-    chown $k8s_user  $k8s_user_home/k3s.yaml
-    chmod 600  $k8s_user_home/k3s.yaml 
-    echo "source .bashrc" >>   $k8s_user_home/.bash_profile 
-    echo "export KUBECONFIG=\$HOME/k3s.yaml" >>  $k8s_user_home/.bashrc
-    echo "export KUBECONFIG=\$HOME/k3s.yaml" >>   $k8s_user_home/.bash_profile    
+    # export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+    # cp /etc/rancher/k3s/k3s.yaml  $k8s_user_home/k3s.yaml
+    # chown $k8s_user  $k8s_user_home/k3s.yaml
+    # chmod 600  $k8s_user_home/k3s.yaml 
+    # echo "source .bashrc" >>   $k8s_user_home/.bash_profile 
+    # echo "export KUBECONFIG=\$HOME/k3s.yaml" >>  $k8s_user_home/.bashrc
+    # echo "export KUBECONFIG=\$HOME/k3s.yaml" >>   $k8s_user_home/.bash_profile  
+
+    # install helm
+    printf "==> installing helm " 
+    helm_arch_str=""
+    if [[ "$k8s_arch" == "x86_64" ]]; then 
+        helm_arch_str="amd64"
+    else 
+        printf "** Error need to implement arm architecture install for helm ** \n"
+        exit 1
+    fi
+    cd /tmp
+    curl -L -s -o ./helm.tar.gz https://get.helm.sh/helm-v$HELM_VERSION-linux-$helm_arch_str.tar.gz
+    exit
+    cat ./helm.tar.gz | gzip -d -c | tar xf -
+    mv ./linux-amd64/helm /usr/local/bin  
+    /usr/local/bin/helm version > /dev/null 2>&1
+    if [[ $? -eq 0 ]]; then 
+        printf "[ok]\n"
+    else 
+        printf "** Error : helm install seems to have failed ** \n"
+        exit 1
+    fi
     
+    #install nginx => but beware which one  
+    # for k8s = 1.22 need kubernetes ingress 1.0.4 => chart version 4.0.6
+    # for k8s < v1.22 need kubernetes nginx ingress 0.47.0 
+    # see: https://kubernetes.io/blog/2021/07/26/update-with-ingress-nginx/
+    # see also https://kubernetes.github.io/ingress-nginx/
+    # use helm search repo -l nginx to find the chart version that corresponds to ingress release 0.47.x
+    # also we wait for 600secs here to ensure nginx controller is up
+    ingress_chart_ver="3.33.0"
+    printf "==> installing ingress chart version [%s] and wait for it to be ready" "$ingress_chart_ver"
+    su - $k8s_user -c "helm install --wait --timeout 300s ingress-nginx ingress-nginx/ingress-nginx --version=$ingress_chart_version "
+
+    # TODO : check to ensure that the ingress is indeed running 
 }
 
 function install_k8s_tools { 
@@ -191,22 +222,21 @@ function install_k8s_tools {
 
 function add_helm_repos { 
     printf "==> add the helm repos required to install and run Mojaloop version 13.x \n" 
-    su - $k8s_user -c "microk8s.helm3 repo add mojaloop http://mojaloop.io/helm/repo/"
-    su - $k8s_user -c "microk8s.helm3 repo add kiwigrid https://kiwigrid.github.io"
-    su - $k8s_user -c "microk8s.helm3 repo add elastic https://helm.elastic.co"
+    su - $k8s_user -c "helm repo add kiwigrid https://kiwigrid.github.io"
+    su - $k8s_user -c "helm repo add elastic https://helm.elastic.co"
     su - $k8s_user -c "helm repo add bitnami https://charts.bitnami.com/bitnami"
-    su - $k8s_user -c "microk8s.helm3 repo update"
+    su - $k8s_user -c "helm repo update"
 }
 
 function configure_k8s_user_env { 
     # TODO : this is pretty ugly as if it is re-run it appends multiple times to the .bashrc => fix that up
     # TODO : this assumes user is using bash shell 
-    printf "==> configure kubernetes environment for user [%s] by adding kubectl utilities to .basrc (bash only for now) [ok]  \n" "$k8s_user" 
+    # printf "==> configure kubernetes environment for user [%s] by adding kubectl utilities to .bashrc  \n" "$k8s_user" 
     echo "source <(kubectl completion bash)" >> $k8s_user_home/.bashrc # add autocomplete permanently to your bash shell.
     echo "alias k=kubectl " >>  $k8s_user_home/.bashrc
     echo "complete -F __start_kubectl k " >>  $k8s_user_home/.bashrc
-    echo 'alias ksetns="kubectl config set-context --current --namespace"'  >>  $k8s_user_home/.bashrc
-    echo "alias ksetuser=\"kubectl config set-context --current --user\""  >>  $k8s_user_home/.bashrc   
+    echo "alias ksetns=\"kubectl config set-context --current --namespace\" " >>  $k8s_user_home/.bashrc
+    echo "alias ksetuser=\"kubectl config set-context --current --user\" "  >>  $k8s_user_home/.bashrc   
 }
 
 function verify_user {
@@ -288,9 +318,10 @@ SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 
 DEFAULT_K8S_DISTRO="microk8s" 
 DEFAULT_K8S_VERSION="1.21" # default version to test
-#DEFAULT_K8S_USER="mojaloop"
+HELM_VERSION="3.9.0"
 OS_VERSIONS_LIST=(16 18 20 )
 k8s_user_home=""
+k8s_arch=`uname -p`  # what arch
 
 # ensure we are running as root 
 if [ "$EUID" -ne 0 ]
@@ -326,16 +357,6 @@ while getopts "m:k:v:u:hH" OPTION ; do
     esac
 done
 
-# k8s_user_home=`eval echo "~$k8s_user"`
-# #eval echo "~$different_user" 
-# echo $k8s_user_home
-# ls -l $k8s_user_home
-
-# exit
-
-
-#if [[ -z "$k8s_distro" == "install" ]]  ; then
-
 if [[ "$mode" == "install" ]]  ; then
     echo "installing"
     # set the user to run k8s commands
@@ -357,7 +378,6 @@ if [[ "$mode" == "install" ]]  ; then
         do_k3s_install
     fi 
     install_k8s_tools
-
     add_helm_repos 
     configure_k8s_user_env
     printf "==> The kubernetes environment is now configured for user [%s] and ready for mojaloop deployment \n" "$k8s_user"
@@ -367,8 +387,8 @@ elif [[ "$mode" == "remove" ]]  ; then
     
     if [[ "$k8s_distro" == "microk8s" ]]; then 
         printf "==>Removing any existing Microk8s installation "
-        res=`snap remove microk8s > /dev/null 2>&1`
-        if [[ $res = 0  ]]; then 
+        snap remove microk8s > /dev/null 2>&1
+        if [[ $? -eq 0  ]]; then 
             printf " [ ok ] \n"
         else 
             printf " [ microk8s remove failed ] \n"
@@ -377,8 +397,8 @@ elif [[ "$mode" == "remove" ]]  ; then
         fi
     else 
         printf "==>Removing any existing k3s installation "
-        res=`/usr/local/bin/k3s-uninstall.sh >> /dev/null 2>&1`
-        if [[ $res = 0  ]]; then 
+        /usr/local/bin/k3s-uninstall.sh >> /dev/null 2>&1
+        if [[ $? -eq 0  ]]; then 
             printf " [ ok ] \n"
         else 
             printf " [ k3s remove failed ] \n"
