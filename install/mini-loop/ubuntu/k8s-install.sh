@@ -51,6 +51,9 @@ function check_os_ok {
     fi 
 }
 
+
+
+
 function install_prerequisites {
     printf "==> Install prerequisites: run update ...\n"
     apt update
@@ -80,6 +83,24 @@ function add_hosts {
     ping  -c 2 account-lookup-service-admin.local
 }
 
+
+
+function set_k8s_distro { 
+    if [[ -z "$k8s_distro" ]]; then  
+        k8s_distro=$DEFAULT_K8S_DISTRO
+        printf "==> Using default kubernetes distro [%s]\n" "$k8s_distro"
+    else 
+        k8s_distro=`echo "$k8s_distro" | perl -ne 'print lc'`
+        if [[ "$k8s_distro" == "microk8s" || "$k8s_distro" == "k3s" ]]; then 
+            printf "==> kubernetes distro set to [%s] \n" "$k8s_distro"
+        else 
+            printf "** Error : invalid kubernetes distro specified. Valid options are microk8s or k3s \n"
+            exit 1
+        fi
+    fi
+
+}
+
 function set_k8_version {
     printf "========================================================================================\n"
     printf "Mojaloop k8s install : set k8s version to install (default and minimum is 1.21) \n"
@@ -92,10 +113,11 @@ function set_k8_version {
     fi
 }
 
-function do_k8s_install {
+
+function do_microk8s_install {
     # TODO : Microk8s can complain that This is insecure. Location: /var/snap/microk8s/2952/credentials/client.config
     printf "========================================================================================\n"
-    printf "Mojaloop k8s install : Installing Kubernetes and tools (helm etc) \n"
+    printf "Mojaloop microk8s install : Installing Kubernetes MicroK8s engine and tools (helm etc) \n"
     printf "========================================================================================\n"
 
     echo "==> Mojaloop Microk8s Install: installing microk8s release $k8s_version ... "
@@ -121,6 +143,52 @@ function do_k8s_install {
 
 }
 
+
+function do_k3s_install {
+    printf "========================================================================================\n"
+    printf "Mojaloop k3s install : Installing Kubernetes k3s engine and tools (helm/ingress etc) \n"
+    printf "========================================================================================\n"
+
+    # first do docker (this can go once the percona chart issue is resolved )
+    if [[ ! -f "/usr/bin/docker" ]]; then 
+        curl https://releases.rancher.com/install-docker/19.03.sh | sh
+    fi 
+    printf "=> creating docker group, adding user and restarting docker \n"
+    groupadd docker > /dev/null 2>&1
+    usermod -a -G docker $k8s_user > /dev/null 2>&1
+    systemctl restart docker > /dev/null 2>&1
+
+    # install k3s with docker 
+    printf "=> installing k3s using  docker\n"
+    curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
+                               INSTALL_K3S_CHANNEL=$K8S_VERSION \
+                               INSTALL_K3S_EXEC=" --no-deploy traefik --docker " sh 
+
+    echo "ok here "
+    export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+    cp /etc/rancher/k3s/k3s.yaml  $k8s_user_home/k3s.yaml
+    echo "ok here after copy is done "
+    chown $k8s_user  $k8s_user_home/k3s.yaml
+    chmod 600  $k8s_user_home/k3s.yaml 
+    echo "source .bashrc" >>   $k8s_user_home/.bash_profile 
+    echo "export KUBECONFIG=\$HOME/k3s.yaml" >>  $k8s_user_home/.bashrc
+    echo "export KUBECONFIG=\$HOME/k3s.yaml" >>   $k8s_user_home/.bash_profile    
+    
+}
+
+function install_k8s_tools { 
+    printf "==> install kubernetes tools, kubens, kubectx kustomize \n" 
+    curl -s -L https://github.com/ahmetb/kubectx/releases/download/v0.9.4/kubens_v0.9.4_linux_x86_64.tar.gz | gzip -d -c | tar xf -
+    mv ./kubens /usr/local/bin
+    curl -s -L https://github.com/ahmetb/kubectx/releases/download/v0.9.4/kubectx_v0.9.4_linux_x86_64.tar.gz | gzip -d -c | tar xf -
+    mv ./kubectx /usr/local/bin
+
+    # install kustomize
+    curl -s "https://raw.githubusercontent.com/\
+    kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
+    mv ./kustomize /usr/local/bin
+}
+
 function add_helm_repos { 
     printf "==> add the helm repos required to install and run Mojaloop version 13.x \n" 
     su - $k8s_user -c "microk8s.helm3 repo add mojaloop http://mojaloop.io/helm/repo/"
@@ -134,11 +202,11 @@ function configure_k8s_user_env {
     # TODO : this is pretty ugly as if it is re-run it appends multiple times to the .bashrc => fix that up
     # TODO : this assumes user is using bash shell 
     printf "==> configure kubernetes environment for user [%s] by adding kubectl utilities to .basrc (bash only for now) [ok]  \n" "$k8s_user" 
-    echo "source <(kubectl completion bash)" >> /home/$k8s_user/.bashrc # add autocomplete permanently to your bash shell.
-    echo "alias k=kubectl " >> /home/$k8s_user/.bashrc
-    echo "complete -F __start_kubectl k " >> /home/$k8s_user/.bashrc
-    echo 'alias ksetns="kubectl config set-context --current --namespace"'  >> /home/$k8s_user/.bashrc
-    echo "alias ksetuser=\"kubectl config set-context --current --user\""  >> /home/$k8s_user/.bashrc    
+    echo "source <(kubectl completion bash)" >> $k8s_user_home/.bashrc # add autocomplete permanently to your bash shell.
+    echo "alias k=kubectl " >>  $k8s_user_home/.bashrc
+    echo "complete -F __start_kubectl k " >>  $k8s_user_home/.bashrc
+    echo 'alias ksetns="kubectl config set-context --current --namespace"'  >>  $k8s_user_home/.bashrc
+    echo "alias ksetuser=\"kubectl config set-context --current --user\""  >>  $k8s_user_home/.bashrc   
 }
 
 function verify_user {
@@ -156,12 +224,13 @@ function verify_user {
         fi 
 
         if id -u "$k8s_user" >/dev/null 2>&1 ; then
-                return
+            k8s_user_home=`eval echo "~$k8s_user"`
+            return
         else
-                printf "** Error: The user [ %s ] does not exist in the operating system \n" $k8s_user
-                printf "            please try again and specify an existing user \n"
-                printf "** \n"
-                exit 1 
+            printf "** Error: The user [ %s ] does not exist in the operating system \n" $k8s_user
+            printf "            please try again and specify an existing user \n"
+            printf "** \n"
+            exit 1 
         fi    
 }
 
@@ -187,15 +256,17 @@ function showUsage {
 		exit 1
 	else
 echo  "USAGE: $0 -m [mode] -u [ user] [-v k8 version]
-Example 1 : k8s-install.sh -m install -u ubuntu -v 1.20 # install k8s version 1.20
-Example 2 : k8s-install.sh -m remove -u ubuntu -v 1.20 # install k8s version 1.20
+Example 1 : k8s-install.sh -m install -u ubuntu -v 1.20 # install k8s microk8s version 1.20
+Example 2 : k8s-install.sh -m remove -u ubuntu -v 1.20 # remove  k8s microk8s version 1.20
+Example 3 : k8s-install.sh -m install -k k3s -u ubuntu -v 1.21 # install k8s k3s distro version 1.21
 
 
 Options:
--m mode ............ install|remove (-m is required)
--v k8s version ..... 1.20 (default : 1.20 only right now due to  https://github.com/mojaloop/project/issues/2447 )
--u user ............ non root user to run helm and k8s commands and to own mojaloop (default : mojaloop) 
--h|H ............... display this message
+-m mode ............... install|remove (-m is required)
+-k kubernetes distro... microk8s|k3s (default is microk8s)
+-v k8s version ........ 1.20 (default : 1.20 only right now due to  https://github.com/mojaloop/project/issues/2447 )
+-u user ............... non root user to run helm and k8s commands and to own mojaloop (default : mojaloop) 
+-h|H .................. display this message
 "
 	fi
 }
@@ -211,14 +282,15 @@ BASE_DIR=$( cd $(dirname "$0")/../.. ; pwd )
 RUN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" # the directory that this script is run from 
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 
-echo $BASE_DIR
-echo $RUN_DIR
-echo $SCRIPTS_DIR
+# echo $BASE_DIR
+# echo $RUN_DIR
+# echo $SCRIPTS_DIR
 
-
-DEFAULT_K8S_VERSION="1.20" # default version to test
+DEFAULT_K8S_DISTRO="microk8s" 
+DEFAULT_K8S_VERSION="1.21" # default version to test
 #DEFAULT_K8S_USER="mojaloop"
 OS_VERSIONS_LIST=(16 18 20 )
+k8s_user_home=""
 
 # ensure we are running as root 
 if [ "$EUID" -ne 0 ]
@@ -234,9 +306,11 @@ if [ $# -lt 1 ] ; then
 fi
 
 # Process command line options as required
-while getopts "m:v:u:hH" OPTION ; do
+while getopts "m:k:v:u:hH" OPTION ; do
    case "${OPTION}" in
         m)	    mode="${OPTARG}"
+        ;;
+        k)      k8s_distro="${OPTARG}"
         ;;
         v)	    k8s_version="${OPTARG}"
         ;;
@@ -252,6 +326,16 @@ while getopts "m:v:u:hH" OPTION ; do
     esac
 done
 
+# k8s_user_home=`eval echo "~$k8s_user"`
+# #eval echo "~$different_user" 
+# echo $k8s_user_home
+# ls -l $k8s_user_home
+
+# exit
+
+
+#if [[ -z "$k8s_distro" == "install" ]]  ; then
+
 if [[ "$mode" == "install" ]]  ; then
     echo "installing"
     # set the user to run k8s commands
@@ -260,20 +344,49 @@ if [[ "$mode" == "install" ]]  ; then
     fi
     
     check_pi  # note microk8s on my pi still has some issues around cgroups 
+    ## when I have k3s going => only need to check OS if using microk8s !
     check_os_ok # check this is an ubuntu OS v18.04 or later 
     verify_user 
-    install_prerequisites 
-    set_k8_version
+    #install_prerequisites 
+    set_k8s_distro
+    set_k8s_version
     add_hosts
-    do_k8s_install
+    if [[ "$k8s_distro" == "microk8s" ]]; then 
+        echo "do_microk8s_install -- not really "
+    else 
+        do_k3s_install
+    fi 
+    install_k8s_tools
+
     add_helm_repos 
     configure_k8s_user_env
     printf "==> The kubernetes environment is now configured for user [%s] and ready for mojaloop deployment \n" "$k8s_user"
     printf "    To deploy mojaloop, please su - %s from root  or login as user [%s] and then \n"  "$k8s_user" "$k8s_user"
     printf "    execute the %s/01_install_miniloop.sh script \n"  "$SCRIPTS_DIR"    
 elif [[ "$mode" == "remove" ]]  ; then
-    printf "Removing any existing k8s installation \n"
-    snap remove microk8s
+    
+    if [[ "$k8s_distro" == "microk8s" ]]; then 
+        printf "==>Removing any existing Microk8s installation "
+        res=`snap remove microk8s > /dev/null 2>&1`
+        if [[ $res = 0  ]]; then 
+            printf " [ ok ] \n"
+        else 
+            printf " [ microk8s remove failed ] \n"
+            printf "** was microk8s installed ?? \n" 
+            printf "   if so please try running \"snap remove microk8s\" manually ** \n"
+        fi
+    else 
+        printf "==>Removing any existing k3s installation "
+        res=`/usr/local/bin/k3s-uninstall.sh >> /dev/null 2>&1`
+        if [[ $res = 0  ]]; then 
+            printf " [ ok ] \n"
+        else 
+            printf " [ k3s remove failed ] \n"
+            printf "** was k3s installed ?? \n" 
+            printf "   if so please try running \"/usr/local/bin/k3s-uninstall.sh\" manually ** \n"
+        fi
+        exit
+    fi 
 else 
     showUsage
 fi 
