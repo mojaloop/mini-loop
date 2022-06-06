@@ -82,7 +82,6 @@ function check_os_ok {
     fi 
 } 
 
-
 function install_prerequisites {
     printf "==> Install any OS prerequisites , tools &  updates  ...\n"
     if [[ $LINUX_OS == "Ubuntu" && $k8s_distro == "microk8s" ]]; then 
@@ -219,8 +218,10 @@ function do_k3s_install {
     helm_arch_str=""
     if [[ "$k8s_arch" == "x86_64" ]]; then 
         helm_arch_str="amd64"
+    elif [[ "$k8s_arch" == "aarm64" ]]; then 
+        helm_arch_str="arm"
     else 
-        printf "** Error need to implement arm architecture install for helm ** \n"
+        printf "** Error:  architecture not recognised as x86_64 or aarm64  ** \n"
         exit 1
     fi
     rm -rf /tmp/linux-$helm_arch_str /tmp/helm.tar
