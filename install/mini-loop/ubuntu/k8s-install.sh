@@ -208,7 +208,9 @@ function do_k3s_install {
 
     # need to use docker (this can go once the percona chart issue is resolved )
     if [[ ! -f "/usr/bin/docker" ]]; then 
-        curl https://releases.rancher.com/install-docker/19.03.sh | sh
+        #curl https://releases.rancher.com/install-docker/19.03.sh | sh
+        curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+        sh /tmp/get-docker.sh
     fi 
     printf "=> creating docker group, adding user and restarting docker \n"
     groupadd docker > /dev/null 2>&1
