@@ -119,9 +119,7 @@ function install_prerequisites {
 }
 
 function add_hosts {
-    printf "========================================================================================\n"
-    printf "Mojaloop k8s install : update hosts file \n"
-    printf "========================================================================================\n"
+    printf "==> Mojaloop k8s install : update hosts file \n"
     ENDPOINTSLIST=(127.0.0.1   ml-api-adapter.local central-ledger.local account-lookup-service.local account-lookup-service-admin.local 
     quoting-service.local central-settlement-service.local transaction-request-service.local central-settlement.local bulk-api-adapter.local 
     moja-simulator.local sim-payerfsp.local sim-payeefsp.local sim-testfsp1.local sim-testfsp2.local sim-testfsp3.local sim-testfsp4.local 
@@ -185,13 +183,13 @@ function do_microk8s_install {
     snap install microk8s --classic --channel=$DEFAULT_K8S_VERSION/stable
     microk8s.status --wait-ready
 
-    echo "==> Mojaloop Microk8s Install: enable helm ... "
+    #echo "==> Mojaloop Microk8s Install: enable helm ... "
     microk8s.enable helm3 
-    echo "==> Mojaloop Microk8s Install: enable dns ... "
+    #echo "==> Mojaloop Microk8s Install: enable dns ... "
     microk8s.enable dns
     echo "==> Mojaloop: enable storage ... "
     microk8s.enable storage
-    echo "==> Mojaloop: enable ingress ... "
+    #echo "==> Mojaloop: enable ingress ... "
     microk8s.enable ingress
 
     echo "==> Mojaloop: add convenient aliases..." 
@@ -208,7 +206,7 @@ function do_k3s_install {
     printf "Mojaloop k3s install : Installing Kubernetes k3s engine and tools (helm/ingress etc) \n"
     printf "========================================================================================\n"
 
-    # first do docker (this can go once the percona chart issue is resolved )
+    # need to use docker (this can go once the percona chart issue is resolved )
     if [[ ! -f "/usr/bin/docker" ]]; then 
         curl https://releases.rancher.com/install-docker/19.03.sh | sh
     fi 
@@ -228,9 +226,16 @@ function do_k3s_install {
     cp /etc/rancher/k3s/k3s.yaml  $k8s_user_home/k3s.yaml
     chown $k8s_user  $k8s_user_home/k3s.yaml
     chmod 600  $k8s_user_home/k3s.yaml 
-    # note KUBECONFIG setup is done with the more general user/.bashrc config
-    
 
+    perl -p -i.bak -e s/^.*KUBECONFIG.*$//g $k8s_user_home/.bashrc
+    echo "export KUBECONFIG=\$HOME/k3s.yaml" >>  $k8s_user_home/.bashrc
+
+    perl -p -i.bak -e s/^.*source .bashrc.*$//g $k8s_user_home/.bash_profile 
+    perl -p  -e s/^.*export KUBECONFIG.*$//g $k8s_user_home/.bash_profile 
+    echo "source .bashrc" >>   $k8s_user_home/.bash_profile 
+    echo "export KUBECONFIG=\$HOME/k3s.yaml" >>   $k8s_user_home/.bash_profile  
+
+    
     # install helm
     printf "==> installing helm " 
     helm_arch_str=""
@@ -296,17 +301,12 @@ function configure_k8s_user_env {
     if [[ $? -ne 0  ]]; then 
         printf "==> Adding configuration for %s to %s .bashrc\n" "$k8s_distro" "$k8s_user"
         printf "%s\n" "$start_message" >> $k8s_user_home/.bashrc 
-        if [[ $k8s_distro == "k3s" ]]; then 
-            echo "source .bashrc" >>   $k8s_user_home/.bash_profile 
-            echo "export KUBECONFIG=\$HOME/k3s.yaml" >>  $k8s_user_home/.bashrc
-            echo "export KUBECONFIG=\$HOME/k3s.yaml" >>   $k8s_user_home/.bash_profile  
-        fi 
         echo "source <(kubectl completion bash)" >> $k8s_user_home/.bashrc # add autocomplete permanently to your bash shell.
         echo "alias k=kubectl " >>  $k8s_user_home/.bashrc
         echo "complete -F __start_kubectl k " >>  $k8s_user_home/.bashrc
         echo "alias ksetns=\"kubectl config set-context --current --namespace\" " >>  $k8s_user_home/.bashrc
         echo "alias ksetuser=\"kubectl config set-context --current --user\" "  >>  $k8s_user_home/.bashrc 
-        echo "alias cdml=\"cd $HOME/mini-loop/install/mini-loop\" " >>  $k8s_user_home/.bashrc 
+        echo "alias cdml=\"cd $k8s_user_home/mini-loop/install/mini-loop\" " >>  $k8s_user_home/.bashrc 
         printf "# end of config added by mini-loop #\n" >> $k8s_user_home/.bashrc 
     else 
         printf "==> Configuration for .bashrc for %s for user %s already exists ..skipping\n" "$k8s_distro" "$k8s_user"
@@ -359,7 +359,6 @@ function remove_k8s {
             printf "** was k3s installed ?? \n" 
             printf "   if so please try running \"/usr/local/bin/k3s-uninstall.sh\" manually ** \n"
         fi
-        exit
     fi     
 }
 
@@ -373,6 +372,12 @@ function check_k8s_installed {
     fi
     printf "    [ ok ] \n"
 }
+
+function print_end_message { 
+    printf "\n\n****************************************************************************************\n"
+    printf " Mojaloop.io mini-loop kubernetes installer end        \n"
+    printf "****************************************************************************************\n" 
+} 
 
 ################################################################################
 # Function: showUsage
@@ -462,9 +467,14 @@ while getopts "m:k:v:u:hH" OPTION ; do
     esac
 done
 
+printf "\n\n****************************************************************************************\n"
+printf " Mojaloop.io mini-loop kubernetes installer start        \n"
+printf "****************************************************************************************\n\n"
+
+
+
 check_arch_ok 
 if [[ "$mode" == "install" ]]  ; then
-    echo "installing"
     # set the user to run k8s commands
     if [ -z ${k8s_user+x} ] ; then
             k8s_user=$DEFAULT_K8S_USER
@@ -492,9 +502,12 @@ if [[ "$mode" == "install" ]]  ; then
     check_k8s_installed
     printf "==> The kubernetes environment is now configured for user [%s] and ready for mojaloop deployment \n" "$k8s_user"
     printf "    To deploy mojaloop, please su - %s from root  or login as user [%s] and then \n"  "$k8s_user" "$k8s_user"
-    printf "    execute the %s/01_install_miniloop.sh script \n"  "$SCRIPTS_DIR"    
+    printf "    execute the %s/01_install_miniloop.sh script \n\n"  "$SCRIPTS_DIR"   
+
+    print_end_message 
 elif [[ "$mode" == "remove" ]]  ; then
     remove_k8s 
+    print_end_message 
 else 
     showUsage
 fi 
