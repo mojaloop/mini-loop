@@ -33,6 +33,22 @@ function print_ok_oses {
     printf "\n"
 }
 
+function check_only_k8s_distro_installed { 
+    # it seems ok to re-install microk8s over existing microk8s install or similarly to install k3s 
+    # when k3s is already install but need to avoid installing k3s when k8s is already installed or vice-versa
+    # check to ensure k3s isn't already installed when installing microk8s 
+    if [[ -f "/usr/local/bin/k3s" && $k8s_distro == "microk8s" ]]; then 
+        printf "** Error , k3s is already installed on this machine , please remove before installing microk8s **\n"
+        exit 1
+    fi 
+    #check to ensure microk8s isn't already installed when installing k3s
+    if [[ -f "/snap/bin/microk8s" && $k8s_distro == "k3s" ]]; then 
+        printf "** Error , microk8s is already installed on this machine , please remove before installing k3s **\n"
+        exit 1
+    fi 
+
+}
+
 function check_os_ok {
     printf " ==> check that this os and version is tested with mojaloop (mini-loop scripts)\n"
     ok=false
@@ -159,6 +175,8 @@ function do_microk8s_install {
     printf "Mojaloop microk8s install : Installing Kubernetes MicroK8s engine and tools (helm etc) \n"
     printf "========================================================================================\n"
 
+    
+
     echo "==> Mojaloop Microk8s Install: installing microk8s release $k8s_version ... "
     snap install microk8s --classic --channel=$k8s_version/stable
     microk8s.status --wait-ready
@@ -218,10 +236,10 @@ function do_k3s_install {
     helm_arch_str=""
     if [[ "$k8s_arch" == "x86_64" ]]; then 
         helm_arch_str="amd64"
-    elif [[ "$k8s_arch" == "aarm64" ]]; then 
+    elif [[ "$k8s_arch" == "aarch64" ]]; then 
         helm_arch_str="arm"
     else 
-        printf "** Error:  architecture not recognised as x86_64 or aarm64  ** \n"
+        printf "** Error:  architecture not recognised as x86_64 or arm64  ** \n"
         exit 1
     fi
     rm -rf /tmp/linux-$helm_arch_str /tmp/helm.tar
@@ -276,11 +294,21 @@ function configure_k8s_user_env {
     # TODO : this is pretty ugly as if it is re-run it appends multiple times to the .bashrc => fix that up
     # TODO : this assumes user is using bash shell 
     # printf "==> configure kubernetes environment for user [%s] by adding kubectl utilities to .bashrc  \n" "$k8s_user" 
-    echo "source <(kubectl completion bash)" >> $k8s_user_home/.bashrc # add autocomplete permanently to your bash shell.
-    echo "alias k=kubectl " >>  $k8s_user_home/.bashrc
-    echo "complete -F __start_kubectl k " >>  $k8s_user_home/.bashrc
-    echo "alias ksetns=\"kubectl config set-context --current --namespace\" " >>  $k8s_user_home/.bashrc
-    echo "alias ksetuser=\"kubectl config set-context --current --user\" "  >>  $k8s_user_home/.bashrc   
+    start_message="# start of config added by mini-loop #"
+    grep "start of config added by mini-loop" $k8s_user_home/.bashrc 
+    if [[ $? -ne 0  ]]; then 
+        printf "==> Adding configuration for %s to %s .bashrc\n" "$k8s_distro" "$k8s_user"
+        printf "%s\n" "$start_message" >> $k8s_user_home/.bashrc 
+        echo "source <(kubectl completion bash)" >> $k8s_user_home/.bashrc # add autocomplete permanently to your bash shell.
+        echo "alias k=kubectl " >>  $k8s_user_home/.bashrc
+        echo "complete -F __start_kubectl k " >>  $k8s_user_home/.bashrc
+        echo "alias ksetns=\"kubectl config set-context --current --namespace\" " >>  $k8s_user_home/.bashrc
+        echo "alias ksetuser=\"kubectl config set-context --current --user\" "  >>  $k8s_user_home/.bashrc 
+        echo "alias cdml=\"cd $HOME/mini-loop/install/mini-loop\" " >>  $k8s_user_home/.bashrc 
+        printf "# end of config added by mini-loop #\n" >> $k8s_user_home/.bashrc 
+    else 
+        printf "==> Configuration for .bashrc for %s to %s already exists ..skipping\n" "$k8s_distro" "$k8s_user"
+    fi
 }
 
 function verify_user {
@@ -334,12 +362,14 @@ function remove_k8s {
 }
 
 function check_k8s_installed { 
+    printf "==> Check the cluster is available and ready from kubectl  "
     k8s_ready=`su - $k8s_user -c "kubectl get nodes" | perl -ne 'print  if s/^.*Ready.*$/Ready/'`
     if [[ ! "$k8s_ready" == "Ready" ]]; then 
         printf "** Error : kubernetes is not installed , please run $0 -m install -u $k8s_user \n"
         printf "           before trying to install mojaloop \n "
         exit 1 
     fi
+    printf "    [ ok ] \n"
 }
 
 ################################################################################
@@ -437,6 +467,7 @@ if [[ "$mode" == "install" ]]  ; then
             k8s_user=$DEFAULT_K8S_USER
     fi
     
+    check_only_k8s_distro_installed
     check_pi  # note microk8s on my pi still has some issues around cgroups 
     ## when I have k3s going => only need to check OS if using microk8s !
     if [[ "$k8s_distro" == "microk8s" ]]; then 
@@ -448,7 +479,7 @@ if [[ "$mode" == "install" ]]  ; then
     set_k8s_version
     add_hosts
     if [[ "$k8s_distro" == "microk8s" ]]; then 
-        echo "do_microk8s_install -- not really "
+        do_microk8s_install
     else 
         do_k3s_install
     fi 
