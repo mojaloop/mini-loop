@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # k8s-install.sh 
-# install kubernetes (currently microk8s)  , setup helm and all of the infrastructure ready for mojaloop installation
-# Note: curently prepares for ML version 13.1.x 
+# install kubernetes distro microk8s or k3s, setup helm and all of the infrastructure ready for mojaloop installation
+# Note: currently prepares for ML version 13.1.x 
 
 # TODO : add command line params to enable selection of which ML release etc 
-#        maybe even allow selection of microk8s or k3s later from command line 
 #       - put this into circle-ci and merge with k8s-versions-test.sh in charts repo so that little/no code is duplicated
 #       - change the ingress port 
 #           @see https://discuss.kubernetes.io/t/add-on-ingress-default-port-change-options/14428
@@ -20,6 +19,13 @@ function check_pi {
     fi    
 }
 
+
+function check_arch_ok {
+    if [[ ! "$k8s_arch" == "x86_64" ]]; then 
+        printf " **** Warning : mini-loop only works properly with x86_64 today *****\n"
+    fi
+} 
+
 function print_ok_oses {
     printf "      Fedora versions: " 
     for i in "${FEDORA_OK_VERSIONS_LIST[@]}"; do
@@ -33,7 +39,7 @@ function print_ok_oses {
     printf "\n"
 }
 
-function check_only_k8s_distro_installed { 
+function ensure_only_one_k8s_distro_installed { 
     # it seems ok to re-install microk8s over existing microk8s install or similarly to install k3s 
     # when k3s is already install but need to avoid installing k3s when k8s is already installed or vice-versa
     # check to ensure k3s isn't already installed when installing microk8s 
@@ -171,14 +177,12 @@ function set_k8s_version {
 
 function do_microk8s_install {
     # TODO : Microk8s can complain that This is insecure. Location: /var/snap/microk8s/2952/credentials/client.config
-    printf "========================================================================================\n"
-    printf "Mojaloop microk8s install : Installing Kubernetes MicroK8s engine and tools (helm etc) \n"
-    printf "========================================================================================\n"
-
-    
+    printf "================================================================================================\n"
+    printf "Mojaloop microk8s install : Installing Kubernetes MicroK8s & enabling tools (helm,ingress  etc) \n"
+    printf "=================================================================================================\n"
 
     echo "==> Mojaloop Microk8s Install: installing microk8s release $k8s_version ... "
-    snap install microk8s --classic --channel=$k8s_version/stable
+    snap install microk8s --classic --channel=$DEFAULT_K8S_VERSION/stable
     microk8s.status --wait-ready
 
     echo "==> Mojaloop Microk8s Install: enable helm ... "
@@ -219,17 +223,13 @@ function do_k3s_install {
     curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
                                INSTALL_K3S_CHANNEL=$DEFAULT_K8S_VERSION \
                                INSTALL_K3S_EXEC=" --no-deploy traefik --docker " sh 
-    # curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
-    #                            INSTALL_K3S_CHANNEL=$K8S_VERSION \
-    #                            INSTALL_K3S_EXEC=" --no-deploy traefik --docker " sh 
 
     export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
     cp /etc/rancher/k3s/k3s.yaml  $k8s_user_home/k3s.yaml
     chown $k8s_user  $k8s_user_home/k3s.yaml
     chmod 600  $k8s_user_home/k3s.yaml 
-    echo "source .bashrc" >>   $k8s_user_home/.bash_profile 
-    echo "export KUBECONFIG=\$HOME/k3s.yaml" >>  $k8s_user_home/.bashrc
-    echo "export KUBECONFIG=\$HOME/k3s.yaml" >>   $k8s_user_home/.bash_profile  
+    # note KUBECONFIG setup is done with the more general user/.bashrc config
+    
 
     # install helm
     printf "==> installing helm " 
@@ -291,14 +291,16 @@ function add_helm_repos {
 }
 
 function configure_k8s_user_env { 
-    # TODO : this is pretty ugly as if it is re-run it appends multiple times to the .bashrc => fix that up
-    # TODO : this assumes user is using bash shell 
-    # printf "==> configure kubernetes environment for user [%s] by adding kubectl utilities to .bashrc  \n" "$k8s_user" 
     start_message="# start of config added by mini-loop #"
     grep "start of config added by mini-loop" $k8s_user_home/.bashrc 
     if [[ $? -ne 0  ]]; then 
         printf "==> Adding configuration for %s to %s .bashrc\n" "$k8s_distro" "$k8s_user"
         printf "%s\n" "$start_message" >> $k8s_user_home/.bashrc 
+        if [[ $k8s_distro == "k3s" ]]; then 
+            echo "source .bashrc" >>   $k8s_user_home/.bash_profile 
+            echo "export KUBECONFIG=\$HOME/k3s.yaml" >>  $k8s_user_home/.bashrc
+            echo "export KUBECONFIG=\$HOME/k3s.yaml" >>   $k8s_user_home/.bash_profile  
+        fi 
         echo "source <(kubectl completion bash)" >> $k8s_user_home/.bashrc # add autocomplete permanently to your bash shell.
         echo "alias k=kubectl " >>  $k8s_user_home/.bashrc
         echo "complete -F __start_kubectl k " >>  $k8s_user_home/.bashrc
@@ -307,7 +309,7 @@ function configure_k8s_user_env {
         echo "alias cdml=\"cd $HOME/mini-loop/install/mini-loop\" " >>  $k8s_user_home/.bashrc 
         printf "# end of config added by mini-loop #\n" >> $k8s_user_home/.bashrc 
     else 
-        printf "==> Configuration for .bashrc for %s to %s already exists ..skipping\n" "$k8s_distro" "$k8s_user"
+        printf "==> Configuration for .bashrc for %s for user %s already exists ..skipping\n" "$k8s_distro" "$k8s_user"
     fi
 }
 
@@ -393,7 +395,7 @@ Example 3 : k8s-install.sh -m install -k k3s -u ubuntu -v 1.21 # install k8s k3s
 Options:
 -m mode ............... install|remove (-m is required)
 -k kubernetes distro... microk8s|k3s (default is microk8s)
--v k8s version ........ 1.20 (default : 1.20 only right now due to  https://github.com/mojaloop/project/issues/2447 )
+-v k8s version ........ microk8s=1.20 , k3s 1.21 (see https://github.com/mojaloop/project/issues/2447 )
 -u user ............... non root user to run helm and k8s commands and to own mojaloop (default : mojaloop) 
 -h|H .................. display this message
 "
@@ -460,6 +462,7 @@ while getopts "m:k:v:u:hH" OPTION ; do
     esac
 done
 
+check_arch_ok 
 if [[ "$mode" == "install" ]]  ; then
     echo "installing"
     # set the user to run k8s commands
@@ -467,7 +470,7 @@ if [[ "$mode" == "install" ]]  ; then
             k8s_user=$DEFAULT_K8S_USER
     fi
     
-    check_only_k8s_distro_installed
+    ensure_only_one_k8s_distro_installed
     check_pi  # note microk8s on my pi still has some issues around cgroups 
     ## when I have k3s going => only need to check OS if using microk8s !
     if [[ "$k8s_distro" == "microk8s" ]]; then 
