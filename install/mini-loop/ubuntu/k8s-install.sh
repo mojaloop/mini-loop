@@ -229,11 +229,11 @@ function do_k3s_install {
     chown $k8s_user  $k8s_user_home/k3s.yaml
     chmod 600  $k8s_user_home/k3s.yaml 
 
-    perl -p -i.bak -e s/^.*KUBECONFIG.*$//g $k8s_user_home/.bashrc
+    perl -p -i.bak -e 's/^.*KUBECONFIG.*$//g' $k8s_user_home/.bashrc
     echo "export KUBECONFIG=\$HOME/k3s.yaml" >>  $k8s_user_home/.bashrc
 
-    perl -p -i.bak -e s/^.*source .bashrc.*$//g $k8s_user_home/.bash_profile 
-    perl -p  -e s/^.*export KUBECONFIG.*$//g $k8s_user_home/.bash_profile 
+    perl -p -i.bak -e 's/^.*source .bashrc.*$//g' $k8s_user_home/.bash_profile 
+    perl -p  -e 's/^.*export KUBECONFIG.*$//g' $k8s_user_home/.bash_profile 
     echo "source .bashrc" >>   $k8s_user_home/.bash_profile 
     echo "export KUBECONFIG=\$HOME/k3s.yaml" >>   $k8s_user_home/.bash_profile  
 
@@ -271,7 +271,7 @@ function do_k3s_install {
     # use helm search repo -l nginx to find the chart version that corresponds to ingress release 0.47.x
     # also we wait for 600secs here to ensure nginx controller is up
     ingress_chart_ver="3.33.0"
-    printf "==> installing ingress chart version [%s] and wait for it to be ready" "$ingress_chart_ver"
+    printf "==> installing ingress chart version [%s] and wait for it to be ready\n" "$ingress_chart_ver"
     su - $k8s_user -c "helm install --wait --timeout 300s ingress-nginx ingress-nginx/ingress-nginx --version=$ingress_chart_version "
 
     # TODO : check to ensure that the ingress is indeed running 
