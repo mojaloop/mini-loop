@@ -180,6 +180,9 @@ function do_microk8s_install {
     printf "=================================================================================================\n"
 
     echo "==> Mojaloop Microk8s Install: installing microk8s release $k8s_version ... "
+    # ensure k8s_user has clean .kube/config 
+    rm -rf $k8s_user_home/.kube >> /dev/null 2>&1 
+
     snap install microk8s --classic --channel=$DEFAULT_K8S_VERSION/stable
     microk8s.status --wait-ready
 
@@ -198,7 +201,12 @@ function do_microk8s_install {
 
     echo "==> Mojaloop: add $k8s_user user to microk8s group"
     usermod -a -G microk8s $k8s_user
-    sudo chown -f -R $k8s_user ~/.kube
+
+    # ensure .kube/config points to this new cluster and KUBECONFIG is not set in .bashrc
+    perl -p -i.bak -e 's/^.*KUBECONFIG.*$//g' $k8s_user_home/.bashrc
+    chown -f -R $k8s_user $k8s_user_home/.kube
+    microk8s config > $k8s_user_home/.kube/config
+
 }
 
 function do_k3s_install {
@@ -228,6 +236,9 @@ function do_k3s_install {
     usermod -a -G docker $k8s_user > /dev/null 2>&1
     systemctl restart docker > /dev/null 2>&1
 
+    # ensure k8s_user has clean .kube/config 
+    rm -rf $k8s_user_home/.kube >> /dev/null 2>&1 
+    
     # install k3s with docker 
     printf "=> installing k3s using  docker\n"
     echo $DEFAULT_K8S_VERSION
@@ -365,7 +376,8 @@ function remove_k8s {
             printf "   if so please try running \"snap remove microk8s\" manually ** \n"
         fi
     else 
-        printf "==>Removing any existing k3s installation "
+        printf "==>Removing any existing k3s installation and helm binary"
+        rm /usr/local/bin/helm >> /dev/null 2>&1
         /usr/local/bin/k3s-uninstall.sh >> /dev/null 2>&1
         if [[ $? -eq 0  ]]; then 
             printf " [ ok ] \n"
