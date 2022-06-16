@@ -206,11 +206,22 @@ function do_k3s_install {
     printf "Mojaloop k3s install : Installing Kubernetes k3s engine and tools (helm/ingress etc) \n"
     printf "========================================================================================\n"
 
+    printf "=> installing and configuring docker\n"
     # need to use docker (this can go once the percona chart issue is resolved )
     if [[ ! -f "/usr/bin/docker" ]]; then 
-        #curl https://releases.rancher.com/install-docker/19.03.sh | sh
+        curl https://releases.rancher.com/install-docker/19.03.sh | sh
         curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
         sh /tmp/get-docker.sh
+
+        # set the docker cgroups to cgroupfs as k3s can't use cgroups=systemd 
+        # and on Fedora docker uses cgroups=systemd on install
+        if [[ $LINUX_OS == "Fedora" ]]; then
+            rm -rf /etc/docker  
+            mkdir /etc/docker
+            echo "{" >> /etc/docker/daemon.json
+            echo "    \"exec-opts\": [\"native.cgroupdriver=cgroupfs\"]" >> /etc/docker/daemon.json
+            echo "}" >> /etc/docker/daemon.json
+        fi 
     fi 
     printf "=> creating docker group, adding user and restarting docker \n"
     groupadd docker > /dev/null 2>&1
@@ -270,9 +281,10 @@ function do_k3s_install {
     # see also https://kubernetes.github.io/ingress-nginx/
     # use helm search repo -l nginx to find the chart version that corresponds to ingress release 0.47.x
     # also we wait for 600secs here to ensure nginx controller is up
+    # repo is --repo https://kubernetes.github.io/ingress-nginx
     ingress_chart_ver="3.33.0"
     printf "==> installing ingress chart version [%s] and wait for it to be ready\n" "$ingress_chart_ver"
-    su - $k8s_user -c "helm install --wait --timeout 300s ingress-nginx ingress-nginx/ingress-nginx --version=$ingress_chart_version "
+    su - $k8s_user -c "helm install --wait --timeout 300s ingress-nginx ingress-nginx --version=$ingress_chart_version --repo https://kubernetes.github.io/ingress-nginx"
 
     # TODO : check to ensure that the ingress is indeed running 
 }
@@ -294,6 +306,7 @@ function add_helm_repos {
     su - $k8s_user -c "helm repo add kiwigrid https://kiwigrid.github.io" > /dev/null 2>&1
     su - $k8s_user -c "helm repo add elastic https://helm.elastic.co" > /dev/null 2>&1
     su - $k8s_user -c "helm repo add bitnami https://charts.bitnami.com/bitnami" > /dev/null 2>&1
+    su - $k8s_user -c "helm repo add mojaloop http://mojaloop.io/helm/repo/" > /dev/null 2>&1
     su - $k8s_user -c "helm repo update" > /dev/null 2>&1
 }
 
@@ -485,9 +498,9 @@ if [[ "$mode" == "install" ]]  ; then
     ensure_only_one_k8s_distro_installed
     check_pi  # note microk8s on my pi still has some issues around cgroups 
     ## when I have k3s going => only need to check OS if using microk8s !
-    if [[ "$k8s_distro" == "microk8s" ]]; then 
-        check_os_ok # check this is an ubuntu OS v18.04 or later 
-    fi 
+    #if [[ "$k8s_distro" == "microk8s" ]]; then 
+    check_os_ok # check this is an ubuntu OS v18.04 or later 
+    #fi 
     verify_user 
     install_prerequisites 
     set_k8s_distro
