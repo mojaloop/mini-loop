@@ -192,9 +192,9 @@ check_arch
 set_k8s_distro
 set_timeout
 set_and_create_namespace
-# set_values_file
-# deploy_mojaloop_helm_chart
-# check_deployment_health
+set_values_file
+deploy_mojaloop_helm_chart
+check_deployment_health
 
 printf " ==> %s configuration of mojaloop deployed ok and passes endpoint health checks \n" "$RELEASE_NAME"
 printf "     to execute the helm tests against this now running deployment please execute :  \n"

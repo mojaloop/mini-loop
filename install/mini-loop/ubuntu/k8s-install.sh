@@ -16,9 +16,8 @@ function check_pi {
         printf "** Warning : hardware is Raspberry PI model : [%s] \n" $model
         printf " for Ubuntu 20 need to append  cgroup_enable=cpuset cgroup_enable=memory cgroup_memory=1 to /boot/cmdline.txt \n"
         printf " and reboot the PI ** \n"     
-    fi    
+    fi 
 }
-
 
 function check_arch_ok {
     if [[ ! "$k8s_arch" == "x86_64" ]]; then 
