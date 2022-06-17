@@ -82,8 +82,7 @@ Essentially this project automates the instructions for the linux installation i
 ## known issues
 1. Again mini-loop deployment of Mojaloop has only been tested properly with ubuntu as specified above.
 2. Not contradicting the point above BUT the k3s option should(?) work on other linux distros other than Ubuntu. It has been tested on fedora36 where there were some issues around docker volumes that are not yet fully debugged.  It is unclear if these docker issues will occur on other redhat type linux distros as they do not occur on Ubuntu where k3s with docker seems to work just fine.
-3. Other than Ubuntu it has only tested on fedora36 where due to some issues around the inclusion of an old percona helm chart in the mojaloop helm chart the k3s installation is using docker and not containerd and on fedora36 this caused some issues around volumes that are not yet fully debugged.  It is unclear if these docker issues will occur on other redhat type linux distros and they do not occur on Ubuntu where k3s with docker sems to work just fine.
-4. The versions of kubernetes are deliberately hardcoded in mini-loop and that is a limitation that is intended to be lifted in the near future. This is done os that the mojaloop helm charts and nginx and networking values are reliably set and the container runtime issues re avoided.  Currently mini-loop ignores the commandline version flag and uses only  :-
+3. The versions of kubernetes are deliberately hardcoded in mini-loop and that is a limitation that is intended to be lifted in the near future. This is done os that the mojaloop helm charts and nginx and networking values are reliably set and the container runtime issues re avoided.  Currently mini-loop ignores the commandline version flag and uses only  :-
     * MicroK8s : v1.20
     * k3s      : v1.21
 
