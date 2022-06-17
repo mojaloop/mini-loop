@@ -295,7 +295,7 @@ function do_k3s_install {
     # repo is --repo https://kubernetes.github.io/ingress-nginx
     ingress_chart_ver="3.33.0"
     printf "==> installing ingress chart version [%s] and wait for it to be ready\n" "$ingress_chart_ver"
-    su - $k8s_user -c "helm install --wait --timeout 300s ingress-nginx ingress-nginx --version=$ingress_chart_version --repo https://kubernetes.github.io/ingress-nginx"
+    su - $k8s_user -c "helm install --wait --timeout 300s ingress-nginx ingress-nginx --version=$ingress_chart_version --repo https://kubernetes.github.io/ingress-nginx" -f ./nginx-values.yaml
 
     # TODO : check to ensure that the ingress is indeed running 
 }

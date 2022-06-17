@@ -2,4 +2,4 @@ resources:
 - ./apache-deployment.yaml
 - ./apache-ingress.yaml
 - ./apache-service.yaml
-namespace: ml-app
+namespace: default

@@ -6,11 +6,11 @@ metadata:
   name: apacheingress
   annotations:
     #kubernetes.io/ingress.class: public
-      #kubernetes.io/ingress.class: public
+    kubernetes.io/ingress.class: nginx
     ingress.kubernetes.io/ssl-redirect: "false"
     #nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-  ingressClassName: public
+        #ingressClassName: public
   rules:
   - host: apachehost
     http:
