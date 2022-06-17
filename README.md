@@ -32,17 +32,27 @@ helm test ml --logs
 ```
 For more detailed instructions on running the helm tests see "Testing Deployments" section of : https://github.com/mojaloop/helm
 
+## accessing Mojaloop from beyond "localhost" (from a linux or OSX laptop)
+The mini-loop scripts add the required host names to the 127.0.0.1 entry in the /etc/hosts of the install system"  To access mojaloop from beyond this system where mojaloop is installed it is necessary to:- 
+1. ensure that http / port 80 is accessible on the target system.  For instance if mini-loop has installed Mojaloop onto a VM in the cloud then it will be necessary to ensure that the cloud network security rules allow inbound traffic on port 80 to that VM.
+2. copy the hosts on 127.0.0.1 from the /etc/hosts of the system where you installed Mojaloop and add these hosts to an entry for the external/public ip address of that install system in the /etc/hosts file of the laptop you are using. 
+
+ For example if Mojaloop is installed on a cloud VM with a public IP of 192.168.56.100  The add an entry to your laptop's /etc/hosts similar to ...
+```
+192.168.56.100 ml-api-adapter.local central-ledger.local account-lookup-service.local account-lookup-service-admin.local quoting-service.local central-settlement-service.local transaction-request-service.local central-settlement.local bulk-api-adapter.local moja-simulator.local sim-payerfsp.local sim-payeefsp.local sim-testfsp1.local sim-testfsp2.local sim-testfsp3.local sim-testfsp4.local mojaloop-simulators.local finance-portal.local operator-settlement.local settlement-management.local testing-toolkit.local testing-toolkit-specapi.local
+```
+You should now be able to browse or curl to Mojaloop url's e.g. http://central-ledger.local/health
+
 ## Description 
 
-mini-loop is a simple, automated installation of [Mojaloop](https://mojaloop.io) for test , development and demonstration purposes. The goal is to make it easy, quick and scriptable to deploy Mojaloop in 
-a variety of local or cloud environments. 
+mini-loop is a simple, automated installer for and installation of [Mojaloop](https://mojaloop.io) for test , development and demonstration purposes. The goal is to make it easy, quick and scriptable to deploy Mojaloop for test, demonstration, education etc in a variety of local or cloud environments. 
 
 Example environments include:-
 - an x86_64 laptop or server running ubuntu on bare metal 
 - an x86_64 laptop or server running ubuntu as a guest VM (say using virtualbox , prarallels, qemu or similar) 
 - an appropriately sized x86_64 ubuntu cloud instance running in any of the major cloud vendors
 
-Mini-loop also allows for easy configuration of the helm charts, an example values file is provided in the mini-loop/install/mini-loop/etc directory and further mojaloop configuration 
+mini-loop also allows for easy configuration of the helm charts, an example values file is provided in the mini-loop/install/mini-loop/etc directory and further mojaloop configuration 
 instructions are available at https://github.com/mojaloop/helm. 
  
 Essentially this project automates the instructions for the linux installation in the mojaloop documentation at https://docs.mojaloop.io/documentation/deployment-guide/local-setup-linux.html. 
@@ -54,7 +64,6 @@ Essentially this project automates the instructions for the linux installation i
 - min 6GB ram available  (8GB or more recommended) 
 - min 64GB storage available
 - broadband internet connection from the ubuntu OS (for downloading helm charts and container images )
-
 
 ## Notes:
 - Mojaloop code is developed to be deployable in a robust, highly available and highly secure fashion *BUT* the mini-loop deployment focusses on simplicity and hence is not deploying Mojaloop in either a robust fashion nor a secure fashion.  So the mini-loop deployment of Mojaloop is *NOT* suitable for production purposes rather it is for trial, test , education and demonstration purposes only!
@@ -79,19 +88,6 @@ Essentially this project automates the instructions for the linux installation i
     * MicroK8s : v1.20
     * k3s      : v1.21
 
-
-## accessing Mojaloop from beyond "localhost" (from a linux or OSX laptop)
-The mini-loop scripts add the required host names to the 127.0.0.1 entry in the /etc/hosts of the install system"  To access mojaloop from beyond this system where mojaloop is installed it is necessary to:- 
-1. ensure that http / port 80 is accessible on the target system.  For instance if mini-loop has installed Mojaloop onto a VM in the cloud then it will be necessary to ensure that the cloud network security rules allow inbound traffic on port 80 to that VM.
-2. copy the hosts on 127.0.0.1 from the /etc/hosts of the system where you installed Mojaloop and add these hosts to an entry for the external/public ip address of that install system in the /etc/hosts file of the laptop you are using. 
-
- For example if Mojaloop is installed on a cloud VM with a public IP of 192.168.56.100  The add an entry to your laptop's /etc/hosts similar to ...
-```
-192.168.56.100 ml-api-adapter.local central-ledger.local account-lookup-service.local account-lookup-service-admin.local quoting-service.local central-settlement-service.local transaction-request-service.local central-settlement.local bulk-api-adapter.local moja-simulator.local sim-payerfsp.local sim-payeefsp.local sim-testfsp1.local sim-testfsp2.local sim-testfsp3.local sim-testfsp4.local mojaloop-simulators.local finance-portal.local operator-settlement.local settlement-management.local testing-toolkit.local testing-toolkit-specapi.local
-```
-You should now be able to browse or curl to Mojaloop url's e.g. http://central-ledger.local/health
-
-
 ## Notable changes in mini-loop v3.0
 - inclusion of rancher k3s as an option. This is mainly to assist mini-loop being available over more linux distributions as Microk8s is only installable with snapd and snapd seems very complex (to install) and unreliable on current linux distributions other than Ubuntu (where it seems to work nicely) 
 - hardcoded the kubernetes releases that can be used (see above)
@@ -110,7 +106,6 @@ You should now be able to browse or curl to Mojaloop url's e.g. http://central-l
    The mini-loop scripts test several of the mojaloop API /health endpoints and will report an errors.  Also `helm test` is your friend!  
    See the instructions at the end of the mojaloop deployment for instructions on running the tests and also refer to the testing section of 
    https://github.com/mojaloop/helm 
-
 
 2. I'm having issues with `\r`'s on Windows (`$'\r': command not found`)
    Currently deployment into windows environments is not supported , please let me know (tdaly61@gmail.com) or on the mojaloop slack if this is a significant problem
