@@ -7733,7 +7733,7 @@ ml-testing-toolkit:
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
     config:
-      API_BASE_URL: http://testing-toolkit.local:8080
+      API_BASE_URL: http://testing-toolkit.local
 
 ml-ttk-posthook-setup:
   postInstallHook:
