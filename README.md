@@ -78,8 +78,6 @@ Essentially this project automates the instructions for the linux installation i
   add extra nodes to the kubernetes cluster or as mentioned above to modify the mojaloop configuration etc. 
 - please note that the installation adds the /etc/hosts entries for the endpoints configured in the $ETC_DIR/miniloop_values.yaml file if you 
   use different values you will likely have to adjust the /etc/hosts endpoints
-- please see below for instructions on accessing the mojaloop software from outside of the OS instance where it is deployed with mini-loop.
-- 
 
 ## known issues
 1. Again mini-loop deployment of Mojaloop has only been tested properly with ubuntu as specified above.
