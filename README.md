@@ -1,5 +1,5 @@
-# mini-loop v2.0 with K8s v1.20
-Simple, scripted/automated installation of Mojaloop (http://mojaloop.io) 
+# mini-loop v3.0 with Microk8s v1.20 or k3s v1.21
+Simple, scripted/automated installation of Mojaloop (http://mojaloop.io) for demo, test, training and development. 
 
 ## Deployment Instructions option #1 install and use Microk8s 
 Assuming you have an x86_64 environment running Ubuntu release 16, 18 or 20 and are logged in as a non-root user (e.g. mluser)
@@ -10,7 +10,7 @@ git clone https://github.com/tdaly61/mini-loop.git                   # clone the
 sudo su -                                                            # su to root alternatively login in as root 
 ~mluser/mini-loop/install/mini-loop/ubuntu/k8s-install.sh -m install -u mluser -k microk8s # install and configure microk8s & prepare for mojaloop deploy
 login as mluser or su - mluser                                      # you need a fresh login as mluser to ensure .bashrc is sourced.
-~mluser/mini-loop/install/mini-loop/scripts/01_install_miniloop.sh             # delploy and configure the mojaloop helm chart 
+~mluser/mini-loop/install/mini-loop/scripts/01_install_miniloop.sh  # deploy and configure the mojaloop helm chart 
 ```
 
 ## Deployment Instructions option #2 install and use Rancher k3s
@@ -22,7 +22,7 @@ git clone https://github.com/tdaly61/mini-loop.git                   # clone the
 sudo su -                                                            # su to root alternatively login in as root 
 ~mluser/mini-loop/install/mini-loop/ubuntu/k8s-install.sh -m install -u mluser -k k3s # install and configure k3s & prepare for mojaloop deploy
 login as mluser or su - mluser                                      # you need a fresh login as mluser to ensure .bashrc is sourced.
-~mluser/mini-loop/install/mini-loop/scripts/01_install_miniloop.sh             # delploy and configure the mojaloop helm chart 
+~mluser/mini-loop/install/mini-loop/scripts/01_install_miniloop.sh  # deploy and configure the mojaloop helm chart 
 ```
 
 ## Running the Testing Toolkit via ```helm test```
@@ -79,6 +79,7 @@ Essentially this project automates the instructions for the linux installation i
 - please note that the installation adds the /etc/hosts entries for the endpoints configured in the $ETC_DIR/miniloop_values.yaml file if you 
   use different values you will likely have to adjust the /etc/hosts endpoints
 - please see below for instructions on accessing the mojaloop software from outside of the OS instance where it is deployed with mini-loop.
+- 
 
 ## known issues
 1. Again mini-loop deployment of Mojaloop has only been tested properly with ubuntu as specified above.
@@ -100,6 +101,7 @@ Essentially this project automates the instructions for the linux installation i
 - removed all automation that created the ubuntu enviromnent, this is now left to the user. It became obvious that the utility of mini-loop install would be far 
   improved by making this change
 - removed the script to run the testing toolkit, currently `helm test` is utilised and the user guided as how to run helm test from the mini-loop scripts
+
 
 ## FAQ
 1. I think it installed correctly, but how do I verify that everything is working?
