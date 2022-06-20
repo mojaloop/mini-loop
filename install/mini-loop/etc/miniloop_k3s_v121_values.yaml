@@ -176,12 +176,12 @@ central:
         # Used to create an Ingress record.
         hosts:
           api: central-ledger.local
-        annotations: {}
+        annotations: 
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -374,12 +374,12 @@ central:
         # Used to create an Ingress record.
         hosts:
           api: central-ledger-transfer-prepare.local
-        annotations: {}
+        annotations:
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -569,12 +569,12 @@ central:
         # Used to create an Ingress record.
         hosts:
           api: central-ledger-admin-transfer.local
-        annotations: {}
+        annotations: 
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -764,12 +764,12 @@ central:
         # Used to create an Ingress record.
         hosts:
           api: central-ledger-transfer-position.local
-        annotations: {}
+        annotations: 
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -959,12 +959,12 @@ central:
         # Used to create an Ingress record.
         hosts:
           api: central-ledger-transfer-get.local
-        annotations: {}
+        annotations: 
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -1154,12 +1154,12 @@ central:
         # Used to create an Ingress record.
         hosts:
           api: central-ledger-transfer-fulfil.local
-        annotations: {}
+        annotations: 
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -1349,12 +1349,12 @@ central:
         # Used to create an Ingress record.
         hosts:
           api: central-ledger-timeout.local
-        annotations: {}
+        annotations: 
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -2091,12 +2091,12 @@ central:
         # Used to create an Ingress record.
         hosts:
           api: central-settlement-service.local
-        annotations: {}
+        annotations: 
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -2387,12 +2387,12 @@ central:
         # Used to create an Ingress record.
         hosts:
           api: central-settlement-deferredsettlement.local
-        annotations: {}
+        annotations: 
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -2684,12 +2684,12 @@ central:
         # Used to create an Ingress record.
         hosts:
           api: central-settlement-rules.local
-        annotations: {}
+        annotations: 
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -3071,12 +3071,12 @@ central:
         # Used to create an Ingress record.
         hosts:
           api: central-settlement-grosssettlement.local
-        annotations: {}
+        annotations: 
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -3167,12 +3167,12 @@ central:
 
       externalPath: /
 
-      annotations: {}
+      annotations: 
         ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
         # nginx.ingress.kubernetes.io/rewrite-target: '/'
         # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
         ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-        # kubernetes.io/ingress.class: nginx
+        kubernetes.io/ingress.class: nginx
         ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
         # kubernetes.io/tls-acme: "true"
 
@@ -3599,12 +3599,12 @@ ml-api-adapter:
       hosts:
         api: ml-api-adapter.local
 
-      annotations: {}
+      annotations: 
         ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
         # nginx.ingress.kubernetes.io/rewrite-target: '/'
         # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
         ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-        # kubernetes.io/ingress.class: nginx
+        kubernetes.io/ingress.class: nginx
         ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
         # kubernetes.io/tls-acme: "true"
       tls: []
@@ -3778,12 +3778,12 @@ ml-api-adapter:
       hosts:
         api: ml-api-adapter-notification.local
 
-      annotations: {}
+      annotations: 
         ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
         # nginx.ingress.kubernetes.io/rewrite-target: '/'
         # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
         ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-        # kubernetes.io/ingress.class: nginx
+        kubernetes.io/ingress.class: nginx
         ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
         # kubernetes.io/tls-acme: "true"
       tls: []
@@ -3888,12 +3888,12 @@ emailnotifier:
 
     externalPath: /
 
-    annotations: {}
+    annotations: 
       ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
       # nginx.ingress.kubernetes.io/rewrite-target: '/'
       # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
       ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-      # kubernetes.io/ingress.class: nginx
+      kubernetes.io/ingress.class: nginx
       ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
       # kubernetes.io/tls-acme: "true"
 
@@ -4095,12 +4095,12 @@ account-lookup-service:
 
     ingress:
       enabled: true
-      annotations: {}
+      annotations: 
         ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
         # nginx.ingress.kubernetes.io/rewrite-target: '/'
         # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
         ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-        # kubernetes.io/ingress.class: nginx
+        kubernetes.io/ingress.class: nginx
         ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
         # kubernetes.io/tls-acme: "true"
       path: /
@@ -4293,12 +4293,12 @@ account-lookup-service:
 
     ingress:
       enabled: true
-      annotations: {}
+      annotations: 
         ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
         # nginx.ingress.kubernetes.io/rewrite-target: '/'
         # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
         ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-        # kubernetes.io/ingress.class: nginx
+        kubernetes.io/ingress.class: nginx
         ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
         # kubernetes.io/tls-acme: "true"
       path: /
@@ -4540,12 +4540,12 @@ account-lookup-service:
       # Used to create an Ingress record.
       hosts:
         api: als-oracle-pathfinder.local
-      annotations: {}
+      annotations: 
         ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
         # nginx.ingress.kubernetes.io/rewrite-target: '/'
         # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
         ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-        # kubernetes.io/ingress.class: nginx
+        kubernetes.io/ingress.class: nginx
         ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
         # kubernetes.io/tls-acme: "true"
       tls: []
@@ -4855,12 +4855,12 @@ quoting-service:
     # Used to create an Ingress record.
     hosts:
       api: quoting-service.local
-    annotations: {}
+    annotations: 
       ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
       # nginx.ingress.kubernetes.io/rewrite-target: '/'
       # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
       ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-      # kubernetes.io/ingress.class: nginx
+      kubernetes.io/ingress.class: nginx
       ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
       # kubernetes.io/tls-acme: "true"
     tls: []
@@ -4984,12 +4984,12 @@ transaction-requests-service:
     # Used to create an Ingress record.
     hosts:
       api: transaction-request-service.local
-    annotations: {}
+    annotations: 
       ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
       # nginx.ingress.kubernetes.io/rewrite-target: '/'
       # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
       ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-      # kubernetes.io/ingress.class: nginx
+      kubernetes.io/ingress.class: nginx
       ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
       # kubernetes.io/tls-acme: "true"
     tls: []
@@ -5086,12 +5086,12 @@ simulator:
 
   ingress:
     enabled: true
-    annotations: {}
+    annotations: 
       ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
       # nginx.ingress.kubernetes.io/rewrite-target: '/'
       # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
       ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-      # kubernetes.io/ingress.class: nginx
+      kubernetes.io/ingress.class: nginx
       ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
       # kubernetes.io/tls-acme: "true"
     path: /
@@ -5537,7 +5537,7 @@ mojaloop-simulator:
     # nginx.ingress.kubernetes.io/rewrite-target: '/'
     # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
     ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-    # kubernetes.io/ingress.class: nginx
+    kubernetes.io/ingress.class: nginx
     ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
     # kubernetes.io/tls-acme: "true""
 
@@ -6026,12 +6026,12 @@ finance-portal:
       externalPath: /(.*)
       hosts:
         api: finance-portal.local
-      annotations: {}
+      annotations: 
         ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
         # nginx.ingress.kubernetes.io/rewrite-target: '/'
         # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
         ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-        # kubernetes.io/ingress.class: nginx
+        kubernetes.io/ingress.class: nginx
         ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
         # kubernetes.io/tls-acme: "true"
 
@@ -6055,12 +6055,12 @@ finance-portal:
       externalPath: /admin-portal-backend/(.*)
       hosts:
         api: finance-portal.local
-      annotations: {}
+      annotations: 
         ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
         # nginx.ingress.kubernetes.io/rewrite-target: '/'
         # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
         ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-        # kubernetes.io/ingress.class: nginx
+        kubernetes.io/ingress.class: nginx
         ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
         # kubernetes.io/tls-acme: "true"
 
@@ -6106,12 +6106,12 @@ finance-portal-settlement-management:
       externalPath: /
       hosts:
         api: operator-settlement.local
-      annotations: {}
+      annotations: 
         ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
         # nginx.ingress.kubernetes.io/rewrite-target: '/'
         # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
         ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-        # kubernetes.io/ingress.class: nginx
+        kubernetes.io/ingress.class: nginx
         ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
         # kubernetes.io/tls-acme: "true"
       tls: []
@@ -6147,12 +6147,12 @@ finance-portal-settlement-management:
       externalPath: /
       hosts:
         api: settlement-management.local
-      annotations: {}
+      annotations: 
         ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
         # nginx.ingress.kubernetes.io/rewrite-target: '/'
         # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
         ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-        # kubernetes.io/ingress.class: nginx
+        kubernetes.io/ingress.class: nginx
         ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
         # kubernetes.io/tls-acme: "true"
       tls: []
@@ -6255,12 +6255,12 @@ mojaloop-bulk:
         hosts:
           api: bulk-api-adapter.local
 
-        annotations: {}
+        annotations: 
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -6369,12 +6369,12 @@ mojaloop-bulk:
         hosts:
           api: bulk-api-adapter-notification.local
 
-        annotations: {}
+        annotations: 
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -6543,12 +6543,12 @@ mojaloop-bulk:
         # Used to create an Ingress record.
         hosts:
           api: central-ledger-transfer-bulkprepare.local
-        annotations: {}
+        annotations: 
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -6712,12 +6712,12 @@ mojaloop-bulk:
         # Used to create an Ingress record.
         hosts:
           api: central-ledger-transfer-bulkfulfil.local
-        annotations: {}
+        annotations: 
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -6881,12 +6881,12 @@ mojaloop-bulk:
         # Used to create an Ingress record.
         hosts:
           api: central-ledger-transfer-bulkprocessing.local
-        annotations: {}
+        annotations: 
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -7050,12 +7050,12 @@ mojaloop-bulk:
         # Used to create an Ingress record.
         hosts:
           api: central-ledger-transfer-bulkget.local
-        annotations: {}
+        annotations: 
           ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
           # nginx.ingress.kubernetes.io/rewrite-target: '/'
           # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
           ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-          # kubernetes.io/ingress.class: nginx
+          kubernetes.io/ingress.class: nginx
           ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
           # kubernetes.io/tls-acme: "true"
         tls: []
@@ -7359,6 +7359,14 @@ ml-testing-toolkit:
           host: testing-toolkit-specapi.local
         adminApi:
           host: testing-toolkit.local
+      annotations: 
+        ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
+        # nginx.ingress.kubernetes.io/rewrite-target: '/'
+        # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
+        ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
+        kubernetes.io/ingress.class: nginx
+        ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
+        # kubernetes.io/tls-acme: "true"
     config:
       user_config.json: {
         "CALLBACK_RESOURCE_ENDPOINTS": {
@@ -7716,6 +7724,14 @@ ml-testing-toolkit:
       hosts:
         ui:
           host: testing-toolkit.local
+      annotations: 
+          ## https://kubernetes.github.io/ingress-nginx/examples/rewrite/
+          # nginx.ingress.kubernetes.io/rewrite-target: '/'
+          # nginx.ingress.kubernetes.io/rewrite-target: '/$2'
+          ## https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
+          kubernetes.io/ingress.class: nginx
+          ## https://kubernetes.github.io/ingress-nginx/user-guide/tls/#automated-certificate-management-with-kube-lego
+          # kubernetes.io/tls-acme: "true"
     config:
       API_BASE_URL: http://testing-toolkit.local
 
