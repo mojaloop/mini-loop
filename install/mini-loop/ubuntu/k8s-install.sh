@@ -105,14 +105,16 @@ function check_os_ok {
 
 function install_prerequisites {
     printf "==> Install any OS prerequisites , tools &  updates  ...\n"
-    if [[ $LINUX_OS == "Ubuntu" && $k8s_distro == "microk8s" ]]; then 
+    if [[ $LINUX_OS == "Ubuntu" ]]; then  
         printf "   apt update \n"
         apt update > /dev/null 2>&1
-        printf "   install snapd\n"
-        apt install snapd -y > /dev/null 2>&1
         printf "    python and python libs ...\n"
         apt install python3-pip -y 
         pip3 install ruamel.yaml
+        if [[ $k8s_distro == "microk8s" ]]; then 
+            printf "   install snapd\n"
+            apt install snapd -y > /dev/null 2>&1
+        fi
     fi 
     # todo what about non ubuntu, still want python3 and ruamel ? 
 }

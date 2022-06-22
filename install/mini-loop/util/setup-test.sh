@@ -96,8 +96,8 @@ if [[ "$mode" == "all" ]]  ; then
     printf "========================================================================================\n"
     rm -rf $WORKING_DIR/*
     cp -r $HELM_CHARTS_DIR/* $WORKING_DIR
-    cp -r $WIP_HELM_DIR/kafka  $WORKING_DIR
-    cp -r $WIP_HELM_DIR/mysql  $WORKING_DIR
-    cp -r $WIP_HELM_DIR/zookeeper  $WORKING_DIR
-    cp -r $WIP_HELM_DIR/mongodb $WORKING_DIR
+    # cp -r $WIP_HELM_DIR/kafka  $WORKING_DIR
+    # cp -r $WIP_HELM_DIR/mysql  $WORKING_DIR
+    # cp -r $WIP_HELM_DIR/zookeeper  $WORKING_DIR
+    # cp -r $WIP_HELM_DIR/mongodb $WORKING_DIR
 fi 

@@ -126,6 +126,7 @@ def main(argv) :
     p = Path() / args.directory
     print(f"Processing helm charts in directory: [{args.directory}]")
     yaml = YAML()
+    yaml.allow_duplicate_keys = True
     yaml.preserve_quotes = True
     yaml.width = 4096
 
