@@ -114,7 +114,7 @@ function install_prerequisites {
         apt install python3-pip -y 
         pip3 install ruamel.yaml
     fi 
-    # todo what about non ubuntu, still want python3 and ruamel 
+    # todo what about non ubuntu, still want python3 and ruamel ? 
 }
 
 function add_hosts {
@@ -147,28 +147,61 @@ function set_k8s_distro {
     fi
 }
 
+function print_current_k8s_releases {
+    printf "          Current Kubernetes releases are : " 
+    for i in "${K8S_CURRENT_RELEASE_LIST[@]}"; do
+        printf " [v%s]" "$i"
+    done
+    printf "\n"
+}
+
 function set_k8s_version {
     # printf "========================================================================================\n"
-    # printf "For now microk8s kubernetes release is v1.20  \n"
-    # printf "        and  k3s kubernetes release is v1.21  \n"
-    # printf " this is hardcoded now due to some limitations in the Mojaloop helm charts              \n"
+    # printf " set the k8s version to install  \n"
     # printf "========================================================================================\n\n"
-    if [[ $k8s_distro == "k3s" ]]; then 
-        DEFAULT_K8S_VERSION="v1.21"
-    fi
+    
+    # if the users wants k8s v1.22 or beyond then the version is the same for either distro
+    # as we will do a local helm deploy after doing local mods to the charts to enable them to run.
+    current_release=false 
+    if [ ! -z ${k8s_user_version+x} ] ; then
+        # strip off any leading characters
+        k8s_user_version=`echo $k8s_user_version |  tr -d A-Z | tr -d a-z `
+        for i in "${K8S_CURRENT_RELEASE_LIST[@]}"; do
+            if  [[ "$k8s_user_version" == "$i" ]]; then
+                current_release=true
+                break
+            fi  
+        done
+        echo "CURRENT_REL = $current_release "
+        if [[ $current_release == "true" ]]; then     
+            K8S_VERSION=$k8s_user_version
+        else 
+            printf "** Error: The specified kubernetes release [ %s ] is not a current release \n" "$k8s_user_version"
+            printf "          when using the -v flag you must specify a current supported release \n"
+            print_current_k8s_releases 
+            printf "          alternatively simply omit the -v flag and mini-loop will default to a working older release\n"
+            printf "** \n"
+            exit 1 
+        fi 
+    else 
+        if [[ $k8s_distro == "k3s" ]]; then 
+            K8S_VERSION="v1.21"
+        fi
 
-    if [[ $k8s_distro == "microk8s" ]]; then 
-        DEFAULT_K8S_VERSION="1.20"
-    fi
+        if [[ $k8s_distro == "microk8s" ]]; then 
+            K8S_VERSION="v1.20"
+        fi
+    fi 
+    printf "==> kubernetes version to install set to [%s] \n" "$K8S_VERSION"
 
     # printf "========================================================================================\n"
     # printf "Mojaloop k8s install : set k8s version to install (default and minimum is 1.21) \n"
     # printf "========================================================================================\n\n"
-    # if [[ "$k8s_version" == "1.21" && $k8s_distro == "k3s" ]]  ; then
-    #         printf  " k8s version set correctly to : %s\n" $k8s_version
+    # if [[ "$k8s_user_version" == "1.21" && $k8s_distro == "k3s" ]]  ; then
+    #         printf  " k8s version set correctly to : %s\n" $k8s_user_version
     # else 
     #         printf "Note -v flag not specified or invalid  => k8s version will use default:  %s \n" $DEFAULT_K8S_VERSION
-    #         k8s_version=$DEFAULT_K8S_VERSION
+    #         k8s_user_version=$DEFAULT_K8S_VERSION
     # fi
 }
 
@@ -178,11 +211,11 @@ function do_microk8s_install {
     printf "Mojaloop microk8s install : Installing Kubernetes MicroK8s & enabling tools (helm,ingress  etc) \n"
     printf "=================================================================================================\n"
 
-    echo "==> Mojaloop Microk8s Install: installing microk8s release $k8s_version ... "
+    echo "==> Mojaloop Microk8s Install: installing microk8s release $k8s_user_version ... "
     # ensure k8s_user has clean .kube/config 
     rm -rf $k8s_user_home/.kube >> /dev/null 2>&1 
 
-    snap install microk8s --classic --channel=$DEFAULT_K8S_VERSION/stable
+    snap install microk8s --classic --channel=$K8S_VERSION/stable
     microk8s.status --wait-ready
 
     #echo "==> Mojaloop Microk8s Install: enable helm ... "
@@ -213,38 +246,46 @@ function do_k3s_install {
     printf "Mojaloop k3s install : Installing Kubernetes k3s engine and tools (helm/ingress etc) \n"
     printf "========================================================================================\n"
 
-    printf "=> installing and configuring docker\n"
-    # need to use docker (this can go once the percona chart issue is resolved )
-    if [[ ! -f "/usr/bin/docker" ]]; then 
-        curl https://releases.rancher.com/install-docker/19.03.sh | sh
-        curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
-        sh /tmp/get-docker.sh
-
-        # set the docker cgroups to cgroupfs as k3s can't use cgroups=systemd 
-        # and on Fedora docker uses cgroups=systemd on install
-        if [[ $LINUX_OS == "Fedora" ]]; then
-            rm -rf /etc/docker  
-            mkdir /etc/docker
-            echo "{" >> /etc/docker/daemon.json
-            echo "    \"exec-opts\": [\"native.cgroupdriver=cgroupfs\"]" >> /etc/docker/daemon.json
-            echo "}" >> /etc/docker/daemon.json
-        fi 
-    fi 
-    printf "=> creating docker group, adding user and restarting docker \n"
-    groupadd docker > /dev/null 2>&1
-    usermod -a -G docker $k8s_user > /dev/null 2>&1
-    systemctl restart docker > /dev/null 2>&1
-
     # ensure k8s_user has clean .kube/config 
     rm -rf $k8s_user_home/.kube >> /dev/null 2>&1 
-    
-    # install k3s with docker 
-    printf "=> installing k3s using  docker\n"
-    echo $DEFAULT_K8S_VERSION
-    curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
-                               INSTALL_K3S_CHANNEL=$DEFAULT_K8S_VERSION \
-                               INSTALL_K3S_EXEC=" --no-deploy traefik --docker " sh 
+    K8S_VERSION=`echo v$K8S_VERSION`
+    if [[ $K8S_VERSION == "v1.21" ]]; then 
+        printf "=> k3s k8s versions before 1.22 need docker so installing and configuring docker\n"
+        if [[ ! -f "/usr/bin/docker" ]]; then 
+            curl https://releases.rancher.com/install-docker/19.03.sh | sh
+            curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+            sh /tmp/get-docker.sh
 
+            # set the docker cgroups to cgroupfs as k3s can't use cgroups=systemd 
+            # and on Fedora docker uses cgroups=systemd on install
+            if [[ $LINUX_OS == "Fedora" ]]; then
+                rm -rf /etc/docker  
+                mkdir /etc/docker
+                echo "{" >> /etc/docker/daemon.json
+                echo "    \"exec-opts\": [\"native.cgroupdriver=cgroupfs\"]" >> /etc/docker/daemon.json
+                echo "}" >> /etc/docker/daemon.json
+            fi 
+        fi 
+        printf "=> creating docker group, adding user and restarting docker \n"
+        groupadd docker > /dev/null 2>&1
+        usermod -a -G docker $k8s_user > /dev/null 2>&1
+        systemctl restart docker > /dev/null 2>&1
+
+        # install k3s with docker 
+        printf "=> installing k3s using  docker\n"
+        echo $K8S_VERSION
+        curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
+                               INSTALL_K3S_CHANNEL=$K8S_VERSION \
+                               INSTALL_K3S_EXEC=" --no-deploy traefik --docker " sh 
+    else
+        printf "=> k3s k8s versions from 1.22 don't use docker so it wont be installed \n"    
+        printf "=> installing k3s \n"
+        echo $K8S_VERSION
+        curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
+                               INSTALL_K3S_CHANNEL=$K8S_VERSION \
+                               INSTALL_K3S_EXEC=" --no-deploy traefik " sh 
+    fi
+    
     export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
     cp /etc/rancher/k3s/k3s.yaml  $k8s_user_home/k3s.yaml
     chown $k8s_user  $k8s_user_home/k3s.yaml
@@ -257,7 +298,6 @@ function do_k3s_install {
     perl -p  -e 's/^.*export KUBECONFIG.*$//g' $k8s_user_home/.bash_profile 
     echo "source .bashrc" >>   $k8s_user_home/.bash_profile 
     echo "export KUBECONFIG=\$HOME/k3s.yaml" >>   $k8s_user_home/.bash_profile  
-
     
     # install helm
     printf "==> installing helm " 
@@ -292,10 +332,14 @@ function do_k3s_install {
     # use helm search repo -l nginx to find the chart version that corresponds to ingress release 0.47.x
     # also we wait for 600secs here to ensure nginx controller is up
     # repo is --repo https://kubernetes.github.io/ingress-nginx
-    ingress_chart_ver="3.33.0"
-    printf "==> installing ingress chart version [%s] and wait for it to be ready\n" "$ingress_chart_ver"
-    su - $k8s_user -c "helm install --wait --timeout 300s ingress-nginx ingress-nginx --version=$ingress_chart_version --repo https://kubernetes.github.io/ingress-nginx" -f ./nginx-values.yaml
-
+    if [[ $K8S_VERSION == "1.21" ]]; then 
+        ingress_chart_ver="3.33.0"
+        printf "==> installing ingress chart version [%s] and wait for it to be ready\n" "$ingress_chart_ver"
+        su - $k8s_user -c "helm install --wait --timeout 300s ingress-nginx ingress-nginx --version=$ingress_chart_version --repo https://kubernetes.github.io/ingress-nginx" 
+    else 
+        #printf "==> installing ingress chart version [%s] and wait for it to be ready\n" "$ingress_chart_ver"
+        su - $k8s_user -c "helm install --wait --timeout 300s ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx" 
+    fi 
     # TODO : check to ensure that the ingress is indeed running 
 }
 
@@ -420,13 +464,13 @@ function showUsage {
 echo  "USAGE: $0 -m [mode] -u [ user] [-v k8 version]
 Example 1 : k8s-install.sh -m install -u ubuntu -v 1.20 # install k8s microk8s version 1.20
 Example 2 : k8s-install.sh -m remove -u ubuntu -v 1.20 # remove  k8s microk8s version 1.20
-Example 3 : k8s-install.sh -m install -k k3s -u ubuntu -v 1.21 # install k8s k3s distro version 1.21
+Example 3 : k8s-install.sh -m install -k k3s -u ubuntu -v 1.24 # install k8s k3s distro version 1.24
 
 
 Options:
 -m mode ............... install|remove (-m is required)
 -k kubernetes distro... microk8s|k3s (default is microk8s)
--v k8s version ........ microk8s=1.20 , k3s 1.21 (see https://github.com/mojaloop/project/issues/2447 )
+-v k8s version ........ must specify a currently supported kubernetes release (or omit this flag for defaults)
 -u user ............... non root user to run helm and k8s commands and to own mojaloop (default : mojaloop) 
 -h|H .................. display this message
 "
@@ -444,14 +488,12 @@ BASE_DIR=$( cd $(dirname "$0")/../.. ; pwd )
 RUN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" # the directory that this script is run from 
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 
-# echo $BASE_DIR
-# echo $RUN_DIR
-# echo $SCRIPTS_DIR
+DEFAULT_K8S_DISTRO="microk8s"   # default to microk8s as this is what is in the mojaloop linux deploy docs.
+K8S_VERSION="" 
 
-DEFAULT_K8S_DISTRO="microk8s" 
-DEFAULT_K8S_VERSION="1.21" # default version to test
 HELM_VERSION="3.9.0"
 OS_VERSIONS_LIST=(16 18 20 )
+K8S_CURRENT_RELEASE_LIST=( "1.22" "1.23" "1.24" )
 k8s_user_home=""
 k8s_arch=`uname -p`  # what arch
 
@@ -479,7 +521,7 @@ while getopts "m:k:v:u:hH" OPTION ; do
         ;;
         k)      k8s_distro="${OPTARG}"
         ;;
-        v)	    k8s_version="${OPTARG}"
+        v)	    k8s_user_version="${OPTARG}"
         ;;
         u)      k8s_user="${OPTARG}"
         ;;
@@ -510,7 +552,7 @@ if [[ "$mode" == "install" ]]  ; then
     check_pi  # note microk8s on my pi still has some issues around cgroups 
     ## when I have k3s going => only need to check OS if using microk8s !
     #if [[ "$k8s_distro" == "microk8s" ]]; then 
-    check_os_ok # check this is an ubuntu OS v18.04 or later 
+    #check_os_ok # check this is an ubuntu OS v18.04 or later 
     #fi 
     verify_user 
     install_prerequisites 
