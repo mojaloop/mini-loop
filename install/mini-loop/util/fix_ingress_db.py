@@ -4,11 +4,12 @@
     See also mod_charts.py
     fix the ingress issues in the Mojaloop helm charts and also the 
     issues related to the percona helm chart
-    
+    author : Tom Daly 
+    Date   : July 2022
 """
 
 import fileinput
-from http.client import MULTI_STATUS
+#from http.client import MULTI_STATUS
 from operator import sub
 import sys
 import re
@@ -47,11 +48,6 @@ def lookup(sk, d, path=[]):
            for res in lookup(sk, item, path + [item]):
                yield res
 
-# for path, value in lookup("nfs", data):
-#     print(path, '->', value)
-
-# command
-#
 """
 update_key: recursively 
 """
@@ -87,7 +83,6 @@ def parse_args(args=sys.argv[1:]):
 ##################################################
 def main(argv) :
     args=parse_args()
-
 
     script_path = Path( __file__ ).absolute()
     print(f"script path is {script_path}")
@@ -143,7 +138,6 @@ def main(argv) :
             #print(f"{vf} : {backupfile}")
             #copyfile(vf, backupfile)
             with FileInput(files=[vf], inplace=True) as f:
-            #with fileinput.input(files=([vf]), inplace=True)  as f:
                 for line in f:
                     line = line.rstrip()
                     #replace networking v1beta1 
@@ -245,10 +239,10 @@ def main(argv) :
 
 
                 ### need to set nameOverride  for mysql for ml-testing-toolkit as it appears to be missing
-                if vf == Path('mojaloop/values.yaml') : 
-                    print("Updating the ml-testing-toolkit / mysql config ")
-                    for x, value in lookup("ml-testing-toolkit", data):  
-                        value['mysql'] = { "nameOverride" : "ttk-mysql" }
+                # if vf == Path('mojaloop/values.yaml') : 
+                #     print("Updating the ml-testing-toolkit / mysql config ")
+                #     for x, value in lookup("ml-testing-toolkit", data):  
+                #         value['mysql'] = { "nameOverride" : "ttk-mysql" }
 
             with open(vf, "w") as f:
                 yaml.dump(data, f)
@@ -258,7 +252,8 @@ def main(argv) :
         # or at least the busybox dependency of the percona chart has an issue 
         # so just replace the percona chart with the mysql charts 
         #  for now using the old one because it deploys => TODO fix this and update  
-        for rf in p.rglob('*/requirements.yaml'):
+        for rf in p.rglob('**/*requirements.yaml'):
+            print(f"===> Processing requirements file < {rf.parent}/{rf.name} > ")
             with open(rf) as f:
                 reqs_data = yaml.load(f)
                 #print(reqs_data)
