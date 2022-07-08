@@ -357,6 +357,8 @@ def main(argv) :
                     data = yaml.load(f)
                     #print("  :[ok]")
 
+                for x, value in lookup("mysql", data):
+                    list(update_key('enabled', 'true' , value))
                 # => use these for now 
                 # TODO: update to later DB and get rid of default passwords 
                 for x, value in lookup("mysql", data):  
@@ -364,8 +366,8 @@ def main(argv) :
                     list(update_key('tag', '5.6' , value))
                     if value.get("image") : 
                         del value['image']
-                        value['image'] = "mysql/mysql-server"
-                        value['imageTag'] = "5.6"
+                        value['image'] = "mysql"
+                        value['imageTag'] = '8.0'
                         value['pullPolicy'] = "ifNotPresent"
 
                 ### need to set nameOverride  for mysql for ml-testing-toolkit as it appears to be missing
@@ -393,8 +395,8 @@ def main(argv) :
                         dlist[i]['name'] = "mysql"
                         #dlist[i]['version'] = "8.8.8"
                         #dlist[i]['repository'] = "https://charts.bitnami.com/bitnami"
-                        dlist[i]['version'] = "1.6.9"
-                        dlist[i]['repository'] = "http://charts.helm.sh/stable"
+                        dlist[i]['version'] = 8.0
+                        dlist[i]['repository'] = "https://charts.bitnami.com/bitnami"
                         dlist[i]['alias'] = "mysql"
                         dlist[i]['condition'] = "enabled"
                         print(f"new is: {dlist[i]}")
