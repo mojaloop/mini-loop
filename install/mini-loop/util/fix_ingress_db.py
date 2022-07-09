@@ -25,9 +25,8 @@ import secrets
 
 data = None
 
-def gen_password(length=8, charset="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()"):
+def gen_password(length=8, charset="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*_"):
     return "".join([secrets.choice(charset) for _ in range(0, length)])
-
 
 def print_debug(x1, x2, c=0) :  
     print("******************")
@@ -175,9 +174,12 @@ def main(argv) :
                         print(line_dup)
                         print(line)
                         #servicePort {{ .Values.containers.api.service.ports.api.externalPort }}
-                    elif re.search("spec:" , line ):
+                    elif re.search("ingressClassName" , line ):
+                        # skip any ingressClassname already set => we can re-run program without issue 
+                        continue
+                    elif re.search("spec:" , line ):        
                         print(line)
-                        print("  ingressClassName: public")  # well at least it is "public" for microk8s v1.22 => TODO fully figure the chamges and settings out here and simplify!
+                        print("  ingressClassName: nginx")  # well at least it is "public" for microk8s v1.22 => TODO fully figure the chamges and settings out here and simplify!
                     else :  
                         print(line)
 
@@ -190,13 +192,7 @@ def main(argv) :
                 line = re.sub(r"mysql_native_password BY .*$", r"mysql_native_password BY '" + db_pass + "';", line )
                 print(line)
 
-        # total=0
-        # for vf in p.glob('**/*values.yaml') :
-        #     total+=1
-
-        # print(f"the number of values files processed is {total} ")
-
-        print("++++++++++++++++++++ looking at values.yaml +++++++++++++++ \n")
+        # print("++++++++++++++++++++ looking at values.yaml +++++++++++++++ \n")
         for vf in p.glob('**/*values.yaml') :
             with open(vf) as f:
                 print(f"===> Processing file < {vf.parent}/{vf.name} > ")
@@ -229,14 +225,7 @@ def main(argv) :
                             value['db_host'] = 'ml-mysql'
                             value['db_password'] = db_pass
 
-                
-
                 print("        -------- END process mysql config \n")
-
-                # going to move to use a single mysql database that is already deployed 
-                # name is ml-mysql and password right now is password => which is garbage and needs to change 
-
-
 
                 ### need to set nameOverride  for mysql for ml-testing-toolkit as it appears to be missing
                 # if vf == Path('mojaloop/values.yaml') : 
@@ -246,12 +235,29 @@ def main(argv) :
 
             with open(vf, "w") as f:
                 yaml.dump(data, f)
-        print("++++++++++++++++++++ looking at values.yaml +++++++++++++++ \n")
+
+        # now that we are inserting passwords with special characters in the password it is necessary to ensure
+        # that $db_password is single quoted in the values files.
+        print("<<<<< TOM TOM TOM >>>>>")
+        for vf in p.glob('**/*values.yaml') :
+            #print(f"fixing db_password in {vf.parent}/{vf.name} ")
+            with FileInput(files=[vf], inplace=True) as f:
+                for line in f:
+                    line = line.rstrip()
+                    line = re.sub(r"\'\$db_password\'", r"$db_password", line) # makes this re-runnable. 
+                    line = re.sub(r'\$db_password', r"'$db_password'", line)
+                    print(line)
+
+            
+        print("++++++++++++++++++++ END looking at values.yaml +++++++++++++++ \n")
         
         # versions of k8s -> 1.20 use containerd not docker and the percona chart 
         # or at least the busybox dependency of the percona chart has an issue 
-        # so just replace the percona chart with the mysql charts 
-        #  for now using the old one because it deploys => TODO fix this and update  
+        # So here update the chart dependencies to ensure correct mysql is configured 
+        # using the bitnami helm chart BUT as we are disabling the database in the 
+        # values files and relying on separately deployed database this update is not really 
+        # doing anything. see the mini-loop scripts dir for where and how the database deployment
+        # is now done.  
         for rf in p.rglob('**/*requirements.yaml'):
             print(f"===> Processing requirements file < {rf.parent}/{rf.name} > ")
             with open(rf) as f:
@@ -260,11 +266,9 @@ def main(argv) :
             try: 
                 dlist = reqs_data['dependencies']
                 for i in range(len(dlist)): 
-                    if (dlist[i]['name'] == "percona-xtradb-cluster"): 
+                    if (dlist[i]['name'] in ["percona-xtradb-cluster","mysql"] ): 
                         print(f"old was: {dlist[i]}")
                         dlist[i]['name'] = "mysql"
-                        #dlist[i]['version'] = "8.8.8"
-                        #dlist[i]['repository'] = "https://charts.bitnami.com/bitnami"
                         dlist[i]['version'] = 8.0
                         dlist[i]['repository'] = "https://charts.bitnami.com/bitnami"
                         dlist[i]['alias'] = "mysql"

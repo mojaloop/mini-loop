@@ -327,7 +327,7 @@ function do_k3s_install {
     fi
     
     #install nginx => but beware which one  
-    # for k8s = 1.22 need kubernetes ingress 1.0.4 => chart version 4.0.6
+    # for k8s = 1.22 need kubernetes ingress 1.0.4 or later and => chart version 4.0.6 or later 
     # for k8s < v1.22 need kubernetes nginx ingress 0.47.0 
     # see: https://kubernetes.io/blog/2021/07/26/update-with-ingress-nginx/
     # see also https://kubernetes.github.io/ingress-nginx/
