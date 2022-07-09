@@ -18,11 +18,19 @@ function check_arch {
     printf " ** Error: Mojaloop is only running on x86_64 today and not yet running on ARM cpus \n"
     printf "    please see https://github.com/mojaloop/project/issues/2317 for ARM status \n"
     printf " ** \n"
-    if [[ ! -z "${DEVMODE}" ]]; then 
-      printf "DEVMODE Flag set ==> this flag is for mini-loop development only ==> continuing \n"
+    if [[ ! -z "${devmode}" ]]; then 
+      printf "devmode Flag set ==> this flag is for mini-loop development only ==> continuing \n"
     else
       exit 1
     fi
+  fi
+}
+
+function check_user {
+  # ensure that the user is not root
+  if [ "$EUID" -eq 0 ]; then 
+    printf " ** Error: please run $0 as non root user ** \n"
+    exit 1
   fi
 }
 
@@ -39,28 +47,28 @@ function set_k8s_distro {
     printf " ** \n"
     exit 1      
   fi 
-  printf " ==> the installed kubernetes distribution appears to be [%s] \n" "$k8s_distro"
+  printf "==> the installed kubernetes distribution appears to be [%s] \n" "$k8s_distro"
 }
 
-function set_timeout { 
+function set_mojaloop_timeout { 
   ## Set timeout 
-  if [[ ! -z "$TSECS" ]]; then 
-    TIMEOUT_SECS=${TSECS}s
+  if [[ ! -z "$tsecs" ]]; then 
+    TIMEOUT_SECS=${tsecs}s
   else 
     TIMEOUT_SECS=$DEFAULT_TIMEOUT_SECS 
   fi
-  printf " ==> Setting TIMEOUT_SECS to %s \n" "$TIMEOUT_SECS"
+  printf "==> Setting Mojaloop chart TIMEOUT_SECS to  [ %s ] \n" "$TIMEOUT_SECS"
 } 
 
 function set_and_create_namespace { 
   ## Set and create namespace if necessary 
-  if [[ ! -z "$NSPACE" ]]; then 
-    NAMESPACE=${NSPACE}
+  if [[ ! -z "$nspace" ]]; then 
+    NAMESPACE=${nspace}
     kubectl create namspace "$NAMESPACE" > /dev/null 2>&1
   else 
     NAMESPACE="default" 
   fi
-  printf " ==> Setting NAMESPACE to %s \n" "$NAMESPACE"
+  printf "==> Setting NAMESPACE to [ %s ] \n" "$NAMESPACE"
 }
 
 # function set_values_file {
@@ -82,7 +90,7 @@ function set_and_create_namespace {
 #   printf " ==> Using the values file [%s] \n" "$ETC_DIR/$ML_VALUES_FILE"
 # }
 
-function deploy_mojaloop_helm_chart {
+function deploy_mojaloop_from_local {
   # uninstall the old chart if it exists
   printf " ==> uninstalling any previous mojaloop deployment "
   helm uninstall ${RELEASE_NAME} --namespace "$NAMESPACE"  >/dev/null 2>&1
@@ -90,9 +98,8 @@ function deploy_mojaloop_helm_chart {
 
   # install the chart
   printf  " ==> install %s helm chart and wait for upto %s  secs for it to be ready \n" "$RELEASE_NAME" "$TIMEOUT_SECS"
-  printf  "     executing helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  mojaloop/mojaloop --version $MOJALOOP_VERSION -f $ETC_DIR/$ML_VALUES_FILE \n "
-  helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  --namespace "$NAMESPACE" \
-               mojaloop/mojaloop --version $MOJALOOP_VERSION -f $ETC_DIR/$ML_VALUES_FILE 
+  printf  "     executing helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS $HOME/charts/mojaloop  \n "
+  helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  --namespace "$NAMESPACE" $HOME/charts/mojaloop  
 
   if [[ `helm status $RELEASE_NAME  --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
     printf " ==> [%s] deployed sucessfully \n" "$RELEASE_NAME"
@@ -134,6 +141,87 @@ function check_deployment_health {
   fi
 }
 
+
+function clone_and_modify_helm_charts { 
+  printf "==> cloning mojaloop helm charts repo  "
+  if [ ! -z "$force" ]; then 
+    #printf "==> removing existing helm directory\n"
+    rm -rf $HOME/helm > /dev/null 2>&1
+  fi 
+  if [ ! -d $HOME/helm ]; then 
+    git clone https://github.com/mojaloop/helm.git $HOME/helm > /dev/null 2>&1
+    # note: this also updates $ETC_DIR/mysql_values.yaml with a new DB password
+    $SCRIPTS_DIR/mod_local_miniloop.py -d $HOME/helm -i > /dev/null 2>&1
+    NEED_TO_REPACKAGE="true"
+  fi
+  printf " [ done ] \n"
+}
+
+function repackage_charts {
+  if [[ "$NEED_TO_REPACKAGE" == "true" ]]; then 
+    printf "==> running repackage of the helm charts to incorporate local modifications "
+    current_dir=`pwd`
+    cd $HOME/helm
+    ./package.sh > /dev/null 2>&1
+    if [[ $? -eq 0  ]]; then 
+      printf " [ ok ] \n"
+    else
+      printf " [ failed ] \n"
+      printf "** please try running $HOME/helm/package.sh manually to determine the problem **  \n" 
+      cd $current_dir
+      exit 1
+    fi   
+    cd $current_dir
+  fi 
+}
+
+function delete_db {
+  #  delete any existing deployment and clean up any pv and pvc's that the bitnami mysql chart seems to leave behind
+  printf "==> deleting mojaloop database release %s " "$DB_RELEASE_NAME"
+  db_exists=`helm ls | grep $DB_RELEASE_NAME | cut -d " " -f1`
+  if [ ! -z $db_exists ] && [ "$db_exists" == "$DB_RELEASE_NAME" ]; then 
+    helm delete $DB_RELEASE_NAME > /dev/null 2>&1
+    sleep 2 
+  fi
+  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE" 2>/dev/null | grep $DB_RELEASE_NAME` > /dev/null 2>&1
+  if [ ! -z "$pvc_exists" ]; then 
+    kubectl get pvc --namespace "$NAMESPACE" | cut -d " " -f1 | xargs kubectl delete pvc > /dev/null 2>&1
+    kubectl get pv  --namespace "$NAMESPACE" | cut -d " " -f1 | xargs kubectl delete pv > /dev/null 2>&1
+  fi 
+  # now check it is all clean
+  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE" 2>/dev/null | grep $DB_RELEASE_NAME`
+  if [ -z "$pvc_exists" ]; then
+    #TODO check that the DB is actually gone along with the pv and pvc's 
+    printf " [ ok ] \n"
+  else
+    printf "** Error: the database has not been deleted cleanly  \n" 
+    printf "   please try running the delete again or use helm and kubectl to remove manually  \n"
+    printf "   ensure no pv or pvc resources remain defore trying to re-install the dabatase ** \n"
+    exit 1
+  fi
+}
+
+function install_db { 
+  db_exists=`helm ls | grep $DB_RELEASE_NAME | cut -d " " -f1`
+  # if the database is already deployed please get the user to delete it first
+  # TODO do the delete automatically if the force flag is set
+  if [ ! -z $db_exists ] && [ "$db_exists" == "$DB_RELEASE_NAME" ]; then 
+    printf "** Error: the mojaloop database is already installed please delete before re-install \n" 
+    printf "   you can use install_local_miniloop.sh -m delete_db to do this cleanly ** \n"
+    exit 1
+  fi
+
+  # deploy the bitnami mysql database chart
+  printf "==> deploying mojaloop database from bitnami helm chart, waiting upto 300s for it to be ready  \n"
+  helm install $DB_RELEASE_NAME bitnami/mysql --wait --timeout 300s --namespace "$NAMESPACE" -f $ETC_DIR/mysql_values.yaml > /dev/null 2>&1
+  if [[ `helm status $DB_RELEASE_NAME --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
+    printf "==> [%s] deployed sucessfully \n" "$DB_RELEASE_NAME"
+  else 
+      printf " ** Error database has *NOT* been deployed \n" 
+  fi 
+}
+
+
 ################################################################################
 # Function: showUsage
 ################################################################################
@@ -146,11 +234,14 @@ function showUsage {
 		echo "Incorrect number of arguments passed to function $0"
 		exit 1
 	else
-echo  "USAGE: $0 -t secs
-Example 1 : $0 -t 3000 # use a timeout of 3000 seconds 
-Example 2 : $0 -n moja # create namespace moja and deploy mojaloop into the moja namespace 
-
+echo  "USAGE: $0 -m <mode> [-t secs] [-n namespace] [-f] [-h] 
+Example 1 : $0 -m install_ml -t 3000 # install mojaloop using a timeout of 3000 seconds 
+Example 2 : $0 -m install_ml -n moja # create namespace moja and deploy mojaloop into the moja namespace 
+Example 3 : $0 -m install_db         # install the mojaloop database only (no mojaloop install)
+Example 4 : $0 -m delete_db          # cleanly delete the mojaloop database only (no mojaloop install)
+ 
 Options:
+-m mode ............ install_ml|install_db|delete_db 
 -t secs ............ number of seconds (timeout) to wait for pods to all be reach running state
 -n namespace ....... the namespace to deploy mojaloop into 
 -f force ........... force the cloning and updating of the helm charts (will destory existing $HOME/helm)
@@ -159,70 +250,38 @@ Options:
 	fi
 }
 
-function clone_and_modify_helm_charts { 
-  if [ ! -z "$FORCE" ]; then 
-    printf "removing hel dir\n"
-    rm -rf $HOME/helm
-  fi 
-  if [ ! -d $HOME/helm ]; then 
-    git clone https://github.com/mojaloop/helm.git $HOME/helm
-    # note: this also updates $ETC_DIR/mysql_values.yaml with a new DB password
-    $SCRIPTS_DIR/mod_local_miniloop.py -d $HOME/helm -i 
-  fi
-
-}
-
-function repackage_charts {
-  current_dir=`pwd`
-  cd $HOME/helm
-  ./package.sh
-  cd $current_dir
-  pwd
-
-}
-
-
-function deploy_database { 
-  # deploy the bitnami mysql database chart
-  printf " ==> deplying mojaloop database from bitnami helm chart \n"
-  helm install db bitnami/mysql --wait --timeout 300s --namespace "$NAMESPACE" -f $ETC_DIR/mysql_values.yaml
-
-  if [[ `helm status db --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
-    printf " ==> [%s] deployed sucessfully \n" "db"
-  else 
-      printf " ** Error database has *NOT* been deployed \n" 
-  fi 
-
-}
-
 ################################################################################
 # MAIN
 ################################################################################
 
 ##
-# Environment Config
+# Environment Config & global vars 
 ##
 #MOJALOOP_VERSION="13.1.1" 
-RELEASE_NAME="ml"
+ML_RELEASE_NAME="ml"
+DB_RELEASE_NAME="db"
 DEFAULT_TIMEOUT_SECS="2400s"
 TIMEOUT_SECS=0
-NAMESPACE="default"
+DEFAULT_NAMESPACE="default"
 k8s_distro=""
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 ETC_DIR="$( cd $(dirname "$0")/../etc ; pwd )"
+NEED_TO_REPACKAGE="false"
 #ML_VALUES_FILE="miniloop_values.yaml"
 
 # Process command line options as required
-while getopts "dft:n:hH" OPTION ; do
+while getopts "dft:n:m:hH" OPTION ; do
    case "${OPTION}" in
-        f)  FORCE="true"
+        f)  force="true"
         ;; 
-        t)  TSECS="${OPTARG}"
+        t)  tsecs="${OPTARG}"
         ;;
-        n)  NSPACE="${OPTARG}"
+        n)  nspace="${OPTARG}"
         ;;
-        d)  DEVMODE="true"
+        d)  devmode="true"
         ;; 
+        m)  mode="${OPTARG}"
+        ;;
         h|H)	showUsage
                 exit 0
         ;;
@@ -236,17 +295,26 @@ done
 printf "\n\n**********************************************************************************************\n"
 printf " Mojaloop.io mini-loop deploying local Mojaloop helm chart for kubernetes 1.22+ >>>  start        \n"
 printf "************************************************************************************************\n\n"
-
-clone_and_modify_helm_charts
-repackage_charts
-deploy_database
-exit 1
 check_arch
-set_k8s_distro
-set_timeout
+check_user
 set_and_create_namespace
-set_values_file
-deploy_mojaloop_from_local
+set_k8s_distro
+set_mojaloop_timeout
+printf "\n"
+
+if [[ "$mode" == "install_db" ]]; then
+  install_db
+elif [[ "$mode" == "delete_db" ]]; then
+  delete_db
+elif [[ "$mode" == "install_ml" ]]; then
+  clone_and_modify_helm_charts
+  repackage_charts
+  install_db
+  #set_mojaloop_values_file
+  deploy_mojaloop_from_local
+
+fi 
+
 check_deployment_health
 
 printf " ==> %s configuration of mojaloop deployed ok and passes endpoint health checks \n" "$RELEASE_NAME"
@@ -267,6 +335,6 @@ printf "        This mini-loop install is neither secure nor robust. \n"
 printf "        With this caution in mind , welcome to the full function of Mojaloop\n"
 printf "        please see : https://mojaloop.io/ for more information, resources and online training\n"
 
-printf "\n****************************************************************************************\n"
-printf " Mojaloop.io mini-loop deploying Mojaloop helm chart >>> end       \n"
-printf "****************************************************************************************\n\n"
+printf "\n****************************************************************************************************************\n"
+printf " Mojaloop.io mini-loop deploying local Mojaloop helm chart for kubernetes 1.22+ >>>  start       >>> end       \n"
+printf "****************************************************************************************************************\n\n"
