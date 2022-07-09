@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 
 """
-    See also mod_charts.py
-    fix the ingress issues in the Mojaloop helm charts and also the 
-    issues related to the percona helm chart
+    This script is a part of the mini-loop project which aims to make installing the Mojaloop.io helm charts really easy
+    This script mod_local_miniloop.py modifies a local copy of the mojaloop helm charts so that they will deploy to current
+    versions of kubernetes i.e. kubernetes version from v1.22+
+    Major modifications made to the mojaloop helm packages are :
+        - helm template charts: update to the current networking API and fix ingressClassName issues and modify ingress yaml structure
+        - requirements.yaml files : to remove the problematic and percona helm chart that does not work with containerd
+        - values.yaml files : 
+            - updated to not deploy database(s) 
+            - updated to have a fresh database password inserted so that the separately deployed database can be accessed i.e. no default database passwords are used
+            - updated so that they work with more complex passwords than "password" :-) 
+
     author : Tom Daly 
     Date   : July 2022
 """
@@ -222,7 +230,7 @@ def main(argv) :
                     
                     if  isinstance(value, dict):
                         if (value.get('db_type')): 
-                            value['db_host'] = 'ml-mysql'
+                            value['db_host'] = 'mldb'
                             value['db_password'] = db_pass
 
                 print("        -------- END process mysql config \n")
@@ -238,7 +246,6 @@ def main(argv) :
 
         # now that we are inserting passwords with special characters in the password it is necessary to ensure
         # that $db_password is single quoted in the values files.
-        print("<<<<< TOM TOM TOM >>>>>")
         for vf in p.glob('**/*values.yaml') :
             #print(f"fixing db_password in {vf.parent}/{vf.name} ")
             with FileInput(files=[vf], inplace=True) as f:
