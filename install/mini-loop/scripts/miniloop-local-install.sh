@@ -66,7 +66,7 @@ function set_and_create_namespace {
   ## Set and create namespace if necessary 
   if [[ ! -z "$nspace" ]]; then 
     NAMESPACE=${nspace}
-    kubectl create namspace "$NAMESPACE" > /dev/null 2>&1
+    kubectl create namspace "$NAMESPACE" >> $LOGFILE 2>>$ERRFILE
   else 
     NAMESPACE="default" 
   fi
@@ -77,10 +77,10 @@ function clone_helm_charts_repo {
   printf "==> cloning mojaloop helm charts repo  "
   if [ ! -z "$force" ]; then 
     #printf "==> removing existing helm directory\n"
-    rm -rf $HOME/helm > /dev/null 2>&1
+    rm -rf $HOME/helm >> $LOGFILE 2>>$ERRFILE
   fi 
   if [ ! -d $HOME/helm ]; then 
-    git clone https://github.com/mojaloop/helm.git $HOME/helm > /dev/null 2>&1
+    git clone https://github.com/mojaloop/helm.git $HOME/helm >> $LOGFILE 2>>$ERRFILE
     printf " [ done ] \n"
   else 
     printf "\n ** INFO: helm repo is not cloned as there is an existing $HOME/helm directory\n"
@@ -93,7 +93,7 @@ function modify_local_helm_charts {
   printf "==> modifying the local mojaloop helm charts to run on kubernetes v1.22+  "
   # note: this also updates $ETC_DIR/mysql_values.yaml with a new DB password
   # this password is and needs to be the same in all the values files which access the DB
-  $SCRIPTS_DIR/mod_local_miniloop.py -d $HOME/helm -i > /dev/null 2>&1
+  $SCRIPTS_DIR/mod_local_miniloop.py -d $HOME/helm  >> $LOGFILE 2>>$ERRFILE
   NEED_TO_REPACKAGE="true"
   printf " [ done ] \n"
 }
@@ -103,7 +103,7 @@ function repackage_charts {
     printf "==> running repackage of the helm charts to incorporate local modifications "
     current_dir=`pwd`
     cd $HOME/helm
-    ./package.sh > /dev/null 2>&1
+    ./package.sh >> $LOGFILE 2>>$ERRFILE
     if [[ $? -eq 0  ]]; then 
       printf " [ ok ] \n"
     else
@@ -121,16 +121,16 @@ function delete_db {
   printf "==> deleting mojaloop database release %s " "$DB_RELEASE_NAME"
   db_exists=`helm ls  --namespace $NAMESPACE | grep $DB_RELEASE_NAME | cut -d " " -f1`
   if [ ! -z $db_exists ] && [ "$db_exists" == "$DB_RELEASE_NAME" ]; then 
-    helm delete $DB_RELEASE_NAME  --namespace $NAMESPACE > /dev/null 2>&1
+    helm delete $DB_RELEASE_NAME  --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
     sleep 2 
   fi
-  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE" 2>/dev/null | grep $DB_RELEASE_NAME` > /dev/null 2>&1
+  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE" 2>$LOGFILE | grep $DB_RELEASE_NAME` >> $LOGFILE 2>>$ERRFILE
   if [ ! -z "$pvc_exists" ]; then 
-    kubectl get pvc --namespace "$NAMESPACE" | cut -d " " -f1 | xargs kubectl delete pvc > /dev/null 2>&1
-    kubectl get pv  --namespace "$NAMESPACE" | cut -d " " -f1 | xargs kubectl delete pv > /dev/null 2>&1
+    kubectl get pvc --namespace "$NAMESPACE" | cut -d " " -f1 | xargs kubectl delete pvc >> $LOGFILE 2>>$ERRFILE
+    kubectl get pv  --namespace "$NAMESPACE" | cut -d " " -f1 | xargs kubectl delete pv >> $LOGFILE 2>>$ERRFILE
   fi 
   # now check it is all clean
-  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE" 2>/dev/null | grep $DB_RELEASE_NAME`
+  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE" 2>$LOGFILE | grep $DB_RELEASE_NAME`
   if [ -z "$pvc_exists" ]; then
     #TODO check that the DB is actually gone along with the pv and pvc's 
     printf " [ ok ] \n"
@@ -148,7 +148,7 @@ function install_db {
 
   # deploy the bitnami mysql database chart
   printf "==> deploying mojaloop database from bitnami helm chart, waiting upto 300s for it to be ready  \n"
-  helm install $DB_RELEASE_NAME bitnami/mysql --wait --timeout 300s --namespace "$NAMESPACE" -f $ETC_DIR/mysql_values.yaml > /dev/null 2>&1
+  helm install $DB_RELEASE_NAME bitnami/mysql --wait --timeout 300s --namespace "$NAMESPACE" -f $ETC_DIR/mysql_values.yaml >> $LOGFILE 2>>$ERRFILE
   if [[ `helm status $DB_RELEASE_NAME --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
     printf "==> [%s] deployed sucessfully \n" "$DB_RELEASE_NAME"
   else 
@@ -193,7 +193,7 @@ function delete_mojaloop_helm_chart {
   printf "==> uninstalling mojaloop: helm delete %s --namespace %s" "$NAMESPACE" "$ML_RELEASE_NAME"
   ml_exists=`helm ls --namespace $NAMESPACE | grep $ML_RELEASE_NAME | cut -d " " -f1`
   if [ ! -z $ml_exists ] && [ "$ml_exists" == "$ML_RELEASE_NAME" ]; then 
-    helm delete $ML_RELEASE_NAME --namespace $NAMESPACE > /dev/null 2>&1
+    helm delete $ML_RELEASE_NAME --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
     if [[ $? -eq 0  ]]; then 
       printf " [ ok ] \n"
     else
@@ -291,6 +291,8 @@ Options:
 ##
 ML_RELEASE_NAME="ml"
 DB_RELEASE_NAME="db"
+LOGFILE="/tmp/miniloop-install.log"
+ERRFILE="/tmp/miniloop-install.err"
 DEFAULT_TIMEOUT_SECS="2400s"
 TIMEOUT_SECS=0
 DEFAULT_NAMESPACE="default"
@@ -331,6 +333,8 @@ printf " utilities for deploying local Mojaloop helm chart for kubernetes 1.22+ 
 printf "********************* << START  >> *****************************************************\n\n"
 check_arch
 check_user
+rm $LOGFILE >> /dev/null2>>$ERRFILE
+rm $ERRFILE >> /dev/null2>>$ERRFILE
 set_and_create_namespace
 set_k8s_distro
 set_mojaloop_timeout
@@ -348,7 +352,7 @@ elif [[ "$mode" == "delete_ml" ]]; then
 elif [[ "$mode" == "install_ml" ]]; then
   clone_helm_charts_repo
   modify_local_helm_charts
-  if [ -z skip_repackage ]; then 
+  if [ -z ${skip_repackage+x} ]; then 
     repackage_charts
   fi
   #set_mojaloop_values_file
