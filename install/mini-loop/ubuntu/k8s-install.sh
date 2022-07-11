@@ -43,12 +43,12 @@ function ensure_only_one_k8s_distro_installed {
     # when k3s is already install but need to avoid installing k3s when k8s is already installed or vice-versa
     # check to ensure k3s isn't already installed when installing microk8s 
     if [[ -f "/usr/local/bin/k3s" && $k8s_distro == "microk8s" ]]; then 
-        printf "** Error , k3s is already installed on this machine , please remove before installing microk8s **\n"
+        printf "** Error , k3s is already installed on this machine , please delete before installing microk8s **\n"
         exit 1
     fi 
     #check to ensure microk8s isn't already installed when installing k3s
     if [[ -f "/snap/bin/microk8s" && $k8s_distro == "k3s" ]]; then 
-        printf "** Error , microk8s is already installed on this machine , please remove before installing k3s **\n"
+        printf "** Error , microk8s is already installed on this machine , please delete before installing k3s **\n"
         exit 1
     fi 
 
@@ -409,14 +409,14 @@ function verify_user {
         fi    
 }
 
-function remove_k8s {
+function delete_k8s {
     if [[ "$k8s_distro" == "microk8s" ]]; then 
         printf "==>Removing any existing Microk8s installation "
         snap remove microk8s > /dev/null 2>&1
         if [[ $? -eq 0  ]]; then 
             printf " [ ok ] \n"
         else 
-            printf " [ microk8s remove failed ] \n"
+            printf " [ microk8s delete failed ] \n"
             printf "** was microk8s installed ?? \n" 
             printf "   if so please try running \"snap remove microk8s\" manually ** \n"
         fi
@@ -427,7 +427,7 @@ function remove_k8s {
         if [[ $? -eq 0  ]]; then 
             printf " [ ok ] \n"
         else 
-            printf " [ k3s remove failed ] \n"
+            printf " [ k3s delete failed ] \n"
             printf "** was k3s installed ?? \n" 
             printf "   if so please try running \"/usr/local/bin/k3s-uninstall.sh\" manually ** \n"
         fi
@@ -465,12 +465,12 @@ function showUsage {
 	else
 echo  "USAGE: $0 -m [mode] -u [ user] [-v k8 version]
 Example 1 : k8s-install.sh -m install -u ubuntu -v 1.20 # install k8s microk8s version 1.20
-Example 2 : k8s-install.sh -m remove -u ubuntu -v 1.20 # remove  k8s microk8s version 1.20
+Example 2 : k8s-install.sh -m delete -u ubuntu -v 1.20 # delete  k8s microk8s version 1.20
 Example 3 : k8s-install.sh -m install -k k3s -u ubuntu -v 1.24 # install k8s k3s distro version 1.24
 
 
 Options:
--m mode ............... install|remove (-m is required)
+-m mode ............... install|delete (-m is required)
 -k kubernetes distro... microk8s|k3s (default is microk8s)
 -v k8s version ........ must specify a currently supported kubernetes release (or omit this flag for defaults)
 -u user ............... non root user to run helm and k8s commands and to own mojaloop (default : mojaloop) 
@@ -575,8 +575,8 @@ if [[ "$mode" == "install" ]]  ; then
     printf "    execute the %s/01_install_miniloop.sh script \n\n"  "$SCRIPTS_DIR"   
 
     print_end_message 
-elif [[ "$mode" == "remove" ]]  ; then
-    remove_k8s 
+elif [[ "$mode" == "delete" ]]  ; then
+    delete_k8s 
     print_end_message 
 else 
     showUsage

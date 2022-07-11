@@ -77,7 +77,7 @@ def update_key(key, value, dictionary):
 def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Automate modifications across mojaloop helm charts')
     parser.add_argument("-d", "--directory", required=True, help="directory for helm charts")
-    parser.add_argument("-i", "--ingress", required=False, action="store_true", help="run the section of the code to enable testing of ingress")
+    parser.add_argument("-v", "--verbose", required=False, action="store_true", help="print more verbose messages ")
 
     args = parser.parse_args(args)
     if len(sys.argv[1:])==0:
@@ -94,9 +94,10 @@ def main(argv) :
     script_path = Path( __file__ ).absolute()
     print(f"script path is {script_path}")
     mysql_values_file = script_path.parent.parent / "./etc/mysql_values.yaml"
-    print(f"mysql_values_file  is {mysql_values_file}")
     db_pass=gen_password()
-    print(f"mysql password is {db_pass}")
+    if (args.verbose): 
+        print(f"mysql_values_file  is {mysql_values_file}")
+        print(f"mysql password is {db_pass}")
 
     ## check the yaml of these files because ruamel python lib has issues with loading em 
     yaml_files_check_list = [
@@ -133,166 +134,147 @@ def main(argv) :
     # for now disable metrics and metrics exporting
     # replace the mojaloop images with the locally built  ones
     
-    if (  args.ingress ) : 
-        print("\n\n======================================================================================")
-        print(" Modify charts to implement networking/v1 ")
-        print(" and to use bitnami mysql rather than percona (percona / busybox is broken on containerd) ") 
-        print("===========================================================================================")
-
-        # modify the template files 
-        for vf in p.rglob('*.tpl'): 
-            backupfile= Path(vf.parent) / f"{vf.name}_bak"
-            #print(f"{vf} : {backupfile}")
-            #copyfile(vf, backupfile)
-            with FileInput(files=[vf], inplace=True) as f:
-                for line in f:
-                    line = line.rstrip()
-                    #replace networking v1beta1 
-                    line = re.sub(r"networking.k8s.io/v1beta1", r"networking.k8s.io/v1", line)
-                    line = re.sub(r"extensions/v1beta1", r"networking.k8s.io/v1", line )
-                    print(line)
-
-        # modify the ingress.yaml files 
-        for vf in p.rglob('*/ingress.yaml'): 
-            backupfile= Path(vf.parent) / f"{vf.name}_bak"
-            #print(f"{vf} : {backupfile}")
-            #copyfile(vf, backupfile)
-
-            with FileInput(files=[vf], inplace=True) as f:
-                for line in f:
-                    line = line.rstrip()
-                    if re.search("path:", line ):
-                        line_dup = line
-                        line_dup = re.sub(r"- path:.*$", r"  pathType: ImplementationSpecific", line_dup)
-                        print(line)
-                        print(line_dup)
-                    elif re.search("serviceName:", line ):
-                        line_dup=line
-                        line_dup = re.sub(r"serviceName:.*$", r"service:", line_dup)
-                        print(line_dup)
-                        line=re.sub(r"serviceName:", r"  name:", line)
-                        print(line)
-                    elif re.search("servicePort:", line ):                        
-                        line_dup = line 
-                        line_dup=re.sub(r"servicePort:.*$", r"  port:", line_dup)
-                        line = re.sub(r"servicePort: ", r"    number: ", line)
-                        # need to replace port names with numbers 
-                        for pname , pnum  in ports_array.items() : 
-                            line = re.sub(f"number: {pname}$", f"number: {pnum}", line )
-                        print(line_dup)
-                        print(line)
-                        #servicePort {{ .Values.containers.api.service.ports.api.externalPort }}
-                    elif re.search("ingressClassName" , line ):
-                        # skip any ingressClassname already set => we can re-run program without issue 
-                        continue
-                    elif re.search("spec:" , line ):        
-                        print(line)
-                        print("  ingressClassName: nginx")  # well at least it is "public" for microk8s v1.22 => TODO fully figure the chamges and settings out here and simplify!
-                    else :  
-                        print(line)
-
-        # put the database password file into the mysql helm chart values file 
-        print(f"generating a mysql password and inserting into {mysql_values_file} ")
-        with FileInput(files=[mysql_values_file], inplace=True) as f:
+    print(" ==> mod_local_miniloop : Modify helm template files (.tpl) to implement networking/v1")
+    # modify the template files 
+    for vf in p.rglob('*.tpl'): 
+        backupfile= Path(vf.parent) / f"{vf.name}_bak"
+        with FileInput(files=[vf], inplace=True) as f:
             for line in f:
                 line = line.rstrip()
-                line = re.sub(r"password: .*$", r"password: '"+ db_pass + "'", line )
-                line = re.sub(r"mysql_native_password BY .*$", r"mysql_native_password BY '" + db_pass + "';", line )
+                #replace networking v1beta1 
+                line = re.sub(r"networking.k8s.io/v1beta1", r"networking.k8s.io/v1", line)
+                line = re.sub(r"extensions/v1beta1", r"networking.k8s.io/v1", line )
                 print(line)
 
-        # print("++++++++++++++++++++ looking at values.yaml +++++++++++++++ \n")
-        for vf in p.glob('**/*values.yaml') :
-            with open(vf) as f:
-                print(f"===> Processing file < {vf.parent}/{vf.name} > ")
-                skip = False
-                for fn in yaml_files_check_list : 
-                    if  vf == Path(fn) :
-                        print(f"This yaml file needs checking skipping load/processing for now =>  {Path(fn)} ")
-                        skip=True
-                if not skip : 
-                    #print(f"      Loading yaml for ==> {vf.parent}/{vf.name}", end="")
-                    data = yaml.load(f)
-                    #print("  :[ok]")
+    # modify the ingress.yaml files 
+    print(" ==> mod_local_miniloop : Modify helm template ingress.yaml files to implement newer ingress")
+    print(" ==> mod_local_miniloop : Modify helm template ingress.yaml implement correct ingressClassName ")
+    for vf in p.rglob('*/ingress.yaml'): 
+        backupfile= Path(vf.parent) / f"{vf.name}_bak"
 
-                print("        -------- process mysql containers \n")
-                for x, value in lookup("mysql", data):  
-                    if (value.get("name") == "wait-for-mysql" ):
-                        value['repository'] = "mysql"
-                        value['tag'] = '8.0'
-                    if value.get("mysqlDatabase"): 
-                        value['enabled'] = False
-                print("        -------- END  process mysql containers \n")
-
-                # update the values files to use a mysql instance that has already been deployed 
-                # and that uses a newly generated database password 
-                print("        -------- process mysql config \n")
-                for x, value in lookup("config", data): 
-                    
-                    if  isinstance(value, dict):
-                        if (value.get('db_type')): 
-                            value['db_host'] = 'mldb'
-                            value['db_password'] = db_pass
-
-                print("        -------- END process mysql config \n")
-
-                ### need to set nameOverride  for mysql for ml-testing-toolkit as it appears to be missing
-                # if vf == Path('mojaloop/values.yaml') : 
-                #     print("Updating the ml-testing-toolkit / mysql config ")
-                #     for x, value in lookup("ml-testing-toolkit", data):  
-                #         value['mysql'] = { "nameOverride" : "ttk-mysql" }
-
-            with open(vf, "w") as f:
-                yaml.dump(data, f)
-
-        # now that we are inserting passwords with special characters in the password it is necessary to ensure
-        # that $db_password is single quoted in the values files.
-        for vf in p.glob('**/*values.yaml') :
-            #print(f"fixing db_password in {vf.parent}/{vf.name} ")
-            with FileInput(files=[vf], inplace=True) as f:
-                for line in f:
-                    line = line.rstrip()
-                    line = re.sub(r"\'\$db_password\'", r"$db_password", line) # makes this re-runnable. 
-                    line = re.sub(r'\$db_password', r"'$db_password'", line)
+        with FileInput(files=[vf], inplace=True) as f:
+            for line in f:
+                line = line.rstrip()
+                if re.search("path:", line ):
+                    line_dup = line
+                    line_dup = re.sub(r"- path:.*$", r"  pathType: ImplementationSpecific", line_dup)
+                    print(line)
+                    print(line_dup)
+                elif re.search("serviceName:", line ):
+                    line_dup=line
+                    line_dup = re.sub(r"serviceName:.*$", r"service:", line_dup)
+                    print(line_dup)
+                    line=re.sub(r"serviceName:", r"  name:", line)
+                    print(line)
+                elif re.search("servicePort:", line ):                        
+                    line_dup = line 
+                    line_dup=re.sub(r"servicePort:.*$", r"  port:", line_dup)
+                    line = re.sub(r"servicePort: ", r"    number: ", line)
+                    # need to replace port names with numbers 
+                    for pname , pnum  in ports_array.items() : 
+                        line = re.sub(f"number: {pname}$", f"number: {pnum}", line )
+                    print(line_dup)
+                    print(line)
+                elif re.search("ingressClassName" , line ):
+                    # skip any ingressClassname already set => we can re-run program without issue 
+                    continue
+                elif re.search("spec:" , line ):        
+                    print(line)
+                    print("  ingressClassName: nginx")  # well at least it is "nginx" for k3s v1.24 => TODO fully figure the chamges and settings out here and simplify!
+                else :  
                     print(line)
 
-            
-        print("++++++++++++++++++++ END looking at values.yaml +++++++++++++++ \n")
-        
-        # versions of k8s -> 1.20 use containerd not docker and the percona chart 
-        # or at least the busybox dependency of the percona chart has an issue 
-        # So here update the chart dependencies to ensure correct mysql is configured 
-        # using the bitnami helm chart BUT as we are disabling the database in the 
-        # values files and relying on separately deployed database this update is not really 
-        # doing anything. see the mini-loop scripts dir for where and how the database deployment
-        # is now done.  
-        for rf in p.rglob('**/*requirements.yaml'):
-            print(f"===> Processing requirements file < {rf.parent}/{rf.name} > ")
-            with open(rf) as f:
-                reqs_data = yaml.load(f)
-                #print(reqs_data)
-            try: 
-                dlist = reqs_data['dependencies']
-                for i in range(len(dlist)): 
-                    if (dlist[i]['name'] in ["percona-xtradb-cluster","mysql"] ): 
-                        print(f"old was: {dlist[i]}")
-                        dlist[i]['name'] = "mysql"
-                        dlist[i]['version'] = 8.0
-                        dlist[i]['repository'] = "https://charts.bitnami.com/bitnami"
-                        dlist[i]['alias'] = "mysql"
-                        dlist[i]['condition'] = "mysql.enabled"
-                        print(f"new is: {dlist[i]}")
+    # put the database password file into the mysql helm chart values file 
+    print(f" ==> mod_local_miniloop : generating a new database password")
+    print(f" ==> mod_local_miniloop : insert new pw into [{mysql_values_file}]")
+    with FileInput(files=[mysql_values_file], inplace=True) as f:
+        for line in f:
+            line = line.rstrip()
+            line = re.sub(r"password: .*$", r"password: '"+ db_pass + "'", line )
+            line = re.sub(r"mysql_native_password BY .*$", r"mysql_native_password BY '" + db_pass + "';", line )
+            print(line)
 
-                    # if (dlist[i]['name'] == "mongodb"):
-                    #     print(f"old was: {dlist[i]}")
-                    #     dlist[i]['version'] = "11.1.7"
-                    #     dlist[i]['repository'] = "file://../mongodb"
-                    #     print(f"new is: {dlist[i]}")
-            except Exception:
-                continue 
+    print(" ==> mod_local_miniloop : Modify helm values to implement single mysql database")
+    for vf in p.glob('**/*values.yaml') :
+        with open(vf) as f:
+            if (args.verbose): 
+                print(f"===> Processing file < {vf.parent}/{vf.name} > ")
+            skip = False
+            for fn in yaml_files_check_list : 
+                if  vf == Path(fn) :
+                    if (args.verbose): 
+                        print(f"This yaml file needs checking skipping load/processing for now =>  {Path(fn)} ")
+                    skip=True
+            if not skip : 
+                data = yaml.load(f)
 
-            with open(rf, "w") as f:
-                yaml.dump(reqs_data, f)         
+            for x, value in lookup("mysql", data):  
+                if (value.get("name") == "wait-for-mysql" ):
+                    value['repository'] = "mysql"
+                    value['tag'] = '8.0'
+                if value.get("mysqlDatabase"): 
+                    value['enabled'] = False
 
+            # update the values files to use a mysql instance that has already been deployed 
+            # and that uses a newly generated database password 
+            for x, value in lookup("config", data):         
+                if  isinstance(value, dict):
+                    if (value.get('db_type')): 
+                        value['db_host'] = 'mldb'
+                        value['db_password'] = db_pass
+
+            ### need to set nameOverride  for mysql for ml-testing-toolkit as it appears to be missing
+            # if vf == Path('mojaloop/values.yaml') : 
+            #     print("Updating the ml-testing-toolkit / mysql config ")
+            #     for x, value in lookup("ml-testing-toolkit", data):  
+            #         value['mysql'] = { "nameOverride" : "ttk-mysql" }
+
+        with open(vf, "w") as f:
+            yaml.dump(data, f)
+
+    # now that we are inserting passwords with special characters in the password it is necessary to ensure
+    # that $db_password is single quoted in the values files.
+    print(" ==> mod_local_miniloop : Modify helm values, single quote db_password field to enable secure database password")
+    for vf in p.glob('**/*values.yaml') :
+        with FileInput(files=[vf], inplace=True) as f:
+            for line in f:
+                line = line.rstrip()
+                line = re.sub(r"\'\$db_password\'", r"$db_password", line) # makes this re-runnable. 
+                line = re.sub(r'\$db_password', r"'$db_password'", line)
+                print(line)
+    
+    # versions of k8s -> 1.20 use containerd not docker and the percona chart 
+    # or at least the busybox dependency of the percona chart has an issue 
+    # So here update the chart dependencies to ensure correct mysql is configured 
+    # using the bitnami helm chart BUT as we are disabling the database in the 
+    # values files and relying on separately deployed database this update is not really 
+    # doing anything. see the mini-loop scripts dir for where and how the database deployment
+    # is now done.  
+    print(" ==> mod_local_miniloop : Modify helm requirements.yaml replace deprecated percona chart with current mysql")
+    for rf in p.rglob('**/*requirements.yaml'):
+        with open(rf) as f:
+            reqs_data = yaml.load(f)
+            #print(reqs_data)
+        try: 
+            dlist = reqs_data['dependencies']
+            for i in range(len(dlist)): 
+                if (dlist[i]['name'] in ["percona-xtradb-cluster","mysql"] ): 
+                    dlist[i]['name'] = "mysql"
+                    dlist[i]['version'] = 8.0
+                    dlist[i]['repository'] = "https://charts.bitnami.com/bitnami"
+                    dlist[i]['alias'] = "mysql"
+                    dlist[i]['condition'] = "mysql.enabled"
+
+                # if (dlist[i]['name'] == "mongodb"):
+                #     print(f"old was: {dlist[i]}")
+                #     dlist[i]['version'] = "11.1.7"
+                #     dlist[i]['repository'] = "file://../mongodb"
+                #     print(f"new is: {dlist[i]}")
+        except Exception:
+            continue 
+
+        with open(rf, "w") as f:
+            yaml.dump(reqs_data, f)         
 
 if __name__ == "__main__":
     main(sys.argv[1:])
