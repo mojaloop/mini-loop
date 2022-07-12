@@ -97,15 +97,13 @@ def parse_args(args=sys.argv[1:]):
 def main(argv) :
     args=parse_args()
 
-    if (args.kubernetes == "k3s" ):
-        print ("k3s")
-    else : 
-        print ("microk8s")
+    # if (args.kubernetes == "k3s" ):
+    #     print ("k3s")
+    # else : 
+    #     print ("microk8s")
     
     ingress_cn = set_ingressclassname(args.kubernetes)
-    print (f"{ingress_cn}")
-    sys.exit(1)
-
+    #print (f"{ingress_cn}")
     script_path = Path( __file__ ).absolute()
     print(f"script path is {script_path}")
     mysql_values_file = script_path.parent.parent / "./etc/mysql_values.yaml"
@@ -196,7 +194,7 @@ def main(argv) :
                     continue
                 elif re.search("spec:" , line ):        
                     print(line)
-                    print("  ingressClassName: nginx")  # well at least it is "nginx" for k3s v1.24 => TODO fully figure the chamges and settings out here and simplify!
+                    print(f"  ingressClassName: {ingress_cn}") 
                 else :  
                     print(line)
 

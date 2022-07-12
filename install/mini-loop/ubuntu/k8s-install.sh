@@ -42,13 +42,13 @@ function ensure_only_one_k8s_distro_installed {
     # it seems ok to re-install microk8s over existing microk8s install or similarly to install k3s 
     # when k3s is already install but need to avoid installing k3s when k8s is already installed or vice-versa
     # check to ensure k3s isn't already installed when installing microk8s 
-    if [[ -f "/usr/local/bin/k3s" && $k8s_distro == "microk8s" ]]; then 
-        printf "** Error , k3s is already installed on this machine , please delete before installing microk8s **\n"
+    if [[ -f "/usr/local/bin/k3s" ]]; then 
+        printf "** Error , k3s is already installed , please delete before reinstalling kubernetes  **\n"
         exit 1
     fi 
     #check to ensure microk8s isn't already installed when installing k3s
     if [[ -f "/snap/bin/microk8s" && $k8s_distro == "k3s" ]]; then 
-        printf "** Error , microk8s is already installed on this machine , please delete before installing k3s **\n"
+        printf "** Error , microk8s is already installed, please delete before reinstalling kubernetes  **\n"
         exit 1
     fi 
 
@@ -164,18 +164,17 @@ function set_k8s_version {
     
     # if the users wants k8s v1.22 or beyond then the version is the same for either distro
     # as we will do a local helm deploy after doing local mods to the charts to enable them to run.
-    current_release=false 
     if [ ! -z ${k8s_user_version+x} ] ; then
         # strip off any leading characters
         k8s_user_version=`echo $k8s_user_version |  tr -d A-Z | tr -d a-z `
         for i in "${K8S_CURRENT_RELEASE_LIST[@]}"; do
             if  [[ "$k8s_user_version" == "$i" ]]; then
-                current_release=true
+                CURRENT_RELEASE=true
                 break
             fi  
         done
-        echo "CURRENT_REL = $current_release "
-        if [[ $current_release == "true" ]]; then     
+        echo "CURRENT_REL = $CURRENT_RELEASE "
+        if [[ $CURRENT_RELEASE == "true" ]]; then     
             K8S_VERSION=$k8s_user_version
         else 
             printf "** Error: The specified kubernetes release [ %s ] is not a current release \n" "$k8s_user_version"
@@ -368,7 +367,7 @@ function add_helm_repos {
 
 function configure_k8s_user_env { 
     start_message="# start of config added by mini-loop #"
-    grep "start of config added by mini-loop" $k8s_user_home/.bashrc 
+    grep "start of config added by mini-loop" $k8s_user_home/.bashrc >/dev/null 2>&1
     if [[ $? -ne 0  ]]; then 
         printf "==> Adding configuration for %s to %s .bashrc\n" "$k8s_distro" "$k8s_user"
         printf "%s\n" "$start_message" >> $k8s_user_home/.bashrc 
@@ -418,7 +417,7 @@ function delete_k8s {
         else 
             printf " [ microk8s delete failed ] \n"
             printf "** was microk8s installed ?? \n" 
-            printf "   if so please try running \"snap remove microk8s\" manually ** \n"
+            printf "   if so please try running \"sudo snap remove microk8s\" manually ** \n"
         fi
     else 
         printf "==>Removing any existing k3s installation and helm binary"
@@ -496,6 +495,7 @@ K8S_VERSION=""
 HELM_VERSION="3.9.0"
 OS_VERSIONS_LIST=(16 18 20 )
 K8S_CURRENT_RELEASE_LIST=( "1.22" "1.23" "1.24" )
+CURRENT_RELEASE="false"
 k8s_user_home=""
 k8s_arch=`uname -p`  # what arch
 
@@ -570,9 +570,14 @@ if [[ "$mode" == "install" ]]  ; then
     add_helm_repos 
     configure_k8s_user_env
     check_k8s_installed
-    printf "==> The kubernetes environment is now configured for user [%s] and ready for mojaloop deployment \n" "$k8s_user"
-    printf "    To deploy mojaloop, please su - %s from root  or login as user [%s] and then \n"  "$k8s_user" "$k8s_user"
-    printf "    execute the %s/01_install_miniloop.sh script \n\n"  "$SCRIPTS_DIR"   
+    printf "==> kubernetes distro:[%s] version:[%s] is now configured for user [%s] and ready for mojaloop deployment \n" \
+                "$k8s_distro" "$K8S_VERSION" "$k8s_user"
+    printf "    To deploy mojaloop, please su - %s from root or login as user [%s] and then \n"  "$k8s_user" "$k8s_user"
+    if [[ $CURRENT_RELEASE == true ]]; then 
+        printf "    please execute %s/miniloop-local-install.sh\n" "$SCRIPTS_DIR"
+    else 
+        printf "    please execute the %s/01_install_miniloop.sh -m install_ml  \n\n"  "$SCRIPTS_DIR" 
+    fi  
 
     print_end_message 
 elif [[ "$mode" == "delete" ]]  ; then

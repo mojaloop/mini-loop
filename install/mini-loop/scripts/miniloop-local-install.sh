@@ -124,13 +124,13 @@ function delete_db {
     helm delete $DB_RELEASE_NAME  --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
     sleep 2 
   fi
-  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE" 2>$LOGFILE | grep $DB_RELEASE_NAME` >> $LOGFILE 2>>$ERRFILE
+  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE"  2>>$ERRFILE | grep $DB_RELEASE_NAME` >> $LOGFILE 2>>$ERRFILE
   if [ ! -z "$pvc_exists" ]; then 
     kubectl get pvc --namespace "$NAMESPACE" | cut -d " " -f1 | xargs kubectl delete pvc >> $LOGFILE 2>>$ERRFILE
     kubectl get pv  --namespace "$NAMESPACE" | cut -d " " -f1 | xargs kubectl delete pv >> $LOGFILE 2>>$ERRFILE
   fi 
   # now check it is all clean
-  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE" 2>$LOGFILE | grep $DB_RELEASE_NAME`
+  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE" 2>>$ERRFILE | grep $DB_RELEASE_NAME`
   if [ -z "$pvc_exists" ]; then
     #TODO check that the DB is actually gone along with the pv and pvc's 
     printf " [ ok ] \n"
