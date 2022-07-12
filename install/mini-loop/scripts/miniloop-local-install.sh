@@ -93,7 +93,7 @@ function modify_local_helm_charts {
   printf "==> modifying the local mojaloop helm charts to run on kubernetes v1.22+  "
   # note: this also updates $ETC_DIR/mysql_values.yaml with a new DB password
   # this password is and needs to be the same in all the values files which access the DB
-  $SCRIPTS_DIR/mod_local_miniloop.py -d $HOME/helm  >> $LOGFILE 2>>$ERRFILE
+  $SCRIPTS_DIR/mod_local_miniloop.py -d $HOME/helm -k $k8s_distro >> $LOGFILE 2>>$ERRFILE
   NEED_TO_REPACKAGE="true"
   printf " [ done ] \n"
 }
@@ -333,8 +333,8 @@ printf " utilities for deploying local Mojaloop helm chart for kubernetes 1.22+ 
 printf "********************* << START  >> *****************************************************\n\n"
 check_arch
 check_user
-rm $LOGFILE >> /dev/null2>>$ERRFILE
-rm $ERRFILE >> /dev/null2>>$ERRFILE
+rm $LOGFILE >> /dev/null 2>&1
+rm $ERRFILE >> /dev/null 2>&1
 set_and_create_namespace
 set_k8s_distro
 set_mojaloop_timeout

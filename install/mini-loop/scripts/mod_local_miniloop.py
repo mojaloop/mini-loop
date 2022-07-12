@@ -36,6 +36,11 @@ data = None
 def gen_password(length=8, charset="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*_"):
     return "".join([secrets.choice(charset) for _ in range(0, length)])
 
+def set_ingressclassname (distro="microk8s") : 
+    nginxclassname_array = { "microk8s" : "public", "k3s" : "nginx" } 
+    return (nginxclassname_array[distro])
+
+
 def print_debug(x1, x2, c=0) :  
     print("******************")
     print(f" [{c}]: {x1} " )
@@ -78,6 +83,7 @@ def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Automate modifications across mojaloop helm charts')
     parser.add_argument("-d", "--directory", required=True, help="directory for helm charts")
     parser.add_argument("-v", "--verbose", required=False, action="store_true", help="print more verbose messages ")
+    parser.add_argument("-k", "--kubernetes", type=str, choices=["microk8s", "k3s" ] , help=" kubernetes distro  ")
 
     args = parser.parse_args(args)
     if len(sys.argv[1:])==0:
@@ -90,6 +96,15 @@ def parse_args(args=sys.argv[1:]):
 ##################################################
 def main(argv) :
     args=parse_args()
+
+    if (args.kubernetes == "k3s" ):
+        print ("k3s")
+    else : 
+        print ("microk8s")
+    
+    ingress_cn = set_ingressclassname(args.kubernetes)
+    print (f"{ingress_cn}")
+    sys.exit(1)
 
     script_path = Path( __file__ ).absolute()
     print(f"script path is {script_path}")
@@ -104,7 +119,7 @@ def main(argv) :
         'ml-operator/values.yaml',
         'emailnotifier/values.yaml'
     ]
-
+    
     ports_array  = {
         "simapi" : "3000",
         "reportapi" : "3002",
@@ -119,6 +134,7 @@ def main(argv) :
         "outboundapi" : "{{ $config.config.schemeAdapter.env.OUTBOUND_LISTEN_PORT }}"
     }
 
+    ingress_cn = set_ingressclassname()
     p = Path() / args.directory
     print(f"Processing helm charts in directory: [{args.directory}]")
     yaml = YAML()

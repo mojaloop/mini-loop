@@ -191,7 +191,7 @@ function set_k8s_version {
         fi
 
         if [[ $k8s_distro == "microk8s" ]]; then 
-            K8S_VERSION="v1.20"
+            K8S_VERSION="1.20"
         fi
     fi 
     printf "==> kubernetes version to install set to [%s] \n" "$K8S_VERSION"
