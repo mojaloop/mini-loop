@@ -5,15 +5,19 @@
 #                 kubernetes distributions 
 #         
 # Date July 2022
+# Author Tom Daly 
 
-function check_user {
-  # ensure that the user is not root
-  if [ "$EUID" -eq 0 ]; then 
-    printf " ** Error: please run $0 as non root user ** \n"
-    exit 1
-  fi
+# ensure we are running as root 
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit 1
+fi
+
+function test_k3s_releases {
+  for i in "${K8S_CURRENT_RELEASE_LIST[@]}"; do
+    printf " [v%s]" "$i"
+  done
 }
-
 
 function print_end_banner {
   printf "\n\n****************************************************************************************\n"
@@ -62,7 +66,7 @@ Example 3 : $0 -m test_ml -k k3s
 
  
 Options:
--m mode ............... install_ml|delete_ml|install_db|delete_db 
+-m mode ............... test_ml
 -k kubernetes distro... microk8s|k3s (default is microk8s)
 -h|H .................. display this message
 "
@@ -77,12 +81,12 @@ Options:
 # Environment Config & global vars 
 ##
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
-ETC_DIR="$( cd $(dirname "$0")/../etc ; pwd )"
-NEED_TO_REPACKAGE="false"
-#ML_VALUES_FILE="miniloop_values.yaml"
+K8S_VERSION="" 
+K8S_CURRENT_RELEASE_LIST=( "1.22" "1.23" "1.24" )
+
 
 # Process command line options as required
-while getopts "dfst:n:m:hH" OPTION ; do
+while getopts "k:m:hH" OPTION ; do
    case "${OPTION}" in
         m)  mode="${OPTARG}"
         ;;
@@ -101,36 +105,13 @@ done
 printf "\n\n****************************************************************************************\n"
 printf "            -- mini-loop test utility -- \n"
 printf " tool to test kubernetes install/config and miniloop install \n"
-printf"              across multiple k8s releases \n"
+printf "              across multiple k8s releases \n"
 printf "********************* << START  >> *****************************************************\n\n"
-check_arch
-check_user
-rm $LOGFILE >> /dev/null 2>&1
-rm $ERRFILE >> /dev/null 2>&1
-set_and_create_namespace
-set_k8s_distro
-set_mojaloop_timeout
-printf "\n"
 
-if [[ "$mode" == "install_db" ]]; then
-  install_db
-  print_end_banner
-elif [[ "$mode" == "delete_db" ]]; then
-  delete_db
-  print_end_banner
-elif [[ "$mode" == "delete_ml" ]]; then
-  delete_mojaloop_helm_chart
-  print_end_banner
-elif [[ "$mode" == "install_ml" ]]; then
-  clone_helm_charts_repo
-  modify_local_helm_charts
-  if [ -z ${skip_repackage+x} ]; then 
-    repackage_charts
-  fi
-  #set_mojaloop_values_file
-  install_mojaloop_from_local
-  check_deployment_health
-  print_success_message 
+if [[ "$mode" == "test_ml" ]]; then
+  printf "ok this is a start "
+  #test_microk8s_releases
+  test_k3s_releases 
 else 
   printf "** Error : wrong value for -m ** \n\n"
   showUsage
