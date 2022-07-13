@@ -126,7 +126,6 @@ def main(argv) :
 
     ingress_cn = set_ingressclassname(args.kubernetes)
     print (f"ingressclassname in main is {ingress_cn}")
-    sys.exit(1)
     p = Path() / args.directory
     print(f"Processing helm charts in directory: [{args.directory}]")
     yaml = YAML()

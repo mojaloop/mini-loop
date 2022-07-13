@@ -73,6 +73,21 @@ function set_and_create_namespace {
   printf "==> Setting NAMESPACE to [ %s ] \n" "$NAMESPACE"
 }
 
+function set_logfiles {
+  # set the logfiles
+  if [ ! -z ${logfiles+x} ]; then 
+    LOGFILE="/tmp/$logfiles.log"
+    ERRFILE="/tmp/$logfiles.err"
+    echo $LOGFILE
+    echo $ERRFILE
+  fi 
+  printf "==> logfiles can be found at %s and %s\n " "$LOGFILE" "$ERRFILE"
+  # clean out logfiles 
+  rm $LOGFILE >> /dev/null 2>&1
+  rm $ERRFILE >> /dev/null 2>&1
+  exit 1
+}
+
 function clone_helm_charts_repo { 
   printf "==> cloning mojaloop helm charts repo  "
   if [ ! -z "$force" ]; then 
@@ -265,7 +280,7 @@ function showUsage {
 		echo "Incorrect number of arguments passed to function $0"
 		exit 1
 	else
-echo  "USAGE: $0 -m <mode> [-t secs] [-n namespace] [-f] [-h] [-s] 
+echo  "USAGE: $0 -m <mode> [-t secs] [-n namespace] [-f] [-h] [-s] [-l]
 Example 1 : $0 -m install_ml -t 3000 # install mojaloop using a timeout of 3000 seconds 
 Example 2 : $0 -m install_ml -n moja # create namespace moja and deploy mojaloop into the moja namespace 
 Example 3 : $0 -m install_db         # install the mojaloop database only (no mojaloop install)
@@ -276,6 +291,7 @@ Options:
 -s skip_repackage .. mainly for test/dev use (skips the repackage of the local charts)
 -t secs ............ number of seconds (timeout) to wait for pods to all be reach running state
 -n namespace ....... the namespace to deploy mojaloop into 
+-l logfilename ..... the name of the .log and .err files to create in /tmp
 -f force ........... force the cloning and updating of the helm charts (will destory existing $HOME/helm)
 -h|H ............... display this message
 "
@@ -303,7 +319,7 @@ NEED_TO_REPACKAGE="false"
 #ML_VALUES_FILE="miniloop_values.yaml"
 
 # Process command line options as required
-while getopts "dfst:n:m:hH" OPTION ; do
+while getopts "dfst:n:m:l:hH" OPTION ; do
    case "${OPTION}" in
         f)  force="true"
         ;; 
@@ -316,6 +332,8 @@ while getopts "dfst:n:m:hH" OPTION ; do
         m)  mode="${OPTARG}"
         ;;
         s)  skip_repackage="true"
+        ;;
+        l)  logfiles="${OPTARG}"
         ;;
         h|H)	showUsage
                 exit 0
@@ -333,8 +351,8 @@ printf " utilities for deploying local Mojaloop helm chart for kubernetes 1.22+ 
 printf "********************* << START  >> *****************************************************\n\n"
 check_arch
 check_user
-rm $LOGFILE >> /dev/null 2>&1
-rm $ERRFILE >> /dev/null 2>&1
+set_logfiles 
+
 set_and_create_namespace
 set_k8s_distro
 set_mojaloop_timeout
