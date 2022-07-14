@@ -14,39 +14,17 @@ if [ "$EUID" -ne 0 ]
 fi
 
 function test_k3s_releases {
-  for i in "${K8S_CURRENT_RELEASE_LIST[@]}"; do
-    printf " [v%s]" "$i"
-  done
+  ver=$1 
+  logfile=$2 
+  k8s_user=$3
+  printf " processing kubernetes version [v%s] and using logfile [%s]\n" \
+            "$ver" "$logfile"
+  $SCRIPTS_DIR/../ubuntu/k8s-install.sh -m delete -u ubuntu -k k3s
+  $SCRIPTS_DIR/../ubuntu/k8s-install.sh -m install -u ubuntu -k k3s -v $ver 
+  su - $k8s_user -c "$SCRIPTS_DIR/miniloop-local-install.sh -m delete_ml -l $logfile" 
+  su - $k8s_user -c "$SCRIPTS_DIR/miniloop-local-install.sh -m install_ml -l $logfile -f "
 }
 
-function print_end_banner {
-  printf "\n\n****************************************************************************************\n"
-  printf "            -- mini-loop Mojaloop local install utility -- \n"
-  printf "********************* << END >> ********************************************************\n\n"
-}
-
-function print_success_message { 
-  printf " ==> %s configuration of mojaloop deployed ok and passes endpoint health checks \n" "$RELEASE_NAME"
-  printf "     to execute the helm tests against this now running deployment please execute :  \n"
-  printf "     helm -n %s test ml --logs \n" "$NAMESPACE" 
-  printf "     \nto uninstall mojaloop please execute : \n"
-  printf "     helm delete -n %s ml\n"  "$NAMESPACE"
-
-
-  printf "\n** Notice and Caution ** \n"
-  printf "        mini-loop install scripts have now deployed mojaloop switch to use for  :-\n"
-  printf "            - trial \n"
-  printf "            - test \n"
-  printf "            - education and demonstration \n"
-  printf "        This installation should *NOT* be treated as a *production* deployment as it is designed for simplicity \n"
-  printf "        To be clear: Mojaloop itself is designed to be robust and secure and can be deployed securely \n"
-  printf "        This mini-loop install is neither secure nor robust. \n"
-  printf "        With this caution in mind , welcome to the full function of Mojaloop\n"
-  printf "        please see : https://mojaloop.io/ for more information, resources and online training\n"
-
-  print_end_banner 
-  
-}
 
 ################################################################################
 # Function: showUsage
@@ -83,6 +61,7 @@ Options:
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 K8S_VERSION="" 
 K8S_CURRENT_RELEASE_LIST=( "1.22" "1.23" "1.24" )
+LOGFILE_BASE_NAME="ml_test"
 
 
 # Process command line options as required
@@ -109,9 +88,14 @@ printf "              across multiple k8s releases \n"
 printf "********************* << START  >> *****************************************************\n\n"
 
 if [[ "$mode" == "test_ml" ]]; then
-  printf "ok this is a start "
-  #test_microk8s_releases
-  test_k3s_releases 
+  printf "ok this is a start \n"
+  # for each current release 
+  log_numb=0
+  for i in "${K8S_CURRENT_RELEASE_LIST[@]}"; do
+    test_k3s_releases "$i" "$LOGFILE_BASE_NAME$log_numb" "ubuntu"
+    ((log_numb=log_numb+1))
+
+  done
 else 
   printf "** Error : wrong value for -m ** \n\n"
   showUsage

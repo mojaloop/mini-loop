@@ -81,11 +81,14 @@ function set_logfiles {
     echo $LOGFILE
     echo $ERRFILE
   fi 
+  touch $LOGFILE
+  touch $ERRFILE
+  printf "start : mini-loop Mojaloop local install utility [%s]\n" "`date`" >> $LOGFILE
+  printf "================================================================================\n" >> $LOGFILE
+  printf "start : mini-loop Mojaloop local install utility [%s]\n" "`date`" >> $ERRFILE
+  printf "================================================================================\n" >> $ERRFILE
+
   printf "==> logfiles can be found at %s and %s\n " "$LOGFILE" "$ERRFILE"
-  # clean out logfiles 
-  rm $LOGFILE >> /dev/null 2>&1
-  rm $ERRFILE >> /dev/null 2>&1
-  exit 1
 }
 
 function clone_helm_charts_repo { 
@@ -352,7 +355,6 @@ printf "********************* << START  >> *************************************
 check_arch
 check_user
 set_logfiles 
-
 set_and_create_namespace
 set_k8s_distro
 set_mojaloop_timeout
