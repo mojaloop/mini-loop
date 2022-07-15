@@ -52,6 +52,38 @@ function set_k8s_distro {
   printf "==> the installed kubernetes distribution appears to be [%s] \n" "$k8s_distro"
 }
 
+function set_k8s_version { 
+  k8s_version=`kubectl version --short 2>/dev/null | grep "^Server" | perl -ne 'print if s/^.*v1.(\d+).*$/v1.\1/'`
+}
+
+function print_current_k8s_releases {
+    printf "          Current Kubernetes releases are : " 
+    for i in "${K8S_CURRENT_RELEASE_LIST[@]}"; do
+        printf " [v%s]" "$i"
+    done
+    printf "\n"
+}
+
+function check_k8s_version_is_current {
+  is_current_release=false
+  ver=`echo $k8s_version|  tr -d A-Z | tr -d a-z `
+  for i in "${K8S_CURRENT_RELEASE_LIST[@]}"; do
+      if  [[ "$ver" == "$i" ]]; then
+        is_current_release=true
+        break
+      fi  
+  done
+  if [[ ! $is_current_release == true ]]; then 
+      printf "** Error: The current installed kubernetes release [ %s ] is not a current release \n" "$k8s_version"
+      printf "          you must have a current kubernetes release installed to use this script \n"
+      print_current_k8s_releases 
+      printf "          for releases of kubernetes earlier than v1.22 mini-loop 3.0 might be of use \n"
+      printf "** \n"
+      exit 1
+  fi 
+  printf "==> the installed kubernetes release or version is detected to be  [%s] \n" "$k8s_version"
+}
+
 function set_mojaloop_timeout { 
   ## Set timeout 
   if [[ ! -z "$tsecs" ]]; then 
@@ -316,6 +348,8 @@ DEFAULT_TIMEOUT_SECS="2400s"
 TIMEOUT_SECS=0
 DEFAULT_NAMESPACE="default"
 k8s_distro=""
+k8s_version=""
+K8S_CURRENT_RELEASE_LIST=( "1.22" "1.23" "1.24" )
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 ETC_DIR="$( cd $(dirname "$0")/../etc ; pwd )"
 NEED_TO_REPACKAGE="false"
@@ -354,9 +388,12 @@ printf " utilities for deploying local Mojaloop helm chart for kubernetes 1.22+ 
 printf "********************* << START  >> *****************************************************\n\n"
 check_arch
 check_user
+set_k8s_version
+check_k8s_version_is_current 
 set_logfiles 
 set_and_create_namespace
 set_k8s_distro
+set_k8s_version
 set_mojaloop_timeout
 printf "\n"
 

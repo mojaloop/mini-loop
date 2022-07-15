@@ -13,6 +13,21 @@ if [ "$EUID" -ne 0 ]
   exit 1
 fi
 
+function set_k8s_distro { 
+    if [ ! -z ${k8s_distro+x} ]; then  
+      k8s_distro=`echo "$k8s_distro" | perl -ne 'print lc'`
+      if [[ "$k8s_distro" == "microk8s" || "$k8s_distro" == "k3s" ]]; then 
+        printf "==> testing kubernetes distribution [%s] \n" "$k8s_distro"
+      else 
+        printf " ** Error: kubernetes distro must be microk8s or k3s or omit -k flag to test both\n"
+        exit 1 
+      fi 
+    else 
+      echo "setting distro to all"
+      printf "==> testing both k3s and microk8s kubernetes distributions \n" 
+    fi
+}
+
 function test_k3s_releases {
   ver=$1 
   logfile=$2 
@@ -39,7 +54,7 @@ function showUsage {
 		exit 1
 	else
 echo  "USAGE: $0 -m <mode> 
-Example 1 : $0 -m test_ml
+Example 1 : $0 -m test_ml # test both microk8s and k3s 
 Example 3 : $0 -m test_ml -k k3s 
 
  
@@ -87,15 +102,20 @@ printf " tool to test kubernetes install/config and miniloop install \n"
 printf "              across multiple k8s releases \n"
 printf "********************* << START  >> *****************************************************\n\n"
 
+set_k8s_distro
+echo $k8s_distro
+
+exit 
+
 if [[ "$mode" == "test_ml" ]]; then
-  printf "ok this is a start \n"
   # for each current release 
   log_numb=0
   for i in "${K8S_CURRENT_RELEASE_LIST[@]}"; do
+    if [[ $k8s_distro == "k3s "]] || [[ $k8s_distro == "all "]] ; then 
     test_k3s_releases "$i" "$LOGFILE_BASE_NAME$log_numb" "ubuntu"
     ((log_numb=log_numb+1))
-
   done
+  printf "********************* << successful end  >> *****************************************************\n\n"
 else 
   printf "** Error : wrong value for -m ** \n\n"
   showUsage
