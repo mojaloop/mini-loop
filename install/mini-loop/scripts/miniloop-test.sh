@@ -14,30 +14,47 @@ if [ "$EUID" -ne 0 ]
 fi
 
 function set_k8s_distro { 
-    if [ ! -z ${k8s_distro+x} ]; then  
-      k8s_distro=`echo "$k8s_distro" | perl -ne 'print lc'`
-      if [[ "$k8s_distro" == "microk8s" || "$k8s_distro" == "k3s" ]]; then 
+    if [ -z ${k8s_distro+x} ]; then 
+      printf " ** Error: use -k flag to choose microk8s or k3s or both (to test both k8s engines) \n"
+      exit 1
+    fi    
+    k8s_distro=`echo "$k8s_distro" | perl -ne 'print lc'`
+    if [[ "$k8s_distro" == "microk8s" ]]  || [[ "$k8s_distro" == "k3s" ]]; then 
         printf "==> testing kubernetes distribution [%s] \n" "$k8s_distro"
-      else 
-        printf " ** Error: kubernetes distro must be microk8s or k3s or omit -k flag to test both\n"
-        exit 1 
-      fi 
+    elif  [[ "$k8s_distro" == "both" ]]; then 
+        printf "==> testing both k3s and microk8s kubernetes distributions \n" 
     else 
-      echo "setting distro to all"
-      printf "==> testing both k3s and microk8s kubernetes distributions \n" 
-    fi
+        printf " ** Error: kubernetes distro must be microk8s or k3s or both (to test both k8s engines) \n"
+        exit 1 
+    fi 
 }
 
-function test_k3s_releases {
-  ver=$1 
-  logfile=$2 
-  k8s_user=$3
-  printf " processing kubernetes version [v%s] and using logfile [%s]\n" \
-            "$ver" "$logfile"
-  $SCRIPTS_DIR/../ubuntu/k8s-install.sh -m delete -u ubuntu -k k3s
-  $SCRIPTS_DIR/../ubuntu/k8s-install.sh -m install -u ubuntu -k k3s -v $ver 
-  su - $k8s_user -c "$SCRIPTS_DIR/miniloop-local-install.sh -m delete_ml -l $logfile" 
-  su - $k8s_user -c "$SCRIPTS_DIR/miniloop-local-install.sh -m install_ml -l $logfile -f "
+function test_k8s_releases {
+  k8s_user=$1
+  log_base=$2
+  k8s=$3
+  log_numb=0
+
+  
+  # test k3s releases 
+  for i in "${K8S_CURRENT_RELEASE_LIST[@]}"; do
+    logfile="$log_base$log_numb"
+    printf "miniloop-test>> processing kubernetes distro [%s] version [v%s] and using logfile [%s]\n" \
+             "$k8s" "$i" "$logfile"
+
+    $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m delete -u $k8s_user -k $k8s
+    #echo "  $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m install -u $k8s_user -k $k8s -v $i"
+    $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m install -u $k8s_user -k $k8s -v $i
+    if [[ $? -ne 0 ]]; then 
+        printf "miniloop-test: Error k8s distro [%s] version [%s] failed to install cleanly \n" "$k8s" "$i"
+        printf "               skipping this release \n"
+    else 
+      su - $k8s_user -c "$SCRIPTS_DIR/miniloop-local-install.sh -m delete_ml -l $logfile" 
+      su - $k8s_user -c "$SCRIPTS_DIR/miniloop-local-install.sh -m install_ml -l $logfile -f"
+    fi 
+    ((log_numb=log_numb+1))
+  done
+  
 }
 
 
@@ -60,7 +77,7 @@ Example 3 : $0 -m test_ml -k k3s
  
 Options:
 -m mode ............... test_ml
--k kubernetes distro... microk8s|k3s (default is microk8s)
+-k kubernetes distro... microk8s|k3s|all (scope of tests)
 -h|H .................. display this message
 "
 	fi
@@ -103,18 +120,19 @@ printf "              across multiple k8s releases \n"
 printf "********************* << START  >> *****************************************************\n\n"
 
 set_k8s_distro
-echo $k8s_distro
 
-exit 
+if [[ "$mode" == "test_ml" ]]; then 
+  if [[ $k8s_distro == "k3s" ]] || [[ $k8s_distro == "both" ]]; then 
+    # delete any installed microk8s before we start 
+    $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m delete -u $k8s_user -k microk8s 
+    test_k8s_releases "ubuntu" "$LOGFILE_BASE_NAME" "k3s"
+  fi 
+  if [[ $k8s_distro == "microk8s" ]] || [[ $k8s_distro == "both" ]]; then
+    # delete any installed k3s before we start  
+    $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m delete -u $k8s_user -k k3s 
+    test_k8s_releases "ubuntu" "$LOGFILE_BASE_NAME" "microk8s"
+  fi 
 
-if [[ "$mode" == "test_ml" ]]; then
-  # for each current release 
-  log_numb=0
-  for i in "${K8S_CURRENT_RELEASE_LIST[@]}"; do
-    if [[ $k8s_distro == "k3s "]] || [[ $k8s_distro == "all "]] ; then 
-    test_k3s_releases "$i" "$LOGFILE_BASE_NAME$log_numb" "ubuntu"
-    ((log_numb=log_numb+1))
-  done
   printf "********************* << successful end  >> *****************************************************\n\n"
 else 
   printf "** Error : wrong value for -m ** \n\n"
