@@ -37,7 +37,7 @@ function test_k8s_releases {
   log_numb=0
 
   
-  # test k3s releases 
+  # test k8s releases 
   for i in "${K8S_CURRENT_RELEASE_LIST[@]}"; do
     logfile="$log_base$log_numb"
     printf "miniloop-test>> processing kubernetes distro [%s] version [v%s] and using logfile [%s]\n" \
@@ -105,8 +105,8 @@ while getopts "k:m:u:hH" OPTION ; do
         ;;
         k)  k8s_distro="${OPTARG}"
         ;;
-        u
-        ;;  k8s_user="${OPTARG}"
+        u) k8s_user="${OPTARG}"
+        ;;  
         h|H)	showUsage
                 exit 0
         ;;
@@ -129,12 +129,12 @@ if [[ "$mode" == "test_ml" ]]; then
   if [[ $k8s_distro == "k3s" ]] || [[ $k8s_distro == "both" ]]; then 
     # delete any installed microk8s before we start 
     $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m delete -u $k8s_user -k microk8s 
-    test_k8s_releases "ubuntu" "$LOGFILE_BASE_NAME" "k3s"
+    test_k8s_releases "$k8s_user" "$LOGFILE_BASE_NAME" "k3s"
   fi 
   if [[ $k8s_distro == "microk8s" ]] || [[ $k8s_distro == "both" ]]; then
     # delete any installed k3s before we start  
     $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m delete -u $k8s_user -k k3s 
-    test_k8s_releases "ubuntu" "$LOGFILE_BASE_NAME" "microk8s"
+    test_k8s_releases "$k8s_user" "$LOGFILE_BASE_NAME" "microk8s"
   fi 
 
   printf "********************* << successful end  >> *****************************************************\n\n"
