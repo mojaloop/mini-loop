@@ -29,6 +29,7 @@ function set_k8s_distro {
     fi 
 }
 
+
 function test_k8s_releases {
   k8s_user=$1
   log_base=$2
@@ -71,13 +72,14 @@ function showUsage {
 		exit 1
 	else
 echo  "USAGE: $0 -m <mode> 
-Example 1 : $0 -m test_ml # test both microk8s and k3s 
-Example 3 : $0 -m test_ml -k k3s 
+Example 1 : $0 -m test_ml -u mluser # test both microk8s and k3s using user mluser 
+Example 3 : $0 -m test_ml -k -u user k3s 
 
  
 Options:
 -m mode ............... test_ml
 -k kubernetes distro... microk8s|k3s|all (scope of tests)
+-u user ............... non root user to run helm and k8s commands and to own mojaloop deployment
 -h|H .................. display this message
 "
 	fi
@@ -97,12 +99,14 @@ LOGFILE_BASE_NAME="ml_test"
 
 
 # Process command line options as required
-while getopts "k:m:hH" OPTION ; do
+while getopts "k:m:u:hH" OPTION ; do
    case "${OPTION}" in
         m)  mode="${OPTARG}"
         ;;
         k)  k8s_distro="${OPTARG}"
         ;;
+        u
+        ;;  k8s_user="${OPTARG}"
         h|H)	showUsage
                 exit 0
         ;;
