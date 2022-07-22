@@ -51,44 +51,48 @@ function k8s_already_installed {
     fi 
 }
 
-function check_is_linux {
-    is_linux=false
-    if [ -f /etc/redhat-release ] || [ -f /etc/fedora-release ] \
-       || [ -f /etc/os-release ] || [ -x "/usr/bin/lsb_release" ]; then
-        is_linux=true
+function set_linux_os_distro {
+    LINUX_VERSION="Unknown"
+    if [ -x "/usr/bin/lsb_released" ]; then
+        LINUX_OS=`lsb_release --d | perl -ne 'print  if s/^.*Ubuntu.*(\d+).(\d+).*$/Ubuntu/' `
+        LINUX_VERSION=`/usr/bin/lsb_release --d | perl -ne 'print $&  if m/(\d+)/' `
+    elif [ -f /etc/fedora-release ]; then    
+        LINUX_OS=`cat /etc/fedora-release | grep Fedora | cut -d " " -f1` 
+        LINUX_VERSION=`cat /etc/fedora-release | perl -ne 'print  if s/^.*edora.*(\d+)(\d+).*$/\1\2/' `
+    elif [ -f /etc/redhat-release ]; then
+        LINUX_OS=`cat /etc/redhat-release |  perl -ne 'print  if s/^Red Hat Enterprise.*$/Redhat/' `
+        LINUX_VERSION=`cat /etc/redhat-release |  perl -ne 'print  if s/^.*(\d+).(\d+).*$/\1.\2/' `
     else
-        printf " ** ERROR: could not determine that this is a Linux OS \n"
-        printf "    currently mini-loop only works on Linux OS  \n"
-        exit 1 
-    fi
+        LINUX_OS="Untested"
+    fi 
 }
 
 function check_os_ok {
-    check_is_linux # exit if it seems not to be linux 
     printf "==> check OS and kubernetes distro is tested with mini-loop scripts\n"
-    ok=false
-
-    # check for Ubuntu 
-    if [ -x "/usr/bin/lsb_release" ]; then
-        LINUX_OS=`lsb_release --d | perl -ne 'print  if s/^.*Ubuntu.*(\d+).(\d+).*$/Ubuntu/' `
-        if [[ $LINUX_OS == "Ubuntu" ]] ; then 
-            printf "    identified operating system as %s [ok] \n" $LINUX_OS   
-            ver=`/usr/bin/lsb_release --d | perl -ne 'print $&  if m/(\d+)/' `
-            # for i in "${UBUNTU_OK_VERSIONS_LIST[@]}"; do
-            #     if  [[ "$ver" == "$i" ]]; then
-            #          ok=true
-            #          break
-            #     fi  
-            # done
+    set_linux_os_distro
+    if [[ $LINUX_OS == "Untested" ]] || [[ $LINUX_OS == "Fedora" ]];  then 
+        printf " ** WARNING: miniloop is untested with operating system [%s] \n" "$LINUX_OS"
+        printf "    currently mini-loop is only well tested on the following Linux OS  \n"
+        for i in "${LINUX_OS_LIST[@]}"; do
+            printf "    %s\n" "$i"
+        done
+        if [ ! -z ${force+x} ]; then  
+            printf "    -f flag (force) specified so k8s install will continue but will likely experience errors **\n"
+        else 
+            printf "    -f flag (force) not specified so k8s install exiting **\n"
+            exit 1
         fi
-    else 
+    fi
+
+    #check for Ubuntu as this is ok for microk8s and k3s otherwise advise just k3s 
+    if [[ ! $LINUX_OS == "Ubuntu" ]]; then
         if [[ "$k8s_distro" == "microk8s" ]]; then 
             printf "  ** Error: OS is not Ubuntu and microk8s has not been reliably tested with mini-loop except on Ubuntu OS \n"
             printf "  ** please use -k k3s (or omit -k flag) to use k3s on this linux OS \n"
             exit 1 
         fi
     fi
-
+    exit 1
 } 
 
 function install_prerequisites {
@@ -104,8 +108,12 @@ function install_prerequisites {
             apt install snapd -y > /dev/null 2>&1
         fi
     fi 
-    # if [[ $LINUX_OS == "Ubuntu" ]]; then  
-    # # todo what about non ubuntu, still want python3 and ruamel ? 
+    if [[ $LINUX_OS == "Redhat" ]]; then  
+        systemctl disable nm-cloud-setup.service nm-cloud-setup.timer
+        systemctl disable nm-cloud-setup.service 
+        dnf install python-pip3 -yaml
+        pip3 install ruamel.yaml
+    fi 
 }
 
 function add_hosts {
@@ -397,10 +405,11 @@ function showUsage {
 		echo "Incorrect number of arguments passed to function $0"
 		exit 1
 	else
-echo  "USAGE: $0 -m [mode] -u [user] -v [k8 version] [-k distro]
+echo  "USAGE: $0 -m [mode] -u [user] -v [k8 version] -k [distro] [-f] 
 Example 1 : k8s-install-current.sh -m install -u ubuntu -v 1.22 # install k8s k3s version 1.22
 Example 2 : k8s-install-current.sh -m delete -u ubuntu -v 1.24 # delete  k8s microk8s version 1.20
 Example 3 : k8s-install-current.sh -m install -k microk8s -u ubuntu -v 1.24 # install k8s microk8s distro version 1.24
+Example 4 : k8s-install-current.sh -m install -k microk8s -u ubuntu -v 1.24 # force install on non-tested os (mainlt for test/dev)
 
 
 Options:
@@ -434,6 +443,7 @@ CURRENT_RELEASE="false"
 k8s_user_home=""
 k8s_arch=`uname -p`  # what arch
 
+LINUX_OS_LIST=( "Ubuntu", "Redhat" )
 UBUNTU_OK_VERSIONS_LIST=(16 18 20 )
 FEDORA_OK_VERSIONS_LIST=( 36 )
 REDHAT_OK_VERSIONS_LIST=( 8 )
@@ -452,8 +462,10 @@ if [ $# -lt 1 ] ; then
 fi
 
 # Process command line options as required
-while getopts "m:k:v:u:hH" OPTION ; do
+while getopts "fm:k:v:u:hH" OPTION ; do
    case "${OPTION}" in
+        f)      force="true"
+        ;;
         m)	    mode="${OPTARG}"
         ;;
         k)      k8s_distro="${OPTARG}"

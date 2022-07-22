@@ -259,30 +259,17 @@ function delete_mojaloop_helm_chart {
 
 function check_mojaloop_health {
   # verify the health of the deployment 
-  # curl to http://ml-api-adapter.local/health and http://central-ledger.local/health
-  # TODO: what should we suggest if the endpoints are not working and yet the deployment succeeds ? 
-  #       ideally this should never happen from the mini-loop install (ideally)
-  for i in "${ENDPOINTSLIST[@]}"; do
+  for i in "${EXTERNAL_ENDPOINTS_LIST[@]}"; do
     #curl -s  http://$i/health
     if [[ `curl -s  http://$i/health | \
-      perl -nle '$count++ while /OK+/g; END {print $count}' ` -lt 1 ]] ; then
+      perl -nle '$count++ while /\"status\":\"OK+/g; END {print $count}' ` -lt 1 ]] ; then
       printf  " ** Error: [curl -s http://%s/health] endpoint healthcheck failed ** \n" "$i"
-      #exit 1
+      exit 1
     else 
-      printf " =====> curl -s http://%s/health is ok \n" $i 
+      printf "    ==> curl -s http://%s/health is ok \n" $i 
     fi
     sleep 2 
   done 
-  # if [[ `curl -s http://central-ledger.local/health | \
-  #     perl -nle '$count++ while /OK+/g; END {print $count}' ` -lt 3 ]] ; then
-  #     printf  " ** Error: central-leger endpoint healthcheck failed ** \n"
-  #     exit 1
-  # fi
-  # if [[ `curl -s http://ml-api-adapter.local/health | \
-  #     perl -nle '$count++ while /OK+/g; END {print $count}' ` -lt 2 ]] ; then
-  #     printf  " ** Error: ml-api-adapter endpoint healthcheck failed ** \n"
-  #     exit 1 
-  # fi
 }
 
 function print_end_banner {
@@ -365,10 +352,7 @@ K8S_CURRENT_RELEASE_LIST=( "1.22" "1.23" "1.24" )
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 ETC_DIR="$( cd $(dirname "$0")/../etc ; pwd )"
 NEED_TO_REPACKAGE="false"
-ENDPOINTSLIST=(ml-api-adapter.local central-ledger.local account-lookup-service.local account-lookup-service-admin.local quoting-service.local central-settlement-service.local transaction-request-service.local central-settlement.local bulk-api-adapter.local 
-  moja-simulator.local sim-payerfsp.local sim-payeefsp.local sim-testfsp1.local sim-testfsp2.local sim-testfsp3.local sim-testfsp4.local 
-  mojaloop-simulators.local finance-portal.local operator-settlement.local settlement-management.local testing-toolkit.local 
-  testing-toolkit-specapi.local ) 
+EXTERNAL_ENDPOINTS_LIST=(ml-api-adapter.local central-ledger.local quoting-service.local transaction-request-service.local moja-simulator.local ) 
 #ML_VALUES_FILE="miniloop_values.yaml"
 
 # Process command line options as required
@@ -433,7 +417,6 @@ elif [[ "$mode" == "install_ml" ]]; then
   check_mojaloop_health
   print_success_message 
 elif [[ "$mode" == "check_ml" ]]; then
-  echo "checking health"
   check_mojaloop_health
 else 
   printf "** Error : wrong value for -m ** \n\n"
