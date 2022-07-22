@@ -104,7 +104,8 @@ function install_prerequisites {
             apt install snapd -y > /dev/null 2>&1
         fi
     fi 
-    # todo what about non ubuntu, still want python3 and ruamel ? 
+    # if [[ $LINUX_OS == "Ubuntu" ]]; then  
+    # # todo what about non ubuntu, still want python3 and ruamel ? 
 }
 
 function add_hosts {

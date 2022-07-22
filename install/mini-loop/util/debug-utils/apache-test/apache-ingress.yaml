@@ -15,14 +15,14 @@ spec:
   - host: apachehost
     http:
       paths:
-      - path: "/fred"
+      - path: /fred
         pathType: Prefix
         backend:
           service:
             name: apache-service
             port: 
               number: 8282
-      - path: "/bar"
+      - path: /bar
         pathType: Prefix
         backend:
           service:
