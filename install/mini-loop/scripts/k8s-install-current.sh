@@ -53,7 +53,7 @@ function k8s_already_installed {
 
 function set_linux_os_distro {
     LINUX_VERSION="Unknown"
-    if [ -x "/usr/bin/lsb_released" ]; then
+    if [ -x "/usr/bin/lsb_release" ]; then
         LINUX_OS=`lsb_release --d | perl -ne 'print  if s/^.*Ubuntu.*(\d+).(\d+).*$/Ubuntu/' `
         LINUX_VERSION=`/usr/bin/lsb_release --d | perl -ne 'print $&  if m/(\d+)/' `
     elif [ -f /etc/fedora-release ]; then    
@@ -92,7 +92,6 @@ function check_os_ok {
             exit 1 
         fi
     fi
-    exit 1
 } 
 
 function install_prerequisites {

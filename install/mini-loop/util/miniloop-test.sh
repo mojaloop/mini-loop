@@ -43,7 +43,7 @@ function test_k8s_releases {
              "$k8s" "$i" "$logfile"
 
     $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m delete -u $k8s_user -k $k8s
-    #echo "  $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m install -u $k8s_user -k $k8s -v $i"
+    echo "  $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m install -u $k8s_user -k $k8s -v $i"
     $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m install -u $k8s_user -k $k8s -v $i
     if [[ $? -ne 0 ]]; then 
         printf "miniloop-test>> Error k8s distro [%s] version [%s] failed to install cleanly \n" "$k8s" "$i"
@@ -51,11 +51,13 @@ function test_k8s_releases {
     else 
       su - $k8s_user -c "$SCRIPTS_DIR/miniloop-local-install.sh -m delete_ml -l $logfile" 
       su - $k8s_user -c "$SCRIPTS_DIR/miniloop-local-install.sh -m install_ml -l $logfile -f"
+      su - $k8s_user -c "$SCRIPTS_DIR/miniloop-local-install.sh -m check_ml -l $logfile "
     fi 
-    curl_endpoints
 
     if [ ! -z ${helm_test+x} ]; then  
         printf "miniloop-test>> -t specified so helm test will be run \n" 
+        ## assume deployment name of ML and default namespace for now 
+        su - $k8s_user -c "helm test ml --logs" >> $logfile 2>&1
     fi 
     ((log_numb=log_numb+1))
   done
@@ -135,12 +137,12 @@ set_k8s_distro
 if [[ "$mode" == "test_ml" ]]; then 
   if [[ $k8s_distro == "k3s" ]] || [[ $k8s_distro == "both" ]]; then 
     # delete any installed microk8s before we start 
-    #$SCRIPTS_DIR/../scripts/k8s-install-current.sh -m delete -u $k8s_user -k microk8s 
+    $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m delete -u $k8s_user -k microk8s 
     test_k8s_releases "$k8s_user" "$LOGFILE_BASE_NAME" "k3s"
   fi 
   if [[ $k8s_distro == "microk8s" ]] || [[ $k8s_distro == "both" ]]; then
     # delete any installed k3s before we start  
-    #$SCRIPTS_DIR/../scripts/k8s-install-current.sh -m delete -u $k8s_user -k k3s 
+    $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m delete -u $k8s_user -k k3s 
     test_k8s_releases "$k8s_user" "$LOGFILE_BASE_NAME" "microk8s"
   fi 
 
