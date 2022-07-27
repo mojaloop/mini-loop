@@ -52,6 +52,7 @@ function k8s_already_installed {
 }
 
 function set_linux_os_distro {
+   
     LINUX_VERSION="Unknown"
     if [ -x "/usr/bin/lsb_release" ]; then
         LINUX_OS=`lsb_release --d | perl -ne 'print  if s/^.*Ubuntu.*(\d+).(\d+).*$/Ubuntu/' `
@@ -65,10 +66,11 @@ function set_linux_os_distro {
     else
         LINUX_OS="Untested"
     fi 
+    printf "==> Linux OS is [%s] " "$LINUX_OS"
 }
 
 function check_os_ok {
-    printf "==> check OS and kubernetes distro is tested with mini-loop scripts\n"
+    printf "==> checking OS and kubernetes distro is tested with mini-loop scripts\n"
     set_linux_os_distro
     if [[ $LINUX_OS == "Untested" ]] || [[ $LINUX_OS == "Fedora" ]];  then 
         printf " ** WARNING: miniloop is untested with operating system [%s] \n" "$LINUX_OS"
@@ -108,11 +110,18 @@ function install_prerequisites {
         fi
     fi 
     if [[ $LINUX_OS == "Redhat" ]]; then  
-        systemctl disable nm-cloud-setup.service nm-cloud-setup.timer
+        systemctl stop nm-cloud-setup.service 
+        systemctl stop nm-cloud-setup.timer
         systemctl disable nm-cloud-setup.service 
-        dnf install python-pip3 -yaml
+        systemctl disable nm-cloud-setup.timer
+        #systemctl stop NetworkManager
+        ip rule del pref 30400
+        sleep 10 
+        ip rule 
+        dnf install python3-pip -y 
         pip3 install ruamel.yaml
     fi 
+
 }
 
 function add_hosts {
