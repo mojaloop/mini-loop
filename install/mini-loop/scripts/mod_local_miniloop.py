@@ -272,11 +272,6 @@ def main(argv) :
                     dlist[i]['alias'] = "mysql"
                     dlist[i]['condition'] = "mysql.enabled"
 
-                # if (dlist[i]['name'] == "mongodb"):
-                #     print(f"old was: {dlist[i]}")
-                #     dlist[i]['version'] = "11.1.7"
-                #     dlist[i]['repository'] = "file://../mongodb"
-                #     print(f"new is: {dlist[i]}")
         except Exception:
             continue 
 

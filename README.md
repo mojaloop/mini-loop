@@ -1,8 +1,9 @@
 # mini-loop v4.0 with Microk8s or k3s (versions 1.22 - 1.24) 
-Simple, scripted/automated installation of Mojaloop (http://mojaloop.io) for demo, test, training and development. 
-## Description 
 
-mini-loop is a simple, automated installer for and installation of [Mojaloop](https://mojaloop.io) for test , development , education and demonstration purposes. The goal is to make it easy, quick and scriptable to deploy Mojaloop in a variety of local or cloud environments. 
+## Description 
+mini-loop is a simple, scripted/automated installer for Mojaloop (http://mojaloop.io) to enable demo, test, training and development of the Mojaloop switch
+
+The goal is to make it easy, quick and scriptable to deploy Mojaloop in a variety of local or cloud environments. 
 - easy : you only need to run 2 simple shell scripts
 - quick : With a sufficiently configured linux instance and internet connection it should be possible to deploy and configure Mojaloop in 30 mins or less.
 - scriptable: the scripts are easily callable from other scripts or from CI/CD tools
@@ -12,7 +13,7 @@ Example environments include:-
 - an x86_64 laptop or server running ubuntu/redhat as a guest VM (say using virtualbox , prarallels, qemu or similar) 
 - an appropriately sized x86_64 ubuntu/redhat cloud instance running in any of the major cloud vendors
 
-mini-loop also demonstrates the configuration of the mnojaloop helm charts, an example values file is provided in the mini-loop/install/mini-loop/etc directory and further mojaloop configuration 
+mini-loop also demonstrates the configuration of the mojaloop helm charts, via example values file provided in the mini-loop/install/mini-loop/etc directory and further mojaloop configuration 
 instructions are available at https://github.com/mojaloop/helm. 
  
 This project automates the instructions for mojaloop deployment in the mojaloop.io documentation at https://docs.mojaloop.io/documentation/deployment-guide/local-setup-linux.html. 
@@ -124,4 +125,4 @@ For a good overview of the Testing Toolkit functionality please see the video (h
    https://github.com/mojaloop/helm 
 
 2. I'm having issues with `\r`'s on Windows (`$'\r': command not found`)
-   Currently deployment into windows environments is not supported , please let me know (tdaly61@gmail.com) or on the mojaloop slack if this is a significant problem
+   Currently deployment into windows environments is not supported , please let me know (tdaly61@gmail.com) or on the mojaloop slack if this is a significant problem also you can check out https://github.com/vijayg10/vm-mojaloop where Vijay has a nice Vagrant/VirtualBox image for use (currently using k8s v1.21 e.g. mini-loop v3.0)
