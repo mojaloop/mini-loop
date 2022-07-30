@@ -118,6 +118,7 @@ function install_prerequisites {
         ip rule del pref 30400
         sleep 10 
         ip rule 
+        dnf install python3 -y 
         dnf install python3-pip -y 
         pip3 install ruamel.yaml
     fi 

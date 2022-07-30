@@ -145,7 +145,7 @@ def main(argv) :
     # modify the template files 
     for vf in p.rglob('*.tpl'): 
         backupfile= Path(vf.parent) / f"{vf.name}_bak"
-        with FileInput(files=[vf], inplace=True) as f:
+        with FileInput(files=[str(vf)], inplace=True) as f:
             for line in f:
                 line = line.rstrip()
                 #replace networking v1beta1 
@@ -159,7 +159,7 @@ def main(argv) :
     for vf in p.rglob('*/ingress.yaml'): 
         backupfile= Path(vf.parent) / f"{vf.name}_bak"
 
-        with FileInput(files=[vf], inplace=True) as f:
+        with FileInput(files=[str(vf)], inplace=True) as f:
             for line in f:
                 line = line.rstrip()
                 if re.search("path:", line ):
@@ -194,7 +194,7 @@ def main(argv) :
     # put the database password file into the mysql helm chart values file 
     print(f" ==> mod_local_miniloop : generating a new database password")
     print(f" ==> mod_local_miniloop : insert new pw into [{mysql_values_file}]")
-    with FileInput(files=[mysql_values_file], inplace=True) as f:
+    with FileInput(files=[str(mysql_values_file)], inplace=True) as f:
         for line in f:
             line = line.rstrip()
             line = re.sub(r"password: .*$", r"password: '"+ db_pass + "'", line )
@@ -243,7 +243,7 @@ def main(argv) :
     # that $db_password is single quoted in the values files.
     print(" ==> mod_local_miniloop : Modify helm values, single quote db_password field to enable secure database password")
     for vf in p.glob('**/*values.yaml') :
-        with FileInput(files=[vf], inplace=True) as f:
+        with FileInput(files=[str(vf)], inplace=True) as f:
             for line in f:
                 line = line.rstrip()
                 line = re.sub(r"\'\$db_password\'", r"$db_password", line) # makes this re-runnable. 
