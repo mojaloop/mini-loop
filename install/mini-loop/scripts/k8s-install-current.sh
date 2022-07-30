@@ -114,7 +114,7 @@ function install_prerequisites {
         systemctl stop nm-cloud-setup.timer
         systemctl disable nm-cloud-setup.service 
         systemctl disable nm-cloud-setup.timer
-        #systemctl stop NetworkManager
+        systemctl stop NetworkManager
         ip rule del pref 30400
         sleep 10 
         ip rule 
