@@ -38,12 +38,16 @@ HELM_CHARTS_DIR=$HOME/helm
 WIP_HELM_DIR=$HOME/wip-helm
 
 SCRIPT_DIR="$( dirname "${BASH_SOURCE[0]}" )"
+echo $SCRIPT_DIR 
+
+
+
 REPO_BASE=https://github.com/tdaly61
 #REPO_LIST=(central-event-processor central-settlement central-ledger)
 export DOCKER_BASE_IMAGE="arm64v8/node:12-alpine"
 
-cd $WORKING_DIR
-pwd
+# cd $WORKING_DIR
+# pwd
 
 # if [ "$EUID" -ne 0 ]
 #   then echo "Please run as root"
@@ -93,11 +97,20 @@ fi
 if [[ "$mode" == "all" ]]  ; then
     printf "\n========================================================================================\n"
     printf "Setting up toms entire MOJALOOP dev/test env \n"
+    printf " running fix_ingress_db.py and package.sh "
     printf "========================================================================================\n"
-    rm -rf $WORKING_DIR/*
-    cp -r $HELM_CHARTS_DIR/* $WORKING_DIR
-    cp -r $WIP_HELM_DIR/kafka  $WORKING_DIR
-    cp -r $WIP_HELM_DIR/mysql  $WORKING_DIR
-    cp -r $WIP_HELM_DIR/zookeeper  $WORKING_DIR
-    cp -r $WIP_HELM_DIR/mongodb $WORKING_DIR
+    printf " ==> clear [%s] directory  \n" "$WORKING_DIR"
+    rm -rf $WORKING_DIR/* > /dev/null 2>&1 
+    printf " ==> copying all of  [%s] directory into [%s] directory \n" "$HELM_CHARTS_DIR", "$WORKING_DIR"
+    cp -r $HELM_CHARTS_DIR/* $WORKING_DIR > /dev/null 2>&1 
+    printf " ==> running fix_ingress_db.py -d %s -i \n" "$WORKING_DIR"
+    $SCRIPT_DIR/fix_ingress_db.py -d $WORKING_DIR -i 
+    printf " ==> running package.sh \n"
+    cd $WORKING_DIR
+    ./package.sh 
+    cd $HOME
+    # cp -r $WIP_HELM_DIR/kafka  $WORKING_DIR
+    # cp -r $WIP_HELM_DIR/mysql  $WORKING_DIR
+    # cp -r $WIP_HELM_DIR/zookeeper  $WORKING_DIR
+    # cp -r $WIP_HELM_DIR/mongodb $WORKING_DIR
 fi 
