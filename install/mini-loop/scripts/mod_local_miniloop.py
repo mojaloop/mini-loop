@@ -281,7 +281,9 @@ def main(argv) :
             continue 
 
         with open(rf, "w") as f:
-            yaml.dump(reqs_data, f)         
+            yaml.dump(reqs_data, f)   
+
+    print(f"Sucessfully finished processing helm charts in directory: [{args.directory}]")      
 
 if __name__ == "__main__":
     main(sys.argv[1:])
