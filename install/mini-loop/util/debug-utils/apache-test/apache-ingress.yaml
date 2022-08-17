@@ -10,7 +10,7 @@ metadata:
     ingress.kubernetes.io/ssl-redirect: "false"
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-  ingressClassName: nginx
+  #ingressClassName: nginx
   rules:
   - host: apachehost
     http:
