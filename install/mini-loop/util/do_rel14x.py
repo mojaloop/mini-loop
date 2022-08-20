@@ -157,24 +157,30 @@ def update_values_for_ingress(p, yaml):
             ## clear the existing data/values from the ingress 
             ## then copy in the new values 
 
-            plist = [] 
+            toplist = [] 
+            hostname=""
+            # get the top level yaml structures
             for x, value in lookup('ingress', data):
-                plist = plist + [x]
-                print("found ingress")
-            #list(update_key('ingress', bivf_data , value))
-            print(plist) 
-            for i in plist:
-                print(i[0])
+                toplist = toplist + [x]
+            # for each top level structure 
+            # lookup its ingress if it has one 
+            for i in toplist:
                 for x, value in lookup(i[0], data):
+                    # for some reason need to reset this data 
+                    # or it fails to insert more than once 
                     with open(bivf) as f:
-                        bdata = yaml.load(f)
-
-                    print(f"the top level x:value is {x}")
+                       newdata = yaml.load(f)
                     if value.get("ingress"):
-                        print("got ingress")
+                        if value.get('ingress', {} ).get('hosts'):
+                            hostname=value['ingress']['hosts']
+                            print(f"type of hostname is {type(hostname)}")
+                        # for y, values1 in lookup('hosts', value):
+                        #     #print(f"y = {y}, next y is {next(y)} ")
+                        #     print(f"values1 is {values1}")
+                        #     #print(f"hostname is {values1['hosts']}")
+
                         del value['ingress']
-                        # value.insert(1,'ingress',bivf_data)
-                        value['ingress'] = bdata
+                        value['ingress'] = newdata
                 
                 #if (isinstance(value, list)):
                 #     print("yep is list")
