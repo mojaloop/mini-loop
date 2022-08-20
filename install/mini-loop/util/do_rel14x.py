@@ -61,7 +61,7 @@ def update_key(key, value, dictionary):
         for k, v in dictionary.items():
             #print(f">>> printing k: {k} and printing key: {key} ")
             if k == key:
-                print(f">>>>indeed {k} == {key}")
+                #print(f">>>>indeed {k} == {key}")
                 dictionary[key]=value
                 print(f">>>>> the dictionary got updated in the previous line : {dictionary[key]} ")
             elif isinstance(v, dict):
@@ -85,7 +85,7 @@ def update_charts_yaml (p,yaml):
 
         with open(rf) as f:
             reqs_data = yaml.load(f)
-        
+
            # print(reqs_data)
             try: 
                 dlist = reqs_data['dependencies']
@@ -156,20 +156,37 @@ def update_values_for_ingress(p, yaml):
             data = yaml.load(f)
             ## clear the existing data/values from the ingress 
             ## then copy in the new values 
+
+            plist = [] 
             for x, value in lookup('ingress', data):
-                if (isinstance(value, list)):
-                    print("yep is list")
-                    value.clear()
-                elif (isinstance(value, dict)):
-                    value_copy=value.copy()
-                    for k in  value_copy.keys():
-                        del value[k]
+                plist = plist + [x]
+                print("found ingress")
+            #list(update_key('ingress', bivf_data , value))
+            print(plist) 
+            for i in plist:
+                print(i[0])
+                for x, value in lookup(i[0], data):
+                    with open(bivf) as f:
+                        bdata = yaml.load(f)
+
+                    print(f"the top level x:value is {x}")
+                    if value.get("ingress"):
+                        print("got ingress")
+                        del value['ingress']
+                        # value.insert(1,'ingress',bivf_data)
+                        value['ingress'] = bdata
+                
+                #if (isinstance(value, list)):
+                #     print("yep is list")
+                #     value.clear()
+                # elif (isinstance(value, dict)):
+                #     value_copy=value.copy()
+                #     for k in  value_copy.keys():
+                #         del value[k]
                 #print(f"dir for CommentedMap = {dir(yaml)}")
-                    for z , value1 in lookup('ingress',bivf_data):
-                        print(z)
-                        print(value1)
-                        for k,v in  value1.items():
-                            value.insert(2,k,v)
+                    # for z , value1 in lookup('ingress',bivf_data):
+
+                    #         value.insert(2,k,v)
                     # if (isinstance(bivf_data, list)):
                     #     printf("BIVF is a list ")
                     #     i_list = bivf_data['ingress']
@@ -182,7 +199,7 @@ def update_values_for_ingress(p, yaml):
                     #         # value.insert(1,"tom", "fred6")
                     #         # value.inseet(2,)
 
-#        yaml.dump(data, sys.stdout)        
+                #yaml.dump(data, sys.stdout)        
 
         
             #del data['ingress']
@@ -280,3 +297,4 @@ def main(argv) :
 
 if __name__ == "__main__":
     main(sys.argv[1:])
+
