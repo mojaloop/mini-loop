@@ -86,16 +86,16 @@ def update_charts_yaml (p,yaml):
         with open(rf) as f:
             reqs_data = yaml.load(f)
 
-           # print(reqs_data)
+            print(reqs_data)
             try: 
                 dlist = reqs_data['dependencies']
-                for i in range(len(dlist)): 
-                    if (dlist[i]['name'] in ["percona-xtradb-cluster","mysql"] ): 
-                        dlist[i]['name'] = "mysql"
-                        dlist[i]['version'] = 8.0
-                        dlist[i]['repository'] = "https://charts.bitnami.com/bitnami"
-                        dlist[i]['alias'] = "mysql"
-                        dlist[i]['condition'] = "mysql.enabled"
+                # for i in range(len(dlist)): 
+                #     if (dlist[i]['name'] in ["percona-xtradb-cluster","mysql"] ): 
+                #         dlist[i]['name'] = "mysql"
+                #         dlist[i]['version'] = 8.0
+                #         dlist[i]['repository'] = "https://charts.bitnami.com/bitnami"
+                #         dlist[i]['alias'] = "mysql"
+                #         dlist[i]['condition'] = "mysql.enabled"
 
                 # add the common library to dependencies
                 common_lib_dict={ 
@@ -112,13 +112,14 @@ def update_charts_yaml (p,yaml):
                     cfdata = yaml.load(cfile);
                     cfdata['apiVersion']="v2"
                     cfdata['dependencies']=dlist
-
-                with open(cf, "w") as cfile:
-                    yaml.dump(cfdata, cfile)
-
             except Exception as e: 
                 print(f" Exception {e} \n")        
                 continue 
+
+        with open(cf, "w") as cfile:
+            yaml.dump(cfdata, cfile)
+
+
 
     print(f" Deleting requirements files {rf}")
     for rf in p.rglob('**/*requirements.yaml'):        
@@ -149,7 +150,7 @@ def update_values_for_ingress(p, yaml):
     #sys.exit()
     origin_ingress_hostname=""
     origin_path=""
-    for vf in p.rglob('*account*/*values.yaml'):
+    for vf in p.rglob('**/*values.yaml'):
         print(f"===> Processing file < {vf.parent}/{vf.name} > ")
         data=[]
         with open(vf) as f:
@@ -305,8 +306,8 @@ def main(argv) :
     yaml.indent(mapping=2, sequence=4, offset=2)
     yaml.width = 4096
 
-    #update_charts_yaml(p,yaml)
-    #update_ingress(p,yaml,ports_array)  
+    update_charts_yaml(p,yaml)
+    update_ingress(p,yaml,ports_array)  
     update_values_for_ingress(p,yaml)
 
 if __name__ == "__main__":
