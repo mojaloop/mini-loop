@@ -172,8 +172,16 @@ def update_values_for_ingress(p, yaml):
                        newdata = yaml.load(f)
                     if value.get("ingress"):
                         if value.get('ingress', {} ).get('hosts'):
-                            hostname=value['ingress']['hosts']
-                            print(f"type of hostname is {type(hostname)}")
+                            hosts_section=value['ingress']['hosts']
+                            #print(f"type of hostname is {type(hostname)}")
+                            if isinstance(hosts_section, list):
+                                for i in hosts_section: 
+                                    hostname=i
+                            if isinstance(hosts_section,dict):
+                                for v in hosts_section.values():
+                                    hostname=v
+
+                            #yaml.dump(hostname, sys.stdout)
                         # for y, values1 in lookup('hosts', value):
                         #     #print(f"y = {y}, next y is {next(y)} ")
                         #     print(f"values1 is {values1}")
@@ -181,7 +189,7 @@ def update_values_for_ingress(p, yaml):
 
                         del value['ingress']
                         value['ingress'] = newdata
-                
+                print(f"Hostname is {hostname}")
                 #if (isinstance(value, list)):
                 #     print("yep is list")
                 #     value.clear()
