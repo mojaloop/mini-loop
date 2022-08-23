@@ -77,16 +77,18 @@ def update_charts_yaml (p,yaml):
     # copy the dependencies from requirements.yaml to the Charts.yaml
     # update the helm api to apiVersion 2 
     print(" ==> rel14x : copy dependencies from requirements.yaml to Charts.yaml")
+    processed_cnt = 0 
     for rf in p.rglob('**/*requirements.yaml'):
         
+        processed_cnt +=1
         rf_parent=rf.parent
         cf=rf.parent / 'Chart.yaml'
-        print(f"Processing requirements file {rf}")
+        print(f"Processing requirements file {rf}")     
 
         with open(rf) as f:
             reqs_data = yaml.load(f)
 
-            print(reqs_data)
+            #print(reqs_data)
             try: 
                 dlist = reqs_data['dependencies']
                 # for i in range(len(dlist)): 
@@ -101,8 +103,13 @@ def update_charts_yaml (p,yaml):
                 common_lib_dict={ 
                     "name" : "common" , 
                     "repository" : "file://../common" , 
-                    "tags" : "moja-common" ,
                     "version" : "2.0.0" }
+
+                # some charts are 1 directory level lower 
+                # so adjust the path the the common lib accordingly 
+                if  rf_parent.parent != p : 
+                   common_lib_dict['repository']="file://../../common"
+
                 dlist.append(common_lib_dict)
 
                 print(f"Processing chart file {cf} ")
@@ -120,7 +127,7 @@ def update_charts_yaml (p,yaml):
             yaml.dump(cfdata, cfile)
 
 
-
+    print(f" found :[{processed_cnt}] requirements files ")
     print(f" Deleting requirements files {rf}")
     for rf in p.rglob('**/*requirements.yaml'):        
          print(f"  ==> unlink/delete requirements: {rf}")    
@@ -132,7 +139,7 @@ def update_ingress(p, yaml,ports_array):
     bn_ingress_file = script_path.parent.parent / "./etc/bitnami/bn_ingress.yaml"
     print(f"bn_ingress_file is : {bn_ingress_file}")
     # for each existing ingress, write the new ingress content over it
-    for ingf in p.rglob('*/ingress.yaml'): 
+    for ingf in p.rglob('**/*ingress.yaml'): 
         print(f" ==> copying new ingress to {ingf} ")
         shutil.copy(bn_ingress_file, ingf)
 
@@ -145,18 +152,16 @@ def update_values_for_ingress(p, yaml):
 
         print(f"ingress data is : {bivf_data}")
         print(f"bivf is {type(bivf_data)}")
-    # xlist= bivf_data['ingress']
-    # print(f"xlist data is : {xlist}")
-    #sys.exit()
+
     origin_ingress_hostname=""
     origin_path=""
+    vf_count=0
     for vf in p.rglob('**/*values.yaml'):
         print(f"===> Processing file < {vf.parent}/{vf.name} > ")
         data=[]
+        vf_count+=1
         with open(vf) as f:
             data = yaml.load(f)
-            ## clear the existing data/values from the ingress 
-            ## then copy in the new values 
 
             toplist = [] 
             hostname=""
@@ -174,7 +179,6 @@ def update_values_for_ingress(p, yaml):
                     if value.get("ingress"):
                         if value.get('ingress', {} ).get('hosts'):
                             hosts_section=value['ingress']['hosts']
-                            #print(f"type of hostname is {type(hostname)}")
                             if isinstance(hosts_section, list):
                                 for i in hosts_section: 
                                     hostname=i
@@ -182,73 +186,15 @@ def update_values_for_ingress(p, yaml):
                                 for v in hosts_section.values():
                                     hostname=v
 
-                            #yaml.dump(hostname, sys.stdout)
-                        # for y, values1 in lookup('hosts', value):
-                        #     #print(f"y = {y}, next y is {next(y)} ")
-                        #     print(f"values1 is {values1}")
-                        #     #print(f"hostname is {values1['hosts']}")
-
                         del value['ingress']
                         value['ingress'] = newdata
-                print(f"Hostname is {hostname}")
-                #if (isinstance(value, list)):
-                #     print("yep is list")
-                #     value.clear()
-                # elif (isinstance(value, dict)):
-                #     value_copy=value.copy()
-                #     for k in  value_copy.keys():
-                #         del value[k]
-                #print(f"dir for CommentedMap = {dir(yaml)}")
-                    # for z , value1 in lookup('ingress',bivf_data):
-
-                    #         value.insert(2,k,v)
-                    # if (isinstance(bivf_data, list)):
-                    #     printf("BIVF is a list ")
-                    #     i_list = bivf_data['ingress']
-                    #     for i in range(len(i_list)): 
-                    #         print(f" new ing value is : {i_list[i]}")
-                    # elif (isinstance(bivf_data, dict)):
-                    #     print("BIVF is a dictionary ")
-                    #     for k ,v in enumerate(bivf_data):
-                    #         print(f" >> k = {k} and value = {v} ")
-                    #         # value.insert(1,"tom", "fred6")
-                    #         # value.inseet(2,)
-
-                #yaml.dump(data, sys.stdout)        
-
-        
-            #del data['ingress']
-            # for x, value in lookup('ingress', data):  
-            #     list(update_key('command', 'until nc -vz -w 1 $kafka_host $kafka_port; do echo waiting for Kafka; sleep 2; done;' , value))
-            #     x = {"tom":"fred2"} 
-            #     print(f"x is << {x} >>  ")
-            #     print(f"value is << {value} >> ")
-            #     value={"tom":"fred"} 
-            #     print(f"NEW value is << {value} >> ") 
+                if len(hostname) > 1 : 
+                    print(f"Hostname is {hostname}")
 
         with open(vf, "w") as vfile:
             yaml.dump(data, vfile)
-             
 
-            # update the values files to use a mysql instance that has already been deployed 
-            # and that uses a newly generated database password 
-            # for x, value in lookup("config", data):         
-            #     if  isinstance(value, dict):
-            #         if (value.get('db_type')): 
-            #             value['db_host'] = 'mldb'
-            #             value['db_password'] = db_pass
-
-            ### need to set nameOverride  for mysql for ml-testing-toolkit as it appears to be missing
-            # if vf == Path('mojaloop/values.yaml') : 
-            #     print("Updating the ml-testing-toolkit / mysql config ")
-            #     for x, value in lookup("ml-testing-toolkit", data):  
-            #         value['mysql'] = { "nameOverride" : "ttk-mysql" }
-
-        with open(vf, "w") as f:
-            yaml.dump(data, f)
-
-
-
+    print(f" number of values files updated is [{vf_count}]")
 
 def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Automate modifications across mojaloop helm charts')
@@ -300,6 +246,7 @@ def main(argv) :
     #print (f"ingressclassname in main is {ingress_cn}")
     p = Path() / args.directory
     print(f"Processing helm charts in directory: [{args.directory}]")
+
     yaml = YAML()
     yaml.allow_duplicate_keys = True
     yaml.preserve_quotes = True
@@ -312,4 +259,3 @@ def main(argv) :
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-

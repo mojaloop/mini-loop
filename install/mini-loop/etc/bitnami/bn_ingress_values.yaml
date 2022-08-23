@@ -78,6 +78,6 @@
     ##       -----END CERTIFICATE-----
     ##
   secrets: []
-  className: "fred"
+  className: "nginx"
 
   
