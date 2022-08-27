@@ -3,10 +3,13 @@
 """
     This script modifies a copy of the Mojaloop helm repo (version 14) to 
     1) move dependencies in the requirements.yaml to Charts.yaml
-    2) update the apiVersion for helm in the Charts.yaml to 2 
+    2) update the apiVersion for helm in all the Charts.yaml to 2 
     todo
     - updates the ingress if there is one with the ingress from bitnami
+    - add the common  dependency to each chart with an ingress
     - updates the values files for the new ingress settings 
+    - ensure the updated values files have the correct hostname 
+    - ensure the uodated values files have the correct port number  
 
     author : Tom Daly 
     Date   : Aug 2022
@@ -59,9 +62,7 @@ update_key: recursively
 """
 def update_key(key, value, dictionary):
         for k, v in dictionary.items():
-            #print(f">>> printing k: {k} and printing key: {key} ")
             if k == key:
-                #print(f">>>>indeed {k} == {key}")
                 dictionary[key]=value
                 print(f">>>>> the dictionary got updated in the previous line : {dictionary[key]} ")
             elif isinstance(v, dict):
@@ -73,21 +74,20 @@ def update_key(key, value, dictionary):
                         for result in update_key(key, value, d):
                             yield result
 
-def update_charts_yaml (p,yaml):
+def move_requirements_yaml (p,yaml):
+    print("\n-- move requirements.yaml to charts -- " )
     # copy the dependencies from requirements.yaml to the Charts.yaml
     # update the helm api to apiVersion 2 
-    print(" ==> rel14x : copy dependencies from requirements.yaml to Charts.yaml")
+    #print(" ==> rel14x : copy dependencies from requirements.yaml to Charts.yaml")
     processed_cnt = 0 
     for rf in p.rglob('**/*requirements.yaml'):
         
         processed_cnt +=1
         rf_parent=rf.parent
         cf=rf.parent / 'Chart.yaml'
-        print(f"Processing requirements file {rf}")     
-
+        #print(f"Processing requirements file {rf}")     
         with open(rf) as f:
             reqs_data = yaml.load(f)
-
             #print(reqs_data)
             try: 
                 dlist = reqs_data['dependencies']
@@ -112,84 +112,124 @@ def update_charts_yaml (p,yaml):
 
                 dlist.append(common_lib_dict)
 
-                print(f"Processing chart file {cf} ")
-                print("  ==> setting  helm apiVersion=2")
-                print("  ==> copy dependencies from requirements.yaml")
+                #print(f"Processing chart file {cf} ")
+                #print("  ==> copy dependencies from requirements.yaml")
                 with open(cf) as cfile: 
                     cfdata = yaml.load(cfile);
-                    cfdata['apiVersion']="v2"
                     cfdata['dependencies']=dlist
             except Exception as e: 
                 print(f" Exception {e} \n")        
                 continue 
-
         with open(cf, "w") as cfile:
             yaml.dump(cfdata, cfile)
 
-
-    print(f" found :[{processed_cnt}] requirements files ")
-    print(f" Deleting requirements files {rf}")
+    print(f" ==> Deleting requirements.yaml files ")
     for rf in p.rglob('**/*requirements.yaml'):        
-         print(f"  ==> unlink/delete requirements: {rf}")    
+         #print(f"  ==> unlink/delete requirements: {rf}")    
          rf.unlink(missing_ok=True)
+    print(f" ==> processed: [{processed_cnt}] requirements files ")
+
+def update_helm_version (p,yaml):
+    # update the helm api to apiVersion 2 
+    print("\n-- update helm version to 2.0 -- ")
+    processed_cnt = 0 
+    for cf in p.rglob('**/*Chart.yaml'):
+        processed_cnt +=1
+
+        with open(cf) as f:
+            cfdata = yaml.load(f)
+            cfdata['apiVersion']="v2"
+
+        with open(cf, "w") as f:
+            yaml.dump(cfdata, f)
+
+    print(f" ==> number of Charts files updated to v2.0 [{processed_cnt}] ")
 
 def update_ingress(p, yaml,ports_array):
+    print("-- update ingress -- ")
     # Copy the bitnami inspired ingress over the existing ingress
-    print("Copying in the bitnami inspired ingress.yaml ")
     bn_ingress_file = script_path.parent.parent / "./etc/bitnami/bn_ingress.yaml"
-    print(f"bn_ingress_file is : {bn_ingress_file}")
+    #print(f"  ==> bn_ingress_file is : {bn_ingress_file}")
     # for each existing ingress, write the new ingress content over it
     for ingf in p.rglob('**/*ingress.yaml'): 
-        print(f" ==> copying new ingress to {ingf} ")
+        #print(f" ==> copying new ingress to {ingf} ")
         shutil.copy(bn_ingress_file, ingf)
 
 def update_values_for_ingress(p, yaml):
     # copy in the bitemplate ingress values 
+    print("-- update the values for ingress -- ")
     bivf = script_path.parent.parent / "./etc/bitnami/bn_ingress_values.yaml"
-    print(f" Bitnami values loaded from :  {bivf}")
+    print(f" ==> Bitnami values loaded from :  {bivf}")
     with open(bivf) as f:
         bivf_data = yaml.load(f)
-
-        print(f"ingress data is : {bivf_data}")
-        print(f"bivf is {type(bivf_data)}")
+        #print(f"ingress data is : {bivf_data}")
 
     origin_ingress_hostname=""
     origin_path=""
     vf_count=0
+    service_port = ""
+    #for vf in p.rglob('*account*/**/*values.yaml'):
     for vf in p.rglob('**/*values.yaml'):
-        print(f"===> Processing file < {vf.parent}/{vf.name} > ")
+        #print(f"===> Processing file < {vf.parent}/{vf.name} > ")
+        
+        # for each valiues file if there is an ingress we need to get the 
+        # servicePort so we can set it in the updated / new values file 
+        ing_file = vf.parent / 'templates' / 'ingress.yaml'
+        #print(f"ing_file is {ing_file}")
+        if ing_file.exists():
+            #print(f" value file {vf.parent}/{vf.name} has ingress ")
+            ## dig out the servicePort
+            with open(ing_file) as ifile:
+                ingdata = ifile.readlines()
+            for line in ingdata : 
+                line = line.rstrip()
+                if re.search("servicePort:", line):
+                    service_port = re.sub("^.*servicePort: ","", line)
+                    #print(f"\"{ing_file}\" : \"{service_port}\" fred7")
+
+        
+        
         data=[]
         vf_count+=1
+        # load the values file 
         with open(vf) as f:
             data = yaml.load(f)
 
-            toplist = [] 
-            hostname=""
-            # get the top level yaml structures
-            for x, value in lookup('ingress', data):
-                toplist = toplist + [x]
-            # for each top level structure 
-            # lookup its ingress if it has one 
-            for i in toplist:
-                for x, value in lookup(i[0], data):
-                    # for some reason need to reset this data 
-                    # or it fails to insert more than once 
-                    with open(bivf) as f:
-                       newdata = yaml.load(f)
-                    if value.get("ingress"):
-                        if value.get('ingress', {} ).get('hosts'):
-                            hosts_section=value['ingress']['hosts']
-                            if isinstance(hosts_section, list):
-                                for i in hosts_section: 
-                                    hostname=i
-                            if isinstance(hosts_section,dict):
-                                for v in hosts_section.values():
-                                    hostname=v
 
-                        del value['ingress']
-                        value['ingress'] = newdata
-                if len(hostname) > 1 : 
-                    print(f"Hostname is {hostname}")
+        toplist = [] 
+        hostname=""
+        # get the top level yaml structures
+        for x, value in lookup('ingress', data):
+            toplist = toplist + [x]
+
+        # print(f"Examining the values.yaml  {vf.parent}/{vf.name}....") 
+        # for i in toplist :
+        #     print(f"[{i[0]}]" ) 
+
+        # print(f" toplist is [{i[0]}]")   
+        # for each top level structure 
+        # lookup its ingress if it has one 
+        for i in toplist:
+            #print(f"values file: {vf}    toplist is [{i[0]}]")
+            for x, value in lookup(i[0], data):
+                # for some reason need to reset this data 
+                # or it fails to insert more than once 
+                with open(bivf) as f:
+                    newdata = yaml.load(f)
+                if value.get("ingress"):
+                    if value.get('ingress', {} ).get('hosts'):
+                        hosts_section=value['ingress']['hosts']
+                        if isinstance(hosts_section, list):
+                            for i in hosts_section: 
+                                hostname=i
+                        if isinstance(hosts_section,dict):
+                            for v in hosts_section.values():
+                                hostname=v
+
+                    del value['ingress']
+                    value['ingress'] = newdata
+            #if len(hostname) > 1 : 
+                #print(f"Hostname is {hostname}")
 
         with open(vf, "w") as vfile:
             yaml.dump(data, vfile)
@@ -228,6 +268,49 @@ def main(argv) :
         'emailnotifier/values.yaml'
     ]
     
+    service_ports_ary = {
+        "/home/ubuntu/work/transaction-requests-service/templates/ingress.yaml" : "http",
+        "/home/ubuntu/work/mojaloop-simulator/templates/ingress.yaml" : "outboundapi" ,
+        "/home/ubuntu/work/mojaloop-simulator/templates/ingress.yaml" : "inboundapi" ,
+        "/home/ubuntu/work/mojaloop-simulator/templates/ingress.yaml" : "testapi" ,
+        "/home/ubuntu/work/mojaloop-simulator/templates/ingress.yaml" : "testapi" ,
+        "/home/ubuntu/work/eventstreamprocessor/templates/ingress.yaml" : "http" ,
+        "/home/ubuntu/work/account-lookup-service/chart-service/templates/ingress.yaml" : "http-api" ,
+        "/home/ubuntu/work/account-lookup-service/chart-admin/templates/ingress.yaml" : "http-admin" ,
+        "/home/ubuntu/work/quoting-service/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/centralsettlement/chart-service/templates/ingress.yaml" : "80" , 
+        "/home/ubuntu/work/ml-testing-toolkit/chart-backend/templates/ingress.yaml" : "5050" , 
+        "/home/ubuntu/work/ml-testing-toolkit/chart-frontend/templates/ingress.yaml" : "6060" ,
+        "/home/ubuntu/work/centralledger/chart-handler-timeout/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/centralledger/chart-service/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/centralledger/chart-handler-transfer-get/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/centralledger/chart-handler-admin-transfer/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/centralledger/chart-handler-transfer-fulfil/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/centralledger/chart-handler-transfer-position/templates/ingress.yaml" : "80"  ,
+        "/home/ubuntu/work/centralledger/chart-handler-transfer-prepare/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/simulator/templates/ingress.yaml" : "80"  ,
+        "/home/ubuntu/work/centraleventprocessor/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/emailnotifier/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/ml-api-adapter/chart-service/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/ml-api-adapter/chart-handler-notification/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/ml-operator/templates/ingress.yaml" : "4006" ,
+        "/home/ubuntu/work/centralkms/templates/ingress.yaml" : "5432" ,
+        "/home/ubuntu/work/ml-testing-toolkit/chart-connection-manager-frontend/templates/ingress.yaml" : "5060" ,
+        "/home/ubuntu/work/ml-testing-toolkit/chart-keycloak/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/bulk-centralledger/chart-handler-bulk-transfer-get/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/bulk-centralledger/chart-handler-bulk-transfer-processing/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/bulk-centralledger/chart-handler-bulk-transfer-prepare/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/bulk-centralledger/chart-handler-bulk-transfer-fulfil/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/centralenduserregistry/templates/ingress.yaml" : "3001" ,
+        "/home/ubuntu/work/als-oracle-pathfinder/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/forensicloggingsidecar/templates/ingress.yaml" : "5678" ,
+        "/home/ubuntu/work/bulk-api-adapter/chart-service/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/bulk-api-adapter/chart-handler-notification/templates/ingress.yaml" : "80" ,
+        "/home/ubuntu/work/thirdparty/chart-tp-api-svc/templates/ingress.yaml" : "3008" ,
+        "/home/ubuntu/work/thirdparty/chart-consent-oracle/templates/ingress.yaml" : "3000" ,
+        "/home/ubuntu/work/thirdparty/chart-auth-svc/templates/ingress.yaml" : "4004" ,
+        "/home/ubuntu/work/ml-testing-toolkit/chart-connection-manager-backend/templates/ingress.yaml" : "5061" 
+    }
     ports_array  = {
         "simapi" : "3000",
         "reportapi" : "3002",
@@ -242,6 +325,11 @@ def main(argv) :
         "outboundapi" : "{{ $config.config.schemeAdapter.env.OUTBOUND_LISTEN_PORT }}"
     }
 
+
+    for k,v in service_ports_ary.items() : 
+        print(f" the array is {k}:{v} ")
+    sys.exit(1)
+
     #ingress_cn = set_ingressclassname(args.kubernetes)
     #print (f"ingressclassname in main is {ingress_cn}")
     p = Path() / args.directory
@@ -253,8 +341,9 @@ def main(argv) :
     yaml.indent(mapping=2, sequence=4, offset=2)
     yaml.width = 4096
 
-    update_charts_yaml(p,yaml)
-    update_ingress(p,yaml,ports_array)  
+    #move_requirements_yaml(p,yaml) 
+    #update_helm_version(p,yaml)
+    #update_ingress(p,yaml,ports_array)  
     update_values_for_ingress(p,yaml)
 
 if __name__ == "__main__":
