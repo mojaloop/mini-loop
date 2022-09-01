@@ -155,7 +155,21 @@ def update_ingress(p, yaml,ports_array):
         #print(f" ==> copying new ingress to {ingf} ")
         shutil.copy(bn_ingress_file, ingf)
 
-def update_values_for_ingress(p, yaml):
+def get_sp(p,vf,ing_file,spa):
+    # get the servicePort for the ingress file being processed
+    print(f"ingfile starts as {ing_file}")
+    print(f"ingfile parents starts as {ing_file.parent}")
+    while ing_file.parent != p :
+        print("go up the chaion")
+        ing_file=ing_file.parent
+
+
+    print(f"ing_file is {ing_file } ")
+    if spa[ing_file]:
+        print(f"found servicePort {spa[ing_file]} for ingress file {ing_file}  ")
+        return spa[ing_file]
+
+def update_values_for_ingress(p, yaml,spa):
     # copy in the bitemplate ingress values 
     print("-- update the values for ingress -- ")
     bivf = script_path.parent.parent / "./etc/bitnami/bn_ingress_values.yaml"
@@ -170,31 +184,29 @@ def update_values_for_ingress(p, yaml):
     service_port = ""
     #for vf in p.rglob('*account*/**/*values.yaml'):
     for vf in p.rglob('**/*values.yaml'):
-        #print(f"===> Processing file < {vf.parent}/{vf.name} > ")
+        print(f"===> Processing file < {vf.parent}/    {vf.name} > ")
         
         # for each valiues file if there is an ingress we need to get the 
         # servicePort so we can set it in the updated / new values file 
         ing_file = vf.parent / 'templates' / 'ingress.yaml'
         #print(f"ing_file is {ing_file}")
         if ing_file.exists():
+            service_port=get_sp(p,vf,ing_file,spa)
             #print(f" value file {vf.parent}/{vf.name} has ingress ")
             ## dig out the servicePort
             with open(ing_file) as ifile:
                 ingdata = ifile.readlines()
             for line in ingdata : 
                 line = line.rstrip()
-                if re.search("servicePort:", line):
-                    service_port = re.sub("^.*servicePort: ","", line)
+                if re.search(r"ml_service_port_dummy", line):
+                    service_port = re.sub(r"(\s+)servicePort: ml_service_port_dummy.*$","\1servicePort: fredport", line)
                     #print(f"\"{ing_file}\" : \"{service_port}\" fred7")
 
-        
-        
         data=[]
         vf_count+=1
         # load the values file 
         with open(vf) as f:
             data = yaml.load(f)
-
 
         toplist = [] 
         hostname=""
@@ -269,47 +281,47 @@ def main(argv) :
     ]
     
     service_ports_ary = {
-        "/home/ubuntu/work/transaction-requests-service/templates/ingress.yaml" : "http",
-        "/home/ubuntu/work/mojaloop-simulator/templates/ingress.yaml" : "outboundapi" ,
-        "/home/ubuntu/work/mojaloop-simulator/templates/ingress.yaml" : "inboundapi" ,
-        "/home/ubuntu/work/mojaloop-simulator/templates/ingress.yaml" : "testapi" ,
-        "/home/ubuntu/work/mojaloop-simulator/templates/ingress.yaml" : "testapi" ,
-        "/home/ubuntu/work/eventstreamprocessor/templates/ingress.yaml" : "http" ,
-        "/home/ubuntu/work/account-lookup-service/chart-service/templates/ingress.yaml" : "http-api" ,
-        "/home/ubuntu/work/account-lookup-service/chart-admin/templates/ingress.yaml" : "http-admin" ,
-        "/home/ubuntu/work/quoting-service/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/centralsettlement/chart-service/templates/ingress.yaml" : "80" , 
-        "/home/ubuntu/work/ml-testing-toolkit/chart-backend/templates/ingress.yaml" : "5050" , 
-        "/home/ubuntu/work/ml-testing-toolkit/chart-frontend/templates/ingress.yaml" : "6060" ,
-        "/home/ubuntu/work/centralledger/chart-handler-timeout/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/centralledger/chart-service/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/centralledger/chart-handler-transfer-get/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/centralledger/chart-handler-admin-transfer/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/centralledger/chart-handler-transfer-fulfil/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/centralledger/chart-handler-transfer-position/templates/ingress.yaml" : "80"  ,
-        "/home/ubuntu/work/centralledger/chart-handler-transfer-prepare/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/simulator/templates/ingress.yaml" : "80"  ,
-        "/home/ubuntu/work/centraleventprocessor/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/emailnotifier/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/ml-api-adapter/chart-service/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/ml-api-adapter/chart-handler-notification/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/ml-operator/templates/ingress.yaml" : "4006" ,
-        "/home/ubuntu/work/centralkms/templates/ingress.yaml" : "5432" ,
-        "/home/ubuntu/work/ml-testing-toolkit/chart-connection-manager-frontend/templates/ingress.yaml" : "5060" ,
-        "/home/ubuntu/work/ml-testing-toolkit/chart-keycloak/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/bulk-centralledger/chart-handler-bulk-transfer-get/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/bulk-centralledger/chart-handler-bulk-transfer-processing/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/bulk-centralledger/chart-handler-bulk-transfer-prepare/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/bulk-centralledger/chart-handler-bulk-transfer-fulfil/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/centralenduserregistry/templates/ingress.yaml" : "3001" ,
-        "/home/ubuntu/work/als-oracle-pathfinder/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/forensicloggingsidecar/templates/ingress.yaml" : "5678" ,
-        "/home/ubuntu/work/bulk-api-adapter/chart-service/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/bulk-api-adapter/chart-handler-notification/templates/ingress.yaml" : "80" ,
-        "/home/ubuntu/work/thirdparty/chart-tp-api-svc/templates/ingress.yaml" : "3008" ,
-        "/home/ubuntu/work/thirdparty/chart-consent-oracle/templates/ingress.yaml" : "3000" ,
-        "/home/ubuntu/work/thirdparty/chart-auth-svc/templates/ingress.yaml" : "4004" ,
-        "/home/ubuntu/work/ml-testing-toolkit/chart-connection-manager-backend/templates/ingress.yaml" : "5061" 
+        "transaction-requests-service/templates/ingress.yaml" : "http",
+        "mojaloop-simulator/templates/ingress.yaml" : "outboundapi" ,
+        "mojaloop-simulator/templates/ingress.yaml" : "inboundapi" ,
+        "mojaloop-simulator/templates/ingress.yaml" : "testapi" ,
+        "mojaloop-simulator/templates/ingress.yaml" : "testapi" ,
+        "eventstreamprocessor/templates/ingress.yaml" : "http" ,
+        "account-lookup-service/chart-service/templates/ingress.yaml" : "http-api" ,
+        "account-lookup-service/chart-admin/templates/ingress.yaml" : "http-admin" ,
+        "quoting-service/templates/ingress.yaml" : "80" ,
+        "centralsettlement/chart-service/templates/ingress.yaml" : "80" , 
+        "ml-testing-toolkit/chart-backend/templates/ingress.yaml" : "5050" , 
+        "ml-testing-toolkit/chart-frontend/templates/ingress.yaml" : "6060" ,
+        "centralledger/chart-handler-timeout/templates/ingress.yaml" : "80" ,
+        "centralledger/chart-service/templates/ingress.yaml" : "80" ,
+        "centralledger/chart-handler-transfer-get/templates/ingress.yaml" : "80" ,
+        "centralledger/chart-handler-admin-transfer/templates/ingress.yaml" : "80" ,
+        "centralledger/chart-handler-transfer-fulfil/templates/ingress.yaml" : "80" ,
+        "centralledger/chart-handler-transfer-position/templates/ingress.yaml" : "80"  ,
+        "centralledger/chart-handler-transfer-prepare/templates/ingress.yaml" : "80" ,
+        "simulator/templates/ingress.yaml" : "80"  ,
+        "centraleventprocessor/templates/ingress.yaml" : "80" ,
+        "emailnotifier/templates/ingress.yaml" : "80" ,
+        "ml-api-adapter/chart-service/templates/ingress.yaml" : "80" ,
+        "ml-api-adapter/chart-handler-notification/templates/ingress.yaml" : "80" ,
+        "ml-operator/templates/ingress.yaml" : "4006" ,
+        "centralkms/templates/ingress.yaml" : "5432" ,
+        "ml-testing-toolkit/chart-connection-manager-frontend/templates/ingress.yaml" : "5060" ,
+        "ml-testing-toolkit/chart-keycloak/templates/ingress.yaml" : "80" ,
+        "bulk-centralledger/chart-handler-bulk-transfer-get/templates/ingress.yaml" : "80" ,
+        "bulk-centralledger/chart-handler-bulk-transfer-processing/templates/ingress.yaml" : "80" ,
+        "bulk-centralledger/chart-handler-bulk-transfer-prepare/templates/ingress.yaml" : "80" ,
+        "bulk-centralledger/chart-handler-bulk-transfer-fulfil/templates/ingress.yaml" : "80" ,
+        "centralenduserregistry/templates/ingress.yaml" : "3001" ,
+        "als-oracle-pathfinder/templates/ingress.yaml" : "80" ,
+        "forensicloggingsidecar/templates/ingress.yaml" : "5678" ,
+        "bulk-api-adapter/chart-service/templates/ingress.yaml" : "80" ,
+        "bulk-api-adapter/chart-handler-notification/templates/ingress.yaml" : "80" ,
+        "thirdparty/chart-tp-api-svc/templates/ingress.yaml" : "3008" ,
+        "thirdparty/chart-consent-oracle/templates/ingress.yaml" : "3000" ,
+        "thirdparty/chart-auth-svc/templates/ingress.yaml" : "4004" ,
+        "ml-testing-toolkit/chart-connection-manager-backend/templates/ingress.yaml" : "5061" 
     }
     ports_array  = {
         "simapi" : "3000",
@@ -326,9 +338,9 @@ def main(argv) :
     }
 
 
-    for k,v in service_ports_ary.items() : 
-        print(f" the array is {k}:{v} ")
-    sys.exit(1)
+    # for k,v in service_ports_ary.items() : 
+    #     print(f" the array is {k}:{v} ")
+    # sys.exit(1)
 
     #ingress_cn = set_ingressclassname(args.kubernetes)
     #print (f"ingressclassname in main is {ingress_cn}")
@@ -344,7 +356,7 @@ def main(argv) :
     #move_requirements_yaml(p,yaml) 
     #update_helm_version(p,yaml)
     #update_ingress(p,yaml,ports_array)  
-    update_values_for_ingress(p,yaml)
+    update_values_for_ingress(p,yaml,service_ports_ary)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
