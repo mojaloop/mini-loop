@@ -241,7 +241,7 @@ function install_mojaloop_from_local {
 
 function delete_mojaloop_helm_chart {
   printf "==> uninstalling mojaloop: helm delete %s --namespace %s" "$NAMESPACE" "$ML_RELEASE_NAME"
-  ml_exists=`helm ls --namespace $NAMESPACE | grep $ML_RELEASE_NAME | cut -d " " -f1`
+  ml_exists=`helm ls -a --namespace $NAMESPACE | grep $ML_RELEASE_NAME | cut -d " " -f1`
   if [ ! -z $ml_exists ] && [ "$ml_exists" == "$ML_RELEASE_NAME" ]; then 
     helm delete $ML_RELEASE_NAME --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
     if [[ $? -eq 0  ]]; then 

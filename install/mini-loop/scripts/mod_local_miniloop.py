@@ -202,6 +202,7 @@ def main(argv) :
             print(line)
 
     print(" ==> mod_local_miniloop : Modify helm values to implement single mysql database")
+    print(" ==> mod_local_miniloop : also update mongo command to mongosh command")
     for vf in p.glob('**/*values.yaml') :
         with open(vf) as f:
             if (args.verbose): 
@@ -230,6 +231,17 @@ def main(argv) :
                         value['db_host'] = 'mldb'
                         value['db_password'] = db_pass
 
+            ## sept 1 2022: update the mongo command to mongosh so we can use latest mongodb release
+            ##              this fixes a recent issue with centraleventprocessor failing to start
+            for x, value in lookup("mongodb", data):         
+                if  isinstance(value, dict):
+                    
+                    if value.get('command'):
+                        if re.match("mongo mongodb",value['command']):
+                            new_cmd=re.sub("mongo mongodb","mongosh mongodb",value['command'])
+                            print(f" old command is {value['command']}")
+                            value['command'] = new_cmd
+                            print(f" new command is {value['command']}")
             ### need to set nameOverride  for mysql for ml-testing-toolkit as it appears to be missing
             # if vf == Path('mojaloop/values.yaml') : 
             #     print("Updating the ml-testing-toolkit / mysql config ")
