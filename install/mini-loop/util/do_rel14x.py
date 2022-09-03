@@ -6,10 +6,10 @@
     2) update the apiVersion for helm in all the Charts.yaml to 2 
     todo
     - updates the ingress if there is one with the ingress from bitnami
-    - add the common  dependency to each chart with an ingress
+    - add the common dependency to each chart that already has an ingress
     - updates the values files for the new ingress settings 
     - ensure the updated values files have the correct hostname 
-    - ensure the uodated values files have the correct port number  
+    - ensure the updated values files have the correct port number  
 
     author : Tom Daly 
     Date   : Aug 2022
@@ -158,13 +158,18 @@ def update_ingress(p, yaml,ports_array):
 def get_sp(p,vf,ing_file,spa):
     # get the servicePort for the ingress file being processed
     print(f"ingfile starts as {ing_file}")
-    print(f"ingfile parents starts as {ing_file.parent}")
-    while ing_file.parent != p :
-        print("go up the chaion")
-        ing_file=ing_file.parent
+    print(f" relative path is {vf.relative_to(p)}")
 
 
-    print(f"ing_file is {ing_file } ")
+    # while ing_file != p :
+
+    #     print(f"ingfile parents starts as {ing_file.parent}")
+    #     print("go up the chain")
+    #     ing_file=ing_file.parent
+
+    x_file = vf.relative_to(p)  # holds the ingress values file relative path
+    ing_file = str(x_file.parent)
+    print(f"ing_file is {ing_file } ingfile type is {type(ing_file)} ")
     if spa[ing_file]:
         print(f"found servicePort {spa[ing_file]} for ingress file {ing_file}  ")
         return spa[ing_file]
@@ -173,9 +178,9 @@ def update_values_for_ingress(p, yaml,spa):
     # copy in the bitemplate ingress values 
     print("-- update the values for ingress -- ")
     bivf = script_path.parent.parent / "./etc/bitnami/bn_ingress_values.yaml"
-    print(f" ==> Bitnami values loaded from :  {bivf}")
-    with open(bivf) as f:
-        bivf_data = yaml.load(f)
+    #print(f" ==> Bitnami values loaded from :  {bivf}")
+    # with open(bivf) as f:
+    #     bivf_data = yaml.load(f)
         #print(f"ingress data is : {bivf_data}")
 
     origin_ingress_hostname=""
@@ -192,15 +197,20 @@ def update_values_for_ingress(p, yaml,spa):
         #print(f"ing_file is {ing_file}")
         if ing_file.exists():
             service_port=get_sp(p,vf,ing_file,spa)
-            #print(f" value file {vf.parent}/{vf.name} has ingress ")
-            ## dig out the servicePort
-            with open(ing_file) as ifile:
-                ingdata = ifile.readlines()
-            for line in ingdata : 
-                line = line.rstrip()
-                if re.search(r"ml_service_port_dummy", line):
-                    service_port = re.sub(r"(\s+)servicePort: ml_service_port_dummy.*$","\1servicePort: fredport", line)
-                    #print(f"\"{ing_file}\" : \"{service_port}\" fred7")
+
+        #print(f"ingress data is : {bivf_data}")
+    
+
+
+            # #print(f" value file {vf.parent}/{vf.name} has ingress ")
+            # ## dig out the servicePort
+            # with open(ing_file) as ifile:
+            #     ingdata = ifile.readlines()
+            # for line in ingdata : 
+            #     line = line.rstrip()
+            #     if re.search(r"ml_service_port_dummy", line):
+            #         service_port = re.sub(r"(\s+)servicePort: ml_service_port_dummy.*$","\1servicePort: fredport", line)
+            #         #print(f"\"{ing_file}\" : \"{service_port}\" fred7")
 
         data=[]
         vf_count+=1
@@ -228,6 +238,8 @@ def update_values_for_ingress(p, yaml,spa):
                 # or it fails to insert more than once 
                 with open(bivf) as f:
                     newdata = yaml.load(f)
+                # update the bitnami template chart with the serviceport 
+                newdata['servicePort'] = service_port + " fredz"
                 if value.get("ingress"):
                     if value.get('ingress', {} ).get('hosts'):
                         hosts_section=value['ingress']['hosts']
@@ -281,47 +293,47 @@ def main(argv) :
     ]
     
     service_ports_ary = {
-        "transaction-requests-service/templates/ingress.yaml" : "http",
-        "mojaloop-simulator/templates/ingress.yaml" : "outboundapi" ,
-        "mojaloop-simulator/templates/ingress.yaml" : "inboundapi" ,
-        "mojaloop-simulator/templates/ingress.yaml" : "testapi" ,
-        "mojaloop-simulator/templates/ingress.yaml" : "testapi" ,
-        "eventstreamprocessor/templates/ingress.yaml" : "http" ,
-        "account-lookup-service/chart-service/templates/ingress.yaml" : "http-api" ,
-        "account-lookup-service/chart-admin/templates/ingress.yaml" : "http-admin" ,
-        "quoting-service/templates/ingress.yaml" : "80" ,
-        "centralsettlement/chart-service/templates/ingress.yaml" : "80" , 
-        "ml-testing-toolkit/chart-backend/templates/ingress.yaml" : "5050" , 
-        "ml-testing-toolkit/chart-frontend/templates/ingress.yaml" : "6060" ,
-        "centralledger/chart-handler-timeout/templates/ingress.yaml" : "80" ,
-        "centralledger/chart-service/templates/ingress.yaml" : "80" ,
-        "centralledger/chart-handler-transfer-get/templates/ingress.yaml" : "80" ,
-        "centralledger/chart-handler-admin-transfer/templates/ingress.yaml" : "80" ,
-        "centralledger/chart-handler-transfer-fulfil/templates/ingress.yaml" : "80" ,
-        "centralledger/chart-handler-transfer-position/templates/ingress.yaml" : "80"  ,
-        "centralledger/chart-handler-transfer-prepare/templates/ingress.yaml" : "80" ,
-        "simulator/templates/ingress.yaml" : "80"  ,
-        "centraleventprocessor/templates/ingress.yaml" : "80" ,
-        "emailnotifier/templates/ingress.yaml" : "80" ,
-        "ml-api-adapter/chart-service/templates/ingress.yaml" : "80" ,
-        "ml-api-adapter/chart-handler-notification/templates/ingress.yaml" : "80" ,
-        "ml-operator/templates/ingress.yaml" : "4006" ,
-        "centralkms/templates/ingress.yaml" : "5432" ,
-        "ml-testing-toolkit/chart-connection-manager-frontend/templates/ingress.yaml" : "5060" ,
-        "ml-testing-toolkit/chart-keycloak/templates/ingress.yaml" : "80" ,
-        "bulk-centralledger/chart-handler-bulk-transfer-get/templates/ingress.yaml" : "80" ,
-        "bulk-centralledger/chart-handler-bulk-transfer-processing/templates/ingress.yaml" : "80" ,
-        "bulk-centralledger/chart-handler-bulk-transfer-prepare/templates/ingress.yaml" : "80" ,
-        "bulk-centralledger/chart-handler-bulk-transfer-fulfil/templates/ingress.yaml" : "80" ,
-        "centralenduserregistry/templates/ingress.yaml" : "3001" ,
-        "als-oracle-pathfinder/templates/ingress.yaml" : "80" ,
-        "forensicloggingsidecar/templates/ingress.yaml" : "5678" ,
-        "bulk-api-adapter/chart-service/templates/ingress.yaml" : "80" ,
-        "bulk-api-adapter/chart-handler-notification/templates/ingress.yaml" : "80" ,
-        "thirdparty/chart-tp-api-svc/templates/ingress.yaml" : "3008" ,
-        "thirdparty/chart-consent-oracle/templates/ingress.yaml" : "3000" ,
-        "thirdparty/chart-auth-svc/templates/ingress.yaml" : "4004" ,
-        "ml-testing-toolkit/chart-connection-manager-backend/templates/ingress.yaml" : "5061" 
+        "transaction-requests-service" : "http",
+        "mojaloop-simulator" : "outboundapi" ,
+        "mojaloop-simulator" : "inboundapi" ,
+        "mojaloop-simulator" : "testapi" ,
+        "mojaloop-simulator" : "testapi" ,
+        "eventstreamprocessor" : "http" ,
+        "account-lookup-service/chart-service" : "http-api" ,
+        "account-lookup-service/chart-admin" : "http-admin" ,
+        "quoting-service" : "80" ,
+        "centralsettlement/chart-service" : "80" , 
+        "ml-testing-toolkit/chart-backend" : "5050" , 
+        "ml-testing-toolkit/chart-frontend" : "6060" ,
+        "centralledger/chart-handler-timeout" : "80" ,
+        "centralledger/chart-service" : "80" ,
+        "centralledger/chart-handler-transfer-get" : "80" ,
+        "centralledger/chart-handler-admin-transfer" : "80" ,
+        "centralledger/chart-handler-transfer-fulfil" : "80" ,
+        "centralledger/chart-handler-transfer-position" : "80"  ,
+        "centralledger/chart-handler-transfer-prepare" : "80" ,
+        "simulator" : "80"  ,
+        "centraleventprocessor" : "80" ,
+        "emailnotifier" : "80" ,
+        "ml-api-adapter/chart-service" : "80" ,
+        "ml-api-adapter/chart-handler-notification" : "80" ,
+        "ml-operator" : "4006" ,
+        "centralkms" : "5432" ,
+        "ml-testing-toolkit/chart-connection-manager-frontend" : "5060" ,
+        "ml-testing-toolkit/chart-keycloak" : "80" ,
+        "bulk-centralledger/chart-handler-bulk-transfer-get" : "80" ,
+        "bulk-centralledger/chart-handler-bulk-transfer-processing" : "80" ,
+        "bulk-centralledger/chart-handler-bulk-transfer-prepare" : "80" ,
+        "bulk-centralledger/chart-handler-bulk-transfer-fulfil" : "80" ,
+        "centralenduserregistry" : "3001" ,
+        "als-oracle-pathfinder" : "80" ,
+        "forensicloggingsidecar" : "5678" ,
+        "bulk-api-adapter/chart-service" : "80" ,
+        "bulk-api-adapter/chart-handler-notification" : "80" ,
+        "thirdparty/chart-tp-api-svc" : "3008" ,
+        "thirdparty/chart-consent-oracle" : "3000" ,
+        "thirdparty/chart-auth-svc" : "4004" ,
+        "ml-testing-toolkit/chart-connection-manager-backend" : "5061" 
     }
     ports_array  = {
         "simapi" : "3000",
