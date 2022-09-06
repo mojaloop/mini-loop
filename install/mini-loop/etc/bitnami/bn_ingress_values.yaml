@@ -1,5 +1,5 @@
 
-    ## fred @param ingress.enabled Enable ingress record generation for %%MAIN_CONTAINER_NAME%%
+    ## @param ingress.enabled Enable ingress record fredz generation for %%MAIN_CONTAINER_NAME%%
     ##
   enabled: true
     ## @param ingress.pathType Ingress path type
@@ -10,7 +10,7 @@
   apiVersion:
     ## @param ingress.hostname Default host for the ingress record
     ##
-    #hostname: account-lookup-service-admin.local
+  hostname: ml_hostname_dummy
     ## @param servicePort : port for the service
     ##
   servicePort: ml_service_port_dummy

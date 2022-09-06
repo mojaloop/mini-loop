@@ -157,60 +157,39 @@ def update_ingress(p, yaml,ports_array):
 
 def get_sp(p,vf,ing_file,spa):
     # get the servicePort for the ingress file being processed
-    print(f"ingfile starts as {ing_file}")
-    print(f" relative path is {vf.relative_to(p)}")
-
-
-    # while ing_file != p :
-
-    #     print(f"ingfile parents starts as {ing_file.parent}")
-    #     print("go up the chain")
-    #     ing_file=ing_file.parent
+    # print(f"ingfile starts as {ing_file}")
+    # print(f" relative path is {vf.relative_to(p)}")
 
     x_file = vf.relative_to(p)  # holds the ingress values file relative path
     ing_file = str(x_file.parent)
-    print(f"ing_file is {ing_file } ingfile type is {type(ing_file)} ")
+    #print(f"ing_file is {ing_file } ingfile type is {type(ing_file)} ")
     if spa[ing_file]:
-        print(f"found servicePort {spa[ing_file]} for ingress file {ing_file}  ")
+        #print(f"found servicePort {spa[ing_file]} for ingress file {ing_file}  ")
         return spa[ing_file]
 
 def update_values_for_ingress(p, yaml,spa):
-    # copy in the bitemplate ingress values 
+    # copy in the bitnami template ingress values 
     print("-- update the values for ingress -- ")
     bivf = script_path.parent.parent / "./etc/bitnami/bn_ingress_values.yaml"
-    #print(f" ==> Bitnami values loaded from :  {bivf}")
-    # with open(bivf) as f:
-    #     bivf_data = yaml.load(f)
-        #print(f"ingress data is : {bivf_data}")
 
     origin_ingress_hostname=""
     origin_path=""
     vf_count=0
+    ing_file_count = 0 
     service_port = ""
     #for vf in p.rglob('*account*/**/*values.yaml'):
     for vf in p.rglob('**/*values.yaml'):
-        print(f"===> Processing file < {vf.parent}/    {vf.name} > ")
+        print(f"===> Processing file < {vf.parent}/{vf.name} > ")
         
         # for each valiues file if there is an ingress we need to get the 
         # servicePort so we can set it in the updated / new values file 
-        ing_file = vf.parent / 'templates' / 'ingress.yaml'
-        #print(f"ing_file is {ing_file}")
+        #ing_file = vf.parent / 'templates' / 'ingress.yaml'
+        template_dir=vf.relative_to("templates")
+        print(f" templates_dir is {template_dir}")
+        print(f"ing_file is {ing_file}")
         if ing_file.exists():
+            ing_file_count += 1
             service_port=get_sp(p,vf,ing_file,spa)
-
-        #print(f"ingress data is : {bivf_data}")
-    
-
-
-            # #print(f" value file {vf.parent}/{vf.name} has ingress ")
-            # ## dig out the servicePort
-            # with open(ing_file) as ifile:
-            #     ingdata = ifile.readlines()
-            # for line in ingdata : 
-            #     line = line.rstrip()
-            #     if re.search(r"ml_service_port_dummy", line):
-            #         service_port = re.sub(r"(\s+)servicePort: ml_service_port_dummy.*$","\1servicePort: fredport", line)
-            #         #print(f"\"{ing_file}\" : \"{service_port}\" fred7")
 
         data=[]
         vf_count+=1
@@ -239,7 +218,7 @@ def update_values_for_ingress(p, yaml,spa):
                 with open(bivf) as f:
                     newdata = yaml.load(f)
                 # update the bitnami template chart with the serviceport 
-                newdata['servicePort'] = service_port + " fredz"
+                newdata['servicePort'] = service_port
                 if value.get("ingress"):
                     if value.get('ingress', {} ).get('hosts'):
                         hosts_section=value['ingress']['hosts']
@@ -252,13 +231,16 @@ def update_values_for_ingress(p, yaml,spa):
 
                     del value['ingress']
                     value['ingress'] = newdata
-            #if len(hostname) > 1 : 
-                #print(f"Hostname is {hostname}")
+            if len(hostname) > 1 : 
+                print(f"Hostname is {hostname}")
 
         with open(vf, "w") as vfile:
             yaml.dump(data, vfile)
 
     print(f" number of values files updated is [{vf_count}]")
+    print(f" number of ingress files catered for  is [{ing_file_count}]")
+
+
 
 def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Automate modifications across mojaloop helm charts')
@@ -365,10 +347,11 @@ def main(argv) :
     yaml.indent(mapping=2, sequence=4, offset=2)
     yaml.width = 4096
 
-    #move_requirements_yaml(p,yaml) 
-    #update_helm_version(p,yaml)
-    #update_ingress(p,yaml,ports_array)  
+    move_requirements_yaml(p,yaml) 
+    update_helm_version(p,yaml)
     update_values_for_ingress(p,yaml,service_ports_ary)
+    update_ingress(p,yaml,ports_array)  
+ 
 
 if __name__ == "__main__":
     main(sys.argv[1:])
