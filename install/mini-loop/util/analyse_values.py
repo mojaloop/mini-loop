@@ -87,86 +87,9 @@ def update_key(key, value, dictionary):
                         for result in update_key(key, value, d):
                             yield result
 
-def move_requirements_yaml (p,yaml):
-    print("\n-- move requirements.yaml to charts -- " )
-    # copy the dependencies from requirements.yaml to the Charts.yaml
-    # update the helm api to apiVersion 2 
-    #print(" ==> rel14x : copy dependencies from requirements.yaml to Charts.yaml")
-    processed_cnt = 0 
-    for rf in p.rglob('**/*requirements.yaml'):
-        
-        processed_cnt +=1
-        rf_parent=rf.parent
-        cf=rf.parent / 'Chart.yaml'
-        #print(f"Processing requirements file {rf}")     
-        with open(rf) as f:
-            reqs_data = yaml.load(f)
-            #print(reqs_data)
-            try: 
-                dlist = reqs_data['dependencies']
-                # for i in range(len(dlist)): 
-                #     if (dlist[i]['name'] in ["percona-xtradb-cluster","mysql"] ): 
-                #         dlist[i]['name'] = "mysql"
-                #         dlist[i]['version'] = 8.0
-                #         dlist[i]['repository'] = "https://charts.bitnami.com/bitnami"
-                #         dlist[i]['alias'] = "mysql"
-                #         dlist[i]['condition'] = "mysql.enabled"
-
-                # add the common library to dependencies
-                common_lib_dict={ 
-                    "name" : "common" , 
-                    "repository" : "file://../common" , 
-                    "version" : "2.0.0" }
-
-                # some charts are 1 directory level lower 
-                # so adjust the path the the common lib accordingly 
-                if  rf_parent.parent != p : 
-                   common_lib_dict['repository']="file://../../common"
-
-                dlist.append(common_lib_dict)
-
-                #print(f"Processing chart file {cf} ")
-                #print("  ==> copy dependencies from requirements.yaml")
-                with open(cf) as cfile: 
-                    cfdata = yaml.load(cfile);
-                    cfdata['dependencies']=dlist
-            except Exception as e: 
-                print(f" Exception {e} \n")        
-                continue 
-        with open(cf, "w") as cfile:
-            yaml.dump(cfdata, cfile)
-
-    print(f" ==> Deleting requirements.yaml files ")
-    for rf in p.rglob('**/*requirements.yaml'):        
-         #print(f"  ==> unlink/delete requirements: {rf}")    
-         rf.unlink(missing_ok=True)
-    print(f" ==> processed: [{processed_cnt}] requirements files ")
-
-def update_helm_version (p,yaml):
-    # update the helm api to apiVersion 2 
-    print("\n-- update helm version to 2.0 -- ")
-    processed_cnt = 0 
-    for cf in p.rglob('**/*Chart.yaml'):
-        processed_cnt +=1
-
-        with open(cf) as f:
-            cfdata = yaml.load(f)
-            cfdata['apiVersion']="v2"
-
-        with open(cf, "w") as f:
-            yaml.dump(cfdata, f)
-
-    print(f" ==> number of Charts files updated to v2.0 [{processed_cnt}] ")
-
-def update_ingress(p, yaml,ports_array):
-    print("-- update ingress -- ")
-    # Copy the bitnami inspired ingress over the existing ingress
-    bn_ingress_file = script_path.parent.parent / "./etc/bitnami/bn_ingress.yaml"
-    #print(f"  ==> bn_ingress_file is : {bn_ingress_file}")
-    # for each existing ingress, write the new ingress content over it
-    for ingf in p.rglob('**/*ingress.yaml'): 
-        #print(f" ==> copying new ingress to {ingf} ")
-        shutil.copy(bn_ingress_file, ingf)
+def print_ingress_yaml_files (p, yaml): 
+     for ingf in p.rglob('**/*ingress.yaml'): 
+        print(f"ingress: {ingf.parent}/{ingf}")
 
 def get_sp(p,vf,ing_file,spa):
     # get the servicePort for the ingress file being processed
@@ -175,14 +98,14 @@ def get_sp(p,vf,ing_file,spa):
 
     x_file = vf.relative_to(p)  # holds the ingress values file relative path
     ing_file = str(x_file.parent)
-    print(f"ing_file is {ing_file } ingfile type is {type(ing_file)} ")
+    #print(f"ing_file is {ing_file } ingfile type is {type(ing_file)} ")
     if spa[ing_file]:
-        print(f"found servicePort {spa[ing_file]} for ingress file {ing_file}  ")
+        print(f"    found servicePort {spa[ing_file]} for ingress file {ing_file}  ")
         return spa[ing_file]
 
-def update_values_for_ingress(p, yaml,spa):
+def dig_out_values_for_ingress(p, yaml,spa):
     # copy in the bitnami template ingress values 
-    print("-- update the values for ingress -- ")
+    print("-- dig out the  values for ingress -- ")
     bivf = script_path.parent.parent / "./etc/bitnami/bn_ingress_values.yaml"
 
     origin_ingress_hostname=""
@@ -197,10 +120,8 @@ def update_values_for_ingress(p, yaml,spa):
         # for each values file if there is an ingress we need to get the 
         # servicePort so we can set it in the updated / new values file 
         ing_file = vf.parent / 'templates' / 'ingress.yaml'
-        #template_dir=vf.relative_to("templates")
-        #print(f" templates_dir is {template_dir}")
-        print(f"ing_file is {ing_file}")
         if ing_file.exists():
+            print(f"    ing_file is {ing_file}")
             ing_file_count += 1
             service_port=get_sp(p,vf,ing_file,spa)
 
@@ -213,63 +134,54 @@ def update_values_for_ingress(p, yaml,spa):
         toplist = [] 
         ingress_parent_list = []
         hostname=""
+        path_value=""
+        epath_value=""
+        enabled_value=""
         # get the top level yaml structures
         for x, value in lookup('ingress', data):
-            lenx = len(x)
-            #print(f"x is {x} and length if x fred is {len(x)} ")
-            if lenx > 2:
-                #print(f" parent is {x[lenx-2]}")
-                ingress_parent_list.append(x[lenx-2])
-                #print(f"parentlist full : {parent_list}")
-            toplist = toplist + [x]
-            
+            if value.get('enabled'):
+                enabled_value=value['enabled']
+            else:
+                 enabled_value="false"
+            #print("    enabled") if enabled_value=="true" else 0 
+            print(f"    enabled_value is {enabled_value}")
+            if value.get('hosts'):
+                hosts_section=value['hosts']
+                if isinstance(hosts_section, list):
+                    for i in hosts_section: 
+                        hostname=i
+                if isinstance(hosts_section,dict):
+                    for v in hosts_section.values():
+                        hostname=v
+                if len(hostname) > 1 : 
+                        print(f"    hostname is {hostname}")
+            if value.get('path'):
+                paths_section=value['path']
+                if isinstance(p, list):
+                    for i in paths_section: 
+                        path_value=i
+                if isinstance(paths_section,dict):
+                    for v in paths_section.values():
+                        path_value=v
+                if isinstance(paths_section,str):
+                    path_value = paths_section
+                if len(path_value) > 0 : 
+                        print(f"    path is {path_value}")
+            if value.get('externalPath'):
+                epaths_section=value['externalPath']
+                if isinstance(p, list):
+                    for i in epaths_section: 
+                        epath_value=i
+                if isinstance(epaths_section,dict):
+                    for v in epaths_section.values():
+                        epath_value=v
+                if isinstance(epaths_section,str):
+                    epath_value = epaths_section
+                if len(epath_value) > 0 : 
+                        print(f"    path is {epath_value}")
 
-       # print(f"Examining the values.yaml  {vf.parent}/{vf.name}....") 
-        # for i in toplist :
-        #     print(f"toplist [{i[0]}]" ) 
-
-        # for i in parent_list :
-        #     print(f" parent_list [{i}]" ) 
-        #print(f" toplist is [{i[0]}]")   
-        # for each top level structure 
-        # lookup its ingress if it has one 
-        for i in ingress_parent_list:
-            
-            #print(f"values file: {vf}    toplist is [{i[0]}]")
-            for x, value in lookup(i, data):
-                print(f"processing parent {i} in values file {vf} and section {x} ")
-                #print (f" x = {x}")
-                # for some reason need to reset this data 
-                # or it fails to insert more than once 
-                with open(bivf) as f:
-                    newdata = yaml.load(f)
-                # update the bitnami template chart with the serviceport 
-                newdata['servicePort'] = service_port
-                for x1, value1 in lookup('ingress', value):
-                    print("and found an ingress ")
-                    # if isinstance(x1,list):
-                    #     print("and the ingress is in a list")
-                    #     print(f"x1 is {x1} and value1 is {value1}")
-                    if value1.get('hosts'):
-                        print("and found hosts entry")
-                        hosts_section=value1['hosts']
-                        if isinstance(hosts_section, list):
-                            for i in hosts_section: 
-                                hostname=i
-                        if isinstance(hosts_section,dict):
-                            for v in hosts_section.values():
-                                hostname=v
-                            if len(hostname) > 1 : 
-                                print(f"Hostname is {hostname}")
-                    #delete the current ingress values and insert new ones 
-                    value1.clear()
-                    update(value1,newdata)
-
-        with open(vf, "w") as vfile:
-            yaml.dump(data, vfile)
-
-    print(f" number of values files updated is [{vf_count}]")
-    print(f" number of ingress files catered for  is [{ing_file_count}]")
+    print(f"\n  number of values files updated is [{vf_count}]")
+    print(f"  number of ingress files catered for  is [{ing_file_count}]")
 
 
 
@@ -378,10 +290,9 @@ def main(argv) :
     yaml.indent(mapping=2, sequence=6, offset=2)
     yaml.width = 4096
 
-    move_requirements_yaml(p,yaml) 
-    update_helm_version(p,yaml)
-    update_values_for_ingress(p,yaml,service_ports_ary)
-    update_ingress(p,yaml,ports_array)  
+    print_ingress_yaml_files(p,yaml)
+    dig_out_values_for_ingress(p,yaml,service_ports_ary)
+    # update_ingress(p,yaml,ports_array)  
  
 
 if __name__ == "__main__":

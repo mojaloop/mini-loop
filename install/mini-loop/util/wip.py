@@ -191,7 +191,7 @@ def update_values_for_ingress(p, yaml,spa):
     ing_file_count = 0 
     service_port = ""
     #for vf in p.rglob('*account*/**/*values.yaml'):
-    for vf in p.rglob('**/*values.yaml'):
+    for vf in p.rglob('**/account*/*/*values.yaml'):
         print(f"===> Processing file < {vf.parent}/{vf.name} > ")
         
         # for each values file if there is an ingress we need to get the 
@@ -199,7 +199,7 @@ def update_values_for_ingress(p, yaml,spa):
         ing_file = vf.parent / 'templates' / 'ingress.yaml'
         #template_dir=vf.relative_to("templates")
         #print(f" templates_dir is {template_dir}")
-        print(f"ing_file is {ing_file}")
+        print(f"    ing_file is {ing_file}")
         if ing_file.exists():
             ing_file_count += 1
             service_port=get_sp(p,vf,ing_file,spa)
@@ -213,57 +213,60 @@ def update_values_for_ingress(p, yaml,spa):
         toplist = [] 
         ingress_parent_list = []
         hostname=""
+        path_value=""
+        epath_value=""
+        enabled_value=""
         # get the top level yaml structures
         for x, value in lookup('ingress', data):
-            lenx = len(x)
-            #print(f"x is {x} and length if x fred is {len(x)} ")
-            if lenx > 2:
-                #print(f" parent is {x[lenx-2]}")
-                ingress_parent_list.append(x[lenx-2])
-                #print(f"parentlist full : {parent_list}")
-            toplist = toplist + [x]
-            
+            with open(bivf) as f:
+                newdata = yaml.load(f)
+            if value.get('enabled'):
+                enabled_value=value['enabled']
+            else:
+                 enabled_value="false"
+            #print("    enabled") if enabled_value=="true" else 0 
+            print(f"    enabled_value is {enabled_value}")
+            if value.get('hosts'):
+                hosts_section=value['hosts']
+                if isinstance(hosts_section, list):
+                    for i in hosts_section: 
+                        hostname=i
+                if isinstance(hosts_section,dict):
+                    for v in hosts_section.values():
+                        hostname=v
+                if len(hostname) > 1 : 
+                        print(f"    hostname is {hostname}")
+            if value.get('path'):
+                paths_section=value['path']
+                if isinstance(p, list):
+                    for i in paths_section: 
+                        path_value=i
+                if isinstance(paths_section,dict):
+                    for v in paths_section.values():
+                        path_value=v
+                if isinstance(paths_section,str):
+                    path_value = paths_section
+                if len(path_value) > 0 : 
+                        print(f"    path is {path_value}")
+            if value.get('externalPath'):
+                epaths_section=value['externalPath']
+                if isinstance(p, list):
+                    for i in epaths_section: 
+                        epath_value=i
+                if isinstance(epaths_section,dict):
+                    for v in epaths_section.values():
+                        epath_value=v
+                if isinstance(epaths_section,str):
+                    epath_value = epaths_section
+                if len(epath_value) > 0 : 
+                        print(f"    path is {epath_value}")
+            value.clear()
+            update(value,newdata)
+            value['servicePort'] = 'fred1a'
+            value['path'] = path_value if len(path_value) > 0 else 0
+            value['path'] = epath_value if len(epath_value) > 0 else 0 
+            value['servicePort'] = service_port 
 
-       # print(f"Examining the values.yaml  {vf.parent}/{vf.name}....") 
-        # for i in toplist :
-        #     print(f"toplist [{i[0]}]" ) 
-
-        # for i in parent_list :
-        #     print(f" parent_list [{i}]" ) 
-        #print(f" toplist is [{i[0]}]")   
-        # for each top level structure 
-        # lookup its ingress if it has one 
-        for i in ingress_parent_list:
-            
-            #print(f"values file: {vf}    toplist is [{i[0]}]")
-            for x, value in lookup(i, data):
-                print(f"processing parent {i} in values file {vf} and section {x} ")
-                #print (f" x = {x}")
-                # for some reason need to reset this data 
-                # or it fails to insert more than once 
-                with open(bivf) as f:
-                    newdata = yaml.load(f)
-                # update the bitnami template chart with the serviceport 
-                newdata['servicePort'] = service_port
-                for x1, value1 in lookup('ingress', value):
-                    print("and found an ingress ")
-                    # if isinstance(x1,list):
-                    #     print("and the ingress is in a list")
-                    #     print(f"x1 is {x1} and value1 is {value1}")
-                    if value1.get('hosts'):
-                        print("and found hosts entry")
-                        hosts_section=value1['hosts']
-                        if isinstance(hosts_section, list):
-                            for i in hosts_section: 
-                                hostname=i
-                        if isinstance(hosts_section,dict):
-                            for v in hosts_section.values():
-                                hostname=v
-                            if len(hostname) > 1 : 
-                                print(f"Hostname is {hostname}")
-                    #delete the current ingress values and insert new ones 
-                    value1.clear()
-                    update(value1,newdata)
 
         with open(vf, "w") as vfile:
             yaml.dump(data, vfile)
