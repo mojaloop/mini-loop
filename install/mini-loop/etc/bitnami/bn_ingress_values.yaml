@@ -1,5 +1,5 @@
 
-    ## @param ingress.enabled Enable ingress record fredz generation for %%MAIN_CONTAINER_NAME%%
+    ## @param freda ingress.enabled Enable ingress record fredz generation for %%MAIN_CONTAINER_NAME%%
     ##
   enabled: true
     ## @param ingress.pathType Ingress path type
@@ -81,5 +81,5 @@
     ##
   secrets: []
   className: "nginx"
-
+  
   

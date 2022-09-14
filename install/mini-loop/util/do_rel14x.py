@@ -26,6 +26,7 @@ from pathlib import Path
 from fileinput import FileInput
 import fileinput 
 from ruamel.yaml import YAML
+from ruamel.yaml import CommentedMap
 import secrets
 
 data = None
@@ -43,7 +44,8 @@ def print_debug(x1, x2, c=0) :
     print(f" [{c}]: {x1} " )
     print(f" [{c}]: {x2} " )
     print("******************")
-                
+
+
 def lookup(sk, d, path=[]):
    # lookup the values for key(s) sk return as list the tuple (path to the value, value)
    if isinstance(d, dict):
@@ -56,6 +58,17 @@ def lookup(sk, d, path=[]):
        for item in d:
            for res in lookup(sk, item, path + [item]):
                yield res
+
+def update(d, n):
+    if isinstance(n, CommentedMap):
+        for k in n:
+            d[k] = update(d[k], n[k]) if k in d else n[k]
+            if k in n.ca._items and n.ca._items[k][2] and \
+               n.ca._items[k][2].value.strip():
+                d.ca._items[k] = n.ca._items[k]  # copy non-empty comment
+    else:
+        d = n
+    return d
 
 """
 update_key: recursively 
@@ -162,9 +175,9 @@ def get_sp(p,vf,ing_file,spa):
 
     x_file = vf.relative_to(p)  # holds the ingress values file relative path
     ing_file = str(x_file.parent)
-    #print(f"ing_file is {ing_file } ingfile type is {type(ing_file)} ")
+    print(f"ing_file is {ing_file } ingfile type is {type(ing_file)} ")
     if spa[ing_file]:
-        #print(f"found servicePort {spa[ing_file]} for ingress file {ing_file}  ")
+        print(f"found servicePort {spa[ing_file]} for ingress file {ing_file}  ")
         return spa[ing_file]
 
 def update_values_for_ingress(p, yaml,spa):
@@ -178,14 +191,14 @@ def update_values_for_ingress(p, yaml,spa):
     ing_file_count = 0 
     service_port = ""
     #for vf in p.rglob('*account*/**/*values.yaml'):
-    for vf in p.rglob('**/*values.yaml'):
+    for vf in p.rglob('*mojaloop*/*values.yaml'):
         print(f"===> Processing file < {vf.parent}/{vf.name} > ")
         
-        # for each valiues file if there is an ingress we need to get the 
+        # for each values file if there is an ingress we need to get the 
         # servicePort so we can set it in the updated / new values file 
-        #ing_file = vf.parent / 'templates' / 'ingress.yaml'
-        template_dir=vf.relative_to("templates")
-        print(f" templates_dir is {template_dir}")
+        ing_file = vf.parent / 'templates' / 'ingress.yaml'
+        #template_dir=vf.relative_to("templates")
+        #print(f" templates_dir is {template_dir}")
         print(f"ing_file is {ing_file}")
         if ing_file.exists():
             ing_file_count += 1
@@ -198,41 +211,67 @@ def update_values_for_ingress(p, yaml,spa):
             data = yaml.load(f)
 
         toplist = [] 
+        ingress_parent_list = []
         hostname=""
         # get the top level yaml structures
         for x, value in lookup('ingress', data):
+            lenx = len(x)
+            #print(f"x is {x} and length if x fred is {len(x)} ")
+            if lenx > 2:
+                #print(f" parent is {x[lenx-2]}")
+                ingress_parent_list.append(x[lenx-2])
+                #print(f"parentlist full : {parent_list}")
             toplist = toplist + [x]
+            
 
-        # print(f"Examining the values.yaml  {vf.parent}/{vf.name}....") 
+       # print(f"Examining the values.yaml  {vf.parent}/{vf.name}....") 
         # for i in toplist :
-        #     print(f"[{i[0]}]" ) 
+        #     print(f"toplist [{i[0]}]" ) 
 
-        # print(f" toplist is [{i[0]}]")   
+        # for i in parent_list :
+        #     print(f" parent_list [{i}]" ) 
+        #print(f" toplist is [{i[0]}]")   
         # for each top level structure 
         # lookup its ingress if it has one 
-        for i in toplist:
+        for i in ingress_parent_list:
+            
             #print(f"values file: {vf}    toplist is [{i[0]}]")
-            for x, value in lookup(i[0], data):
+            for x, value in lookup(i, data):
+                print(f"processing parent {i} in values file {vf} and section {x} ")
+                #print (f" x = {x}")
                 # for some reason need to reset this data 
                 # or it fails to insert more than once 
                 with open(bivf) as f:
                     newdata = yaml.load(f)
                 # update the bitnami template chart with the serviceport 
                 newdata['servicePort'] = service_port
-                if value.get("ingress"):
-                    if value.get('ingress', {} ).get('hosts'):
-                        hosts_section=value['ingress']['hosts']
-                        if isinstance(hosts_section, list):
-                            for i in hosts_section: 
-                                hostname=i
-                        if isinstance(hosts_section,dict):
-                            for v in hosts_section.values():
-                                hostname=v
-
-                    del value['ingress']
-                    value['ingress'] = newdata
-            if len(hostname) > 1 : 
-                print(f"Hostname is {hostname}")
+                for x1, value1 in lookup('ingress', value):
+                    print("and found an ingress ")
+                    if isinstance(x1,list):
+                        print("and the ingress is in a list")
+                        print(f"x1 is {x1} and value1 is {value1}")
+                        if value1.get('hosts'):
+                            print("and found hosts entry")
+                            hosts_section=value1['hosts']
+                            if isinstance(hosts_section, list):
+                                for i in hosts_section: 
+                                    hostname=i
+                            if isinstance(hosts_section,dict):
+                                for v in hosts_section.values():
+                                    hostname=v
+                                if len(hostname) > 1 : 
+                                    print(f"Hostname is {hostname}")
+                            print("DELETEING OLD INGRESS TOM")
+                            #print (f"value[i] is {value}")
+                            #value[i]['ingress']=newdata
+                        #delete the current ingress values and insert new ones 
+                        value1.clear()
+                        # for k in  newdata.keys():
+                        #     value1[k]=newdata[k]
+                        update(value1,newdata)
+                    #value['central'] = newdata
+                        print(f"value1 updated is {value1}")
+            
 
         with open(vf, "w") as vfile:
             yaml.dump(data, vfile)
