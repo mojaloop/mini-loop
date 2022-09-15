@@ -51,6 +51,7 @@
     ##     servicePort: use-annotation
     ##
   extraPaths: []
+  ##
     ## @param ingress.extraTls TLS configuration for additional hostname(s) to be covered with this ingress record
     ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#tls
     ## e.g:
@@ -81,5 +82,4 @@
     ##
   secrets: []
   className: "nginx"
-  
   

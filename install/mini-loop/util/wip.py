@@ -27,6 +27,10 @@ from fileinput import FileInput
 import fileinput 
 from ruamel.yaml import YAML
 from ruamel.yaml import CommentedMap
+from ruamel.yaml import scalarstring
+from ruamel.yaml import comments
+from ruamel.yaml import CommentedSeq
+
 import secrets
 
 data = None
@@ -70,22 +74,49 @@ def update(d, n):
         d = n
     return d
 
-"""
-update_key: recursively 
-"""
-def update_key(key, value, dictionary):
-        for k, v in dictionary.items():
-            if k == key:
-                dictionary[key]=value
-                print(f">>>>> the dictionary got updated in the previous line : {dictionary[key]} ")
-            elif isinstance(v, dict):
-                for result in update_key(key, value, v):
-                    yield result
-            elif isinstance(v, list):
-                for d in v:
-                    if isinstance(d, dict):
-                        for result in update_key(key, value, d):
-                            yield result
+def delete_all_annotations(obj):
+    if isinstance(obj, (dict, CommentedMap)):
+        #print(f"object metadata is {}")
+        obj.get("metadata", {}).pop("annotations", None)
+        for v in obj.values():
+            print(f"the object values are : {v}")
+            delete_all_annotations(v)
+    elif isinstance(obj, (list, CommentedSeq)):
+        for item in obj:
+            delete_all_annotations(item) 
+
+def recursive_delete_comment_attribs(d):
+    if isinstance(d, dict):
+        for k, v in d.items():
+            recursive_delete_comment_attribs(k)
+            recursive_delete_comment_attribs(v)
+    elif isinstance(d, list):
+        for elem in d:
+            recursive_delete_comment_attribs(elem)
+    try:
+         # literal scalarstring might have comment associated with them
+         attr = 'comment' if isinstance(d, scalarstring.ScalarString) \
+                  else comments.Comment.attrib 
+         delattr(d, attr)
+    except AttributeError:
+        pass
+
+# """
+# update_key: recursively 
+# """
+# def update_key(key, value, dictionary):
+#         for k, v in dictionary.items():
+#             if k == key:
+#                 dictionary[key]=value
+#                 print(f">>>>> the dictionary got updated in the previous line : {dictionary[key]} ")
+#             elif isinstance(v, dict):
+#                 for result in update_key(key, value, v):
+#                     yield result
+#             elif isinstance(v, list):
+#                 for d in v:
+#                     if isinstance(d, dict):
+#                         for result in update_key(key, value, d):
+#                             yield result
 
 def move_requirements_yaml (p,yaml):
     print("\n-- move requirements.yaml to charts -- " )
@@ -180,6 +211,18 @@ def get_sp(p,vf,ing_file,spa):
         print(f"found servicePort {spa[ing_file]} for ingress file {ing_file}  ")
         return spa[ing_file]
 
+def get_sp_new(x,value,spa):
+    if len(x) >= 2 : 
+        parent_node = x[len(x)-2]
+        print(f"parent node is {parent_node}")
+        try : 
+            if spa[parent_node]:
+                print(f"found servicePort {spa[parent_node]} from ingress_parent  ")
+                return spa[parent_node] 
+        except: 
+            return [] 
+
+
 def update_values_for_ingress(p, yaml,spa):
     # copy in the bitnami template ingress values 
     print("-- update the values for ingress -- ")
@@ -189,9 +232,10 @@ def update_values_for_ingress(p, yaml,spa):
     origin_path=""
     vf_count=0
     ing_file_count = 0 
+    ing_sections_count=0
     service_port = ""
     #for vf in p.rglob('*account*/**/*values.yaml'):
-    for vf in p.rglob('**/account*/*/*values.yaml'):
+    for vf in p.rglob('**/*values.yaml'):
         print(f"===> Processing file < {vf.parent}/{vf.name} > ")
         
         # for each values file if there is an ingress we need to get the 
@@ -200,9 +244,7 @@ def update_values_for_ingress(p, yaml,spa):
         #template_dir=vf.relative_to("templates")
         #print(f" templates_dir is {template_dir}")
         print(f"    ing_file is {ing_file}")
-        if ing_file.exists():
-            ing_file_count += 1
-            service_port=get_sp(p,vf,ing_file,spa)
+
 
         data=[]
         vf_count+=1
@@ -218,8 +260,11 @@ def update_values_for_ingress(p, yaml,spa):
         enabled_value=""
         # get the top level yaml structures
         for x, value in lookup('ingress', data):
-            with open(bivf) as f:
-                newdata = yaml.load(f)
+            if ing_file.exists():
+                ing_file_count += 1
+                service_port=get_sp(p,vf,ing_file,spa)
+            else : 
+                service_port=get_sp_new(x,value,spa) 
             if value.get('enabled'):
                 enabled_value=value['enabled']
             else:
@@ -227,6 +272,7 @@ def update_values_for_ingress(p, yaml,spa):
             #print("    enabled") if enabled_value=="true" else 0 
             print(f"    enabled_value is {enabled_value}")
             if value.get('hosts'):
+                ing_sections_count +=1 
                 hosts_section=value['hosts']
                 if isinstance(hosts_section, list):
                     for i in hosts_section: 
@@ -234,7 +280,7 @@ def update_values_for_ingress(p, yaml,spa):
                 if isinstance(hosts_section,dict):
                     for v in hosts_section.values():
                         hostname=v
-                if len(hostname) > 1 : 
+                if len(hostname) > 0 : 
                         print(f"    hostname is {hostname}")
             if value.get('path'):
                 paths_section=value['path']
@@ -261,18 +307,20 @@ def update_values_for_ingress(p, yaml,spa):
                 if len(epath_value) > 0 : 
                         print(f"    path is {epath_value}")
             value.clear()
+            with open(bivf) as f:
+                newdata = yaml.load(f)
             update(value,newdata)
-            value['servicePort'] = 'fred1a'
-            value['path'] = path_value if len(path_value) > 0 else 0
-            value['path'] = epath_value if len(epath_value) > 0 else 0 
+            value['hostname'] = hostname
+            value['path'] = path_value if len(path_value) > 0 else ""
+            value['extraPaths'] = epath_value if len(epath_value) > 0 else []
             value['servicePort'] = service_port 
-
 
         with open(vf, "w") as vfile:
             yaml.dump(data, vfile)
 
     print(f" number of values files updated is [{vf_count}]")
     print(f" number of ingress files catered for  is [{ing_file_count}]")
+    print(f" number of individual ingress values sections updated [{ing_sections_count}]")
 
 
 
@@ -308,47 +356,102 @@ def main(argv) :
         'emailnotifier/values.yaml'
     ]
     
-    service_ports_ary = {
+    # Ingress w/o port settings in rel 14
+    # parent of ingress : chart 
+    # alertmanager : monitoring/promfana
+    # grafana     : monitoring/promfana
+    # pushgateway : monitoring/promfana
+    # server :  monitoring/promfana
+    # apm-server :  monitoring/efk
+    # kibana : monitoring/efk
+    # dfspa  : thirdparty
+    # dfspb   : thirdparty
+    # pisp   : thirdparty
+    # thirdparty-simulator : thirdparty
+    # elasticsearch : monitoring/efk
+    # emailnotifier : emailnotifier 
+    # testfsp1 : mojaloop-simulator
+    # testfsp2 : mojaloop-simulator
+    # testfsp3: mojaloop-simulator
+    # testfsp4: mojaloop-simulator
+    # payeefsp : mojaloop-simulator
+    # payerfsp : mojaloop-simulator
+    # defaults : mojaloop-simulator
+
+    service_ports_ary = { 
+        #
+        # backend
+        "keycloak" : "http",
+        "quoting-service" : "3002" ,
+        "operatorSettlement" : "80" , 
+        "settlementManagement" : "5000",
+        "frontend": "80",  # this is financeportal frontend
         "transaction-requests-service" : "http",
         "mojaloop-simulator" : "outboundapi" ,
         "mojaloop-simulator" : "inboundapi" ,
         "mojaloop-simulator" : "testapi" ,
         "mojaloop-simulator" : "testapi" ,
         "eventstreamprocessor" : "http" ,
+        "account-lookup-service" : "http-api",
         "account-lookup-service/chart-service" : "http-api" ,
+        "account-lookup-service-admin" : "http-admin",
         "account-lookup-service/chart-admin" : "http-admin" ,
         "quoting-service" : "80" ,
         "centralsettlement/chart-service" : "80" , 
+        "centralsettlement-service" : "80",  
+        "centralsettlement-handler-deferredsettlement" : "80", 
+        "centralsettlement-handler-grosssettlement" : "80",
+        "centralsettlement-handler-rules" : "80",
         "ml-testing-toolkit/chart-backend" : "5050" , 
+        "ml-testing-toolkit-backend" : "5050",
         "ml-testing-toolkit/chart-frontend" : "6060" ,
-        "centralledger/chart-handler-timeout" : "80" ,
-        "centralledger/chart-service" : "80" ,
+        "ml-testing-toolkit-frontend" : "6060",
+        "centralledger/chart-handler-timeout" : "80",
+        "centralledger-handler-timeout" : "80", 
+        "centralledger/chart-service" : "80",
+        "centralledger-service" : "80",
         "centralledger/chart-handler-transfer-get" : "80" ,
+        "centralledger-handler-transfer-get" : "80",
         "centralledger/chart-handler-admin-transfer" : "80" ,
-        "centralledger/chart-handler-transfer-fulfil" : "80" ,
-        "centralledger/chart-handler-transfer-position" : "80"  ,
+        "centralledger-handler-admin-transfer" : "80",
+        "centralledger/chart-handler-transfer-fulfil" : "80",
+        "centralledger-handler-transfer-fulfil" : "80",
+        "centralledger/chart-handler-transfer-position" : "80",
+        "centralledger-handler-transfer-position" : "80",
         "centralledger/chart-handler-transfer-prepare" : "80" ,
+        "centralledger-handler-transfer-prepare" : "80", 
         "simulator" : "80"  ,
         "centraleventprocessor" : "80" ,
         "emailnotifier" : "80" ,
         "ml-api-adapter/chart-service" : "80" ,
+        "ml-api-adapter-service" : "80", 
         "ml-api-adapter/chart-handler-notification" : "80" ,
+        "ml-api-adapter-handler-notification" : "80", 
         "ml-operator" : "4006" ,
         "centralkms" : "5432" ,
         "ml-testing-toolkit/chart-connection-manager-frontend" : "5060" ,
         "ml-testing-toolkit/chart-keycloak" : "80" ,
         "bulk-centralledger/chart-handler-bulk-transfer-get" : "80" ,
+        "cl-handler-bulk-transfer-get" :  "80" ,
         "bulk-centralledger/chart-handler-bulk-transfer-processing" : "80" ,
+        "cl-handler-bulk-transfer-processing" : "80" ,
         "bulk-centralledger/chart-handler-bulk-transfer-prepare" : "80" ,
+        "cl-handler-bulk-transfer-prepare" : "80" ,
         "bulk-centralledger/chart-handler-bulk-transfer-fulfil" : "80" ,
+        "cl-handler-bulk-transfer-fulfil" : "80" ,
         "centralenduserregistry" : "3001" ,
         "als-oracle-pathfinder" : "80" ,
         "forensicloggingsidecar" : "5678" ,
         "bulk-api-adapter/chart-service" : "80" ,
+        "bulk-api-adapter-service" : "80",
+        "bulk-api-adapter-handler-notification" : "80", 
         "bulk-api-adapter/chart-handler-notification" : "80" ,
         "thirdparty/chart-tp-api-svc" : "3008" ,
+        "tp-api-svc"  : "3008" ,
         "thirdparty/chart-consent-oracle" : "3000" ,
+        "consent-oracle" : "3000" ,
         "thirdparty/chart-auth-svc" : "4004" ,
+        "auth-svc" : "4004", 
         "ml-testing-toolkit/chart-connection-manager-backend" : "5061" 
     }
     ports_array  = {
