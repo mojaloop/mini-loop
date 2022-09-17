@@ -63,6 +63,22 @@ def lookup(sk, d, path=[]):
            for res in lookup(sk, item, path + [item]):
                yield res
 
+def insert(d, n):
+    # print("TYRYING insert")
+    if isinstance(n, CommentedMap):
+        # print("YES is commented map")
+        for k in n:
+            if k in d :
+                d[k] = update(d[k], n[k])
+            else:
+                 d[k].append(n[k])
+            if k in n.ca._items and n.ca._items[k][2] and \
+               n.ca._items[k][2].value.strip():
+                d.ca._items[k] = n.ca._items[k]  # copy non-empty comment
+    else:
+        d.append(n)
+    return d
+
 def update(d, n):
     if isinstance(n, CommentedMap):
         for k in n:
@@ -74,24 +90,6 @@ def update(d, n):
         d = n
     return d
 
-# """
-# update_key: recursively 
-# """
-# def update_key(key, value, dictionary):
-#         for k, v in dictionary.items():
-#             if k == key:
-#                 dictionary[key]=value
-#                 print(f">>>>> the dictionary got updated in the previous line : {dictionary[key]} ")
-#             elif isinstance(v, dict):
-#                 for result in update_key(key, value, v):
-#                     yield result
-#             elif isinstance(v, list):
-#                 for d in v:
-#                     if isinstance(d, dict):
-#                         for result in update_key(key, value, d):
-#                             yield result
-
-
 def move_requirements_yaml (p,yaml):
     print("\n-- move requirements.yaml to charts -- " )
     # copy the dependencies from requirements.yaml to the Charts.yaml
@@ -101,7 +99,7 @@ def move_requirements_yaml (p,yaml):
         processed_cnt +=1
         rf_parent=rf.parent
         cf=rf.parent / 'Chart.yaml'
-        #print(f"Processing requirements file {rf}")     
+        print(f"Processing requirements file {rf}")     
         with open(rf) as f:
             reqs_data = yaml.load(f)
             #print(reqs_data)
@@ -109,10 +107,11 @@ def move_requirements_yaml (p,yaml):
                 dlist = reqs_data['dependencies']
                 with open(cf) as cfile: 
                     cfdata = yaml.load(cfile);
-                    cfdata['dependencies']=dlist
+                cfdata['dependencies']=dlist
             except Exception as e: 
                 print(f" Exception {e} with file {rf} \n")        
                 continue 
+        yaml.dump(cfdata,sys.stdout)
         with open(cf, "w") as cfile:
             yaml.dump(cfdata, cfile)
 
@@ -127,80 +126,63 @@ def update_all_helm_charts_yaml (p,yaml):
     # 1 add the common dependencies chart to each chart in mojaloop
     # 2 update the API 
     # 3 add tomd@crosslake to maintainers 
-    print("\n-- add the common dependencies chart to all charts -- ")
     yaml_str1 = """
 dependencies: 
   - name : common 
-  - repository : "file://../common" 
-  - version : "2.0.0"  
+    repository : "file://../common" 
+    version : 2.0.0  
 """
     yaml_str2 = """
-dependencies: 
-  - name : common 
-  - repository : "file://../../common" 
-  - version : "2.0.0"  
-"""
-    yaml_str3 = """
 maintainers: 
   - name : Tom Daly 
-  - email: tomd@crosslaketech.com
+    email : tomd@crosslaketech
 """
-    cy1 = yaml.load(yaml_str1)
-    cy2 = yaml.load(yaml_str2)
-    cy3 = yaml.load(yaml_str3)
-    yaml.dump(cy3, sys.stdout)
-    
+    print("\n-- updating charts.yaml update vers, add dependencies, maintainers -- ")
+    d1 = {"name":"common", "repository":"file://../common", "version":"2.0.0"}
+    m1 = {"name" : "tom" , "email":"tomd@crosslaketech.com"}
+    dy1 = yaml.load(yaml_str1)
+    my2 = yaml.load(yaml_str2)
+
     processed_cnt = 0 
-    for cf in p.rglob('*centralledger*/chart-service/*Chart.yaml'):
+    for cf in p.rglob('**/Chart.yaml'):
+        if  cf.parent.parent != p : 
+            d1['repository']="file://../../common"
+            dy1['dependencies'][0]['repository'] = "file://../../common"
         processed_cnt +=1
         with open(cf) as f:
             cfdata = yaml.load(f)
-            dlist = {} 
-            try: 
-                # add the common library to dependencies
-                # but note some charts are 1 directory level lower 
-                # so adjust the path the the common lib accordingly 
-                if  cf.parent != p : 
-                    print(f"adjusting repo for {cf}")
-                    update(cfdata,cy2)
+        if cfdata.get("dependencies"): 
+            print('DEPEND EXISTS')
+            ## so dependencies exist => append common to them after 
+            ## removing any existing common lib dependency which exists in thirdparty charts
+            for x, value in lookup('dependencies', cfdata):
+                if(isinstance(value,list)) : 
+                    for i in value:
+                        if i['name'] == "common":
+                            print("try deleting it  ")
+                            value.remove(i)
+                    #value.append(d1)
+                    insert(value,d1)
                 else: 
-                     update(cfdata,cy1)
-                # update the chart API version
-                cfdata['apiVersion']="v2"
-                # print("================= before ==============")
-                # yaml.dump(cfdata, sys.stdout)
-                # print("================= after ==============")
-                # # update the chart mainainers 
-                print(f"length of maintainers list is {len(cfdata['maintainers'])}")
-                for x, value in lookup('maintainers', cfdata):
-                    print(f" x is {x} and values is {value}")
-                    value.append({"name":"Tom Daly", "email":"tomd@crosslaketech.com"})
-               
+                    printf(f"WARNING: {cf.parent/cf} chart.yaml file not as expected ")    
+        else: 
+            # no existing dependencies in chart.yaml
+            update(cfdata,dy1)
+        if cfdata.get("maintainers"): 
+            for x, value in lookup('maintainers', cfdata):
+                if(isinstance(value,list)) : 
+                    #value.append(m1)
+                    insert(value,m1)
+                else:
+                    printf(f"WARNING: {cf.parent/cf} chart.yaml file not as expected ")    
+        else : 
+            # currently no maintainers in chart.yaml
+            update(cfdata,dy1)
 
-            except Exception as e: 
-                print(f" Exception {e} with file {cf} \n")        
-                continue 
-        yaml.dump(cfdata, sys.stdout)
+        #yaml.dump(cfdata, sys.stdout)
         with open(cf, "w") as f:
             yaml.dump(cfdata, f)
-
-
-
-# def update_helm_version (p,yaml):
-#     # update the helm api to apiVersion 2 
-#     print("\n-- update helm version to 2.0 -- ")
-#     processed_cnt = 0 
-#     for cf in p.rglob('**/*Chart.yaml'):
-#         processed_cnt +=1
-
-#         with open(cf) as f:
-#             cfdata = yaml.load(f)
-#             cfdata['apiVersion']="v2"
-
-#         with open(cf, "w") as f:
-#             yaml.dump(cfdata, f)
-
-    print(f" ==> number of Charts files updated to v2.0 [{processed_cnt}] ")
+    print(f" ==> processed: [{processed_cnt}] chart.yaml files ")
 
 def update_ingress(p, yaml,ports_array):
     print("-- update ingress -- ")
@@ -424,13 +406,6 @@ def main(argv) :
         "outboundapi" : "{{ $config.config.schemeAdapter.env.OUTBOUND_LISTEN_PORT }}"
     }
 
-
-    # for k,v in service_ports_ary.items() : 
-    #     print(f" the array is {k}:{v} ")
-    # sys.exit(1)
-
-    #ingress_cn = set_ingressclassname(args.kubernetes)
-    #print (f"ingressclassname in main is {ingress_cn}")
     p = Path() / args.directory
     print(f"Processing helm charts in directory: [{args.directory}]")
 
@@ -442,10 +417,8 @@ def main(argv) :
 
     move_requirements_yaml(p,yaml) 
     update_all_helm_charts_yaml(p,yaml)
-    #update_helm_version(p,yaml)
-    #update_values_for_ingress(p,yaml,service_ports_ary)
-    #update_ingress(p,yaml,ports_array)  
+    update_values_for_ingress(p,yaml,service_ports_ary)
+    update_ingress(p,yaml,ports_array)  
  
-
 if __name__ == "__main__":
     main(sys.argv[1:])
