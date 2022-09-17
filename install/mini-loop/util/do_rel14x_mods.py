@@ -99,7 +99,7 @@ def move_requirements_yaml (p,yaml):
         processed_cnt +=1
         rf_parent=rf.parent
         cf=rf.parent / 'Chart.yaml'
-        print(f"Processing requirements file {rf}")     
+        print(f"  Processing requirements file {rf}")     
         with open(rf) as f:
             reqs_data = yaml.load(f)
             #print(reqs_data)
@@ -111,7 +111,7 @@ def move_requirements_yaml (p,yaml):
             except Exception as e: 
                 print(f" Exception {e} with file {rf} \n")        
                 continue 
-        yaml.dump(cfdata,sys.stdout)
+        # yaml.dump(cfdata,sys.stdout)
         with open(cf, "w") as cfile:
             yaml.dump(cfdata, cfile)
 
@@ -141,31 +141,34 @@ maintainers:
     d1 = {"name":"common", "repository":"file://../common", "version":"2.0.0"}
     m1 = {"name" : "tom" , "email":"tomd@crosslaketech.com"}
     dy1 = yaml.load(yaml_str1)
-    my2 = yaml.load(yaml_str2)
+    my1 = yaml.load(yaml_str2)
 
     processed_cnt = 0 
-    for cf in p.rglob('**/Chart.yaml'):
+    for cf in p.rglob('**/*Chart.yaml'):
         if  cf.parent.parent != p : 
             d1['repository']="file://../../common"
             dy1['dependencies'][0]['repository'] = "file://../../common"
+        else: 
+            d1['repository']="file://../common"
+            dy1['dependencies'][0]['repository'] = "file://../common"
         processed_cnt +=1
         with open(cf) as f:
             cfdata = yaml.load(f)
         if cfdata.get("dependencies"): 
-            print('DEPEND EXISTS')
             ## so dependencies exist => append common to them after 
             ## removing any existing common lib dependency which exists in thirdparty charts
+            # print("YES DEPS EXIST")
             for x, value in lookup('dependencies', cfdata):
                 if(isinstance(value,list)) : 
                     for i in value:
                         if i['name'] == "common":
-                            print("try deleting it  ")
                             value.remove(i)
-                    #value.append(d1)
-                    insert(value,d1)
+                    insert(value,d1)        
+                    #value.append(d1)    
                 else: 
-                    printf(f"WARNING: {cf.parent/cf} chart.yaml file not as expected ")    
+                    printf(f"WARNING: {cf.parent/cf} chart.yaml file not as expected ")  
         else: 
+            # print("NO DEPS EXIST")
             # no existing dependencies in chart.yaml
             update(cfdata,dy1)
         if cfdata.get("maintainers"): 
@@ -177,7 +180,7 @@ maintainers:
                     printf(f"WARNING: {cf.parent/cf} chart.yaml file not as expected ")    
         else : 
             # currently no maintainers in chart.yaml
-            update(cfdata,dy1)
+            update(cfdata,my1)
 
         #yaml.dump(cfdata, sys.stdout)
         with open(cf, "w") as f:

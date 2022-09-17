@@ -107,7 +107,7 @@ def update_key(key, value, dictionary):
         for k, v in dictionary.items():
             if k == key:
                 dictionary[key]=value
-                print(f">>>>> the dictionary got updated in the previous line : {dictionary[key]} ")
+                #print(f">>>>> the dictionary got updated in the previous line : {dictionary[key]} ")
             elif isinstance(v, dict):
                 for result in update_key(key, value, v):
                     yield result
@@ -140,6 +140,7 @@ dependencies:
     version : 2.0.0  
 """
     yaml_str2 = """
+dependencies:
   - name : common 
     repository : "file://../../common" 
     version : 2.0.0  
@@ -162,14 +163,14 @@ sources:
   -   https://github.com/mojaloop/helm
   -   https://github.com/mojaloop/pisp-project
 dependencies:
-  -   name: auth-svc
-      version: 2.0.0
-      repository: "file://./chart-auth-svc"
-      condition: auth-svc.enabled
-  -   name: common
-      version: 0.2.0
-      repository: "file://./chart-consent-oracle"
-      condition: consent-oracle.enabled
+  - name: auth-svc
+    version: 2.0.0
+    repository: "file://./chart-auth-svc"
+    condition: auth-svc.enabled
+  - name: consent-oracle
+    version: 0.2.0
+    repository: "file://./chart-consent-oracle"
+    condition: consent-oracle.enabled
 maintainers:
   -   name: Lewis Daly
       email: lewisd@crosslaketech.com
@@ -186,9 +187,15 @@ sources:
   -   https://github.com/mojaloop/mojaloop
   -   https://github.com/mojaloop/helm
   -   https://github.com/mojaloop/pisp-project
-maintainers:
-  -   name: Lewis Daly
-      email: lewisd@crosslaketech.com
+dependencies:
+  - name: auth-svc
+    version: 2.0.0
+    repository: "file://./chart-auth-svc"
+    condition: auth-svc.enabled
+  - name: consent-oracle
+    version: 0.2.0
+    repository: "file://./chart-consent-oracle"
+    condition: consent-oracle.enabled
 """
 
     maint_dict={"name" : "tom" , "email":"tomd@crosslaketech.com"}
@@ -216,13 +223,17 @@ maintainers:
                     if i['name'] == "common":
                         print("try deleting it  ")
                         value.remove(i)
-                #value.append(d1)
-                insert(value,d1)
+                value.append(d1)
+            
+                #insert(value,d1)
             else: 
                 printf("WARNING: chart.yaml file not as expected ")    
     else: 
+        print ("trying to add keys when there are not any dependencies)")
         # no existing dependencies in chart.yaml
-        update(cy4,cy2)
+        #cy4['dependencies']=cy2
+        #insert(cy4,cy2)
+        update(cy4,cy1)
     if cy4.get("maintainers"): 
         for x, value in lookup('maintainers', cy4):
             if(isinstance(value,list)) : 
@@ -235,7 +246,7 @@ maintainers:
                 printf("WARNING: chart.yaml file not as expected ")
     else : 
         # currently no maintainers in chart.yaml
-        update(cy4,cy2)
+        update(cy4,cy3)
     # if there were no existing dependencies and/or maintainers 
     print(f"cy2 is a {type(cy2)}")
     #update(cy4,cy2)
