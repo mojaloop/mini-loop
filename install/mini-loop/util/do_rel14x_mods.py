@@ -64,9 +64,7 @@ def lookup(sk, d, path=[]):
                yield res
 
 def insert(d, n):
-    # print("TYRYING insert")
     if isinstance(n, CommentedMap):
-        # print("YES is commented map")
         for k in n:
             if k in d :
                 d[k] = update(d[k], n[k])
@@ -89,6 +87,37 @@ def update(d, n):
     else:
         d = n
     return d
+
+def update_requirements_files (p, yaml):
+    # yeah I know I update he requirements only to move em and 
+    # delete em ... but I had this working code to get rid
+    # of percona and doing it seprately lets me test separately 
+    # with and without db changes 
+    print(" update requirements.yaml replace deprecated percona chart with current mysql")
+    for rf in p.rglob('**/*requirements.yaml'):
+        with open(rf) as f:
+            reqs_data = yaml.load(f)
+            #print(reqs_data)
+        try: 
+            dlist = reqs_data['dependencies']
+            for i in range(len(dlist)): 
+                if (dlist[i]['name'] in ["percona-xtradb-cluster","mysql"] ): 
+                    dlist[i]['name'] = "mysql"
+                    dlist[i]['version'] = 8.0
+                    dlist[i]['repository'] = "https://charts.bitnami.com/bitnami"
+                    dlist[i]['alias'] = "mysql"
+                    dlist[i]['condition'] = "mysql.enabled"
+
+                # if (dlist[i]['name'] == "mongodb"):
+                #     print(f"old was: {dlist[i]}")
+                #     dlist[i]['version'] = "11.1.7"
+                #     dlist[i]['repository'] = "file://../mongodb"
+                #     print(f"new is: {dlist[i]}")
+        except Exception:
+            continue 
+
+        with open(rf, "w") as f:
+            yaml.dump(reqs_data, f)      
 
 def move_requirements_yaml (p,yaml):
     print("\n-- move requirements.yaml to charts -- " )
@@ -114,12 +143,16 @@ def move_requirements_yaml (p,yaml):
         # yaml.dump(cfdata,sys.stdout)
         with open(cf, "w") as cfile:
             yaml.dump(cfdata, cfile)
-
+    print(f" ==> processed: [{processed_cnt}] requirements files ")
     print(f" ==> Deleting requirements.yaml files ")
     for rf in p.rglob('**/*requirements.yaml'):        
-         #print(f"  ==> unlink/delete requirements: {rf}")    
-         rf.unlink(missing_ok=True)
-    print(f" ==> processed: [{processed_cnt}] requirements files ")
+        #print(f"  ==> unlink/delete requirements: {rf}")    
+        rf.unlink(missing_ok=True)
+    print(f" ==> Deleting requirements.lock files ")  
+    for rf in p.rglob('**/*requirements.lock'):           
+        rf.unlink(missing_ok=True)   
+
+    
 
 
 def update_all_helm_charts_yaml (p,yaml): 
@@ -290,25 +323,30 @@ def update_values_for_ingress(p, yaml,spa):
                     path_value = paths_section
                 if len(path_value) > 0 : 
                         print(f"    path is {path_value}")
-            if value.get('externalPath'):
-                epaths_section=value['externalPath']
-                if isinstance(p, list):
-                    for i in epaths_section: 
-                        epath_value=i
-                if isinstance(epaths_section,dict):
-                    for v in epaths_section.values():
-                        epath_value=v
-                if isinstance(epaths_section,str):
-                    epath_value = epaths_section
-                if len(epath_value) > 0 : 
-                        print(f"    path is {epath_value}")
+            # NOTE for the moment it looks like externalpath
+            # is usd just as path for many of the old ingress.yaml
+            # so I think this can remain unset
+            # if value.get('externalPath'):
+            #     epaths_section=value['externalPath']
+            #     if isinstance(p, list):
+            #         for i in epaths_section: 
+            #             epath_value=i
+            #     if isinstance(epaths_section,dict):
+            #         for v in epaths_section.values():
+            #             epath_value=v
+            #     if isinstance(epaths_section,str):
+            #         epath_value = epaths_section
+            #     if len(epath_value) > 0 : 
+            #             print(f"    path is {epath_value}")
             value.clear()
             with open(bivf) as f:
                 newdata = yaml.load(f)
             update(value,newdata)
             value['hostname'] = hostname
-            value['path'] = path_value if len(path_value) > 0 else ""
-            value['extraPaths'] = epath_value if len(epath_value) > 0 else []
+            if len(path_value) > 0 : 
+                value['path'] = path_value
+            # if len(epath_value): >0 : 
+            #     value['extraPaths'] = epath_value 
             value['servicePort'] = service_port 
 
         with open(vf, "w") as vfile:
@@ -318,7 +356,26 @@ def update_values_for_ingress(p, yaml,spa):
     print(f" number of ingress files catered for  is [{ing_file_count}]")
     print(f" number of individual ingress values sections updated [{ing_sections_count}]")
 
-
+def update_json_files (p) : 
+    # update all the references to the old ingress values
+    # to do server.host ??
+    print("-- update the json files for new ingress  -- ")
+    processed_cnt = 0 
+    updates_cnt = 0 
+    cnt = 0 
+    for jf in p.rglob('**/*.json'):
+        #print(f" processing json file {jf.parent/jf}")
+        with FileInput(files=[jf], inplace=True) as f:
+            for line in f:
+                line = line.rstrip() 
+                line, cnt = re.subn(r"Values.ingress.hosts.api",r"Values.ingress.hostname",line) 
+                updates_cnt += cnt  
+                #print(f"cnt is {cnt}", file=sys.stderr)
+                print(line)
+            processed_cnt +=1
+    print(f" number of json files processed [{processed_cnt}]")
+    print(f" number of updates made [{updates_cnt}]")
+       
 
 def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Automate modifications across mojaloop helm charts')
@@ -360,36 +417,38 @@ def main(argv) :
         "mojaloop-simulator" : "testapi" ,
         "eventstreamprocessor" : "http" ,
         "account-lookup-service/chart-service" : "http-api" ,
+        "account-lookup-service" : 4002,
         "account-lookup-service/chart-admin" : "http-admin" ,
-        "quoting-service" : "80" ,
-        "centralsettlement/chart-service" : "80" , 
-        "ml-testing-toolkit/chart-backend" : "5050" , 
-        "ml-testing-toolkit/chart-frontend" : "6060" ,
-        "centralledger/chart-handler-timeout" : "80" ,
-        "centralledger/chart-service" : "80" ,
-        "centralledger/chart-handler-transfer-get" : "80" ,
-        "centralledger/chart-handler-admin-transfer" : "80" ,
-        "centralledger/chart-handler-transfer-fulfil" : "80" ,
-        "centralledger/chart-handler-transfer-position" : "80"  ,
-        "centralledger/chart-handler-transfer-prepare" : "80" ,
-        "simulator" : "80"  ,
-        "centraleventprocessor" : "80" ,
-        "emailnotifier" : "80" ,
-        "ml-api-adapter/chart-service" : "80" ,
-        "ml-api-adapter/chart-handler-notification" : "80" ,
+        "account-lookup-service-admin" : "http-admin",
+        "quoting-service" : 80 ,
+        "centralsettlement/chart-service" : 80, 
+        "ml-testing-toolkit/chart-backend" : 5050 , 
+        "ml-testing-toolkit/chart-frontend" : 6060 ,
+        "centralledger/chart-handler-timeout" : 80 ,
+        "centralledger/chart-service" : 80 ,
+        "centralledger/chart-handler-transfer-get" : 80 ,
+        "centralledger/chart-handler-admin-transfer" : 80 ,
+        "centralledger/chart-handler-transfer-fulfil" : 80 ,
+        "centralledger/chart-handler-transfer-position" : 80  ,
+        "centralledger/chart-handler-transfer-prepare" : 80 ,
+        "simulator" : 80  ,
+        "centraleventprocessor" : 80 ,
+        "emailnotifier" : 80 ,
+        "ml-api-adapter/chart-service" : 80 ,
+        "ml-api-adapter/chart-handler-notification" : 80 ,
         "ml-operator" : "4006" ,
         "centralkms" : "5432" ,
         "ml-testing-toolkit/chart-connection-manager-frontend" : "5060" ,
-        "ml-testing-toolkit/chart-keycloak" : "80" ,
-        "bulk-centralledger/chart-handler-bulk-transfer-get" : "80" ,
-        "bulk-centralledger/chart-handler-bulk-transfer-processing" : "80" ,
-        "bulk-centralledger/chart-handler-bulk-transfer-prepare" : "80" ,
-        "bulk-centralledger/chart-handler-bulk-transfer-fulfil" : "80" ,
+        "ml-testing-toolkit/chart-keycloak" : 80 ,
+        "bulk-centralledger/chart-handler-bulk-transfer-get" : 80 ,
+        "bulk-centralledger/chart-handler-bulk-transfer-processing" : 80 ,
+        "bulk-centralledger/chart-handler-bulk-transfer-prepare" : 80 ,
+        "bulk-centralledger/chart-handler-bulk-transfer-fulfil" : 80 ,
         "centralenduserregistry" : "3001" ,
-        "als-oracle-pathfinder" : "80" ,
+        "als-oracle-pathfinder" : 80 ,
         "forensicloggingsidecar" : "5678" ,
-        "bulk-api-adapter/chart-service" : "80" ,
-        "bulk-api-adapter/chart-handler-notification" : "80" ,
+        "bulk-api-adapter/chart-service" : 80 ,
+        "bulk-api-adapter/chart-handler-notification" : 80 ,
         "thirdparty/chart-tp-api-svc" : "3008" ,
         "thirdparty/chart-consent-oracle" : "3000" ,
         "thirdparty/chart-auth-svc" : "4004" ,
@@ -418,6 +477,8 @@ def main(argv) :
     yaml.indent(mapping=2, sequence=6, offset=2)
     yaml.width = 4096
 
+    update_json_files(p)
+    update_requirements_files(p, yaml) 
     move_requirements_yaml(p,yaml) 
     update_all_helm_charts_yaml(p,yaml)
     update_values_for_ingress(p,yaml,service_ports_ary)

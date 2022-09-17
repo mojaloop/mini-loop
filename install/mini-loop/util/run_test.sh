@@ -1,12 +1,23 @@
 
 #!/usr/bin/env bash
-# temp script to aid in testing of mods to v14 feat/2352
-rm -rf $HOME/work 
-cp -r $HOME/helm $HOME/work 
-$HOME/mini-loop/install/mini-loop/util/do_rel14x_mods.py -d $HOME/work 
-#$HOME/mini-loop/install/mini-loop/util/wip.py -d $HOME/work 
-cp -r $HOME//mini-loop/install/mini-loop/etc/bitnami/common $HOME/work
-helm package $HOME/work/common 
-mv $HOME/mini-loop/install/mini-loop/util/common-2.0.0.tgz $HOME/work
-cp $HOME/work/common-2.0.0.tgz $HOME/work/repo
-cp $HOME/mini-loop/install/mini-loop/etc/package.sh $HOME/work
+# run tests 
+
+cat ~/work/centralledger/chart-service/templates/config/default.json
+helm delete cs > /dev/null 2>&1 
+helm delete als > /dev/null 2>&1 
+cd  ~/work/centralledger/chart-service
+helm dependency build 
+cd 
+printf "\ninstalling centralledger chart-admin\n"
+printf "===========================================\n"
+
+helm install cs ./work/centralledger/chart-service
+cd  ~/work/account-lookup-service
+helm dependency build 
+cd
+printf "\ninstalling account-lookup-service \n"
+printf "===========================================\n"
+helm install als ./work/account-lookup-service
+
+kubectl get pods 
+
