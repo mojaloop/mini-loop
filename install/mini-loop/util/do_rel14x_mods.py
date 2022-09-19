@@ -6,15 +6,16 @@
     - update the apiVersion for helm in all the Charts.yaml to 2 
     - updates the ingress if there is one with the ingress from bitnami
     - add the common dependency to each chart that already has an ingress
-    todo
     - updates the values files for the new ingress settings 
+    - update maintainers in chart.yaml to include tomd@crosslaketech
+    - update the thirdparty charts.yaml to have the correct local common lib
+    - _helper.tpl updated to use 
+    todo
+    - update _helpers.tpl to remove ingress version logic completely 
+
     - ensure the updated values files have the correct hostname 
     - ensure the updated values files have the correct port number  
-    - update maintainers in chart.yaml to include tomd@crosslaketech
-    - bug: not all lower directory chart.yaml files are being updated
     - update config/default.json files for values.ingress.api.host or similar to .Values.ingress.hostname 
-
-
 
     author : Tom Daly 
     Date   : Aug 2022
@@ -88,6 +89,24 @@ def update(d, n):
         d = n
     return d
 
+
+def update_helpers_files(p):
+    processed_cnt = 0 
+    updates_cnt = 0 
+    for hf in p.rglob('**/*_helpers.tpl'):
+        with FileInput(files=[hf], inplace=True) as f:
+            for line in f:
+                line = line.rstrip()
+                #replace networking v1beta1 
+                line,cnt = re.subn(r"networking.k8s.io/v1beta1", r"networking.k8s.io/v1", line)
+                updates_cnt += cnt 
+                line,cnt = re.subn(r"extensions/v1beta1", r"networking.k8s.io/v1", line )
+                updates_cnt += cnt  
+                print(line)
+            processed_cnt += 1    
+    print(f" total number of _helpers.tpl files processed [{processed_cnt}]")
+    print(f" total number of updates made to _helpers.tpl files [{updates_cnt}]")
+
 def update_requirements_files (p, yaml):
     # yeah I know I update he requirements only to move em and 
     # delete em ... but I had this working code to get rid
@@ -128,7 +147,7 @@ def move_requirements_yaml (p,yaml):
         processed_cnt +=1
         rf_parent=rf.parent
         cf=rf.parent / 'Chart.yaml'
-        print(f"  Processing requirements file {rf}")     
+        #print(f"  Processing requirements file {rf}")     
         with open(rf) as f:
             reqs_data = yaml.load(f)
             #print(reqs_data)
@@ -152,9 +171,6 @@ def move_requirements_yaml (p,yaml):
     for rf in p.rglob('**/*requirements.lock'):           
         rf.unlink(missing_ok=True)   
 
-    
-
-
 def update_all_helm_charts_yaml (p,yaml): 
     # 1 add the common dependencies chart to each chart in mojaloop
     # 2 update the API 
@@ -172,7 +188,7 @@ maintainers:
 """
     print("\n-- updating charts.yaml update vers, add dependencies, maintainers -- ")
     d1 = {"name":"common", "repository":"file://../common", "version":"2.0.0"}
-    m1 = {"name" : "tom" , "email":"tomd@crosslaketech.com"}
+    m1 = {"name" : "Tom Daly" , "email":"tomd@crosslaketech.com"}
     dy1 = yaml.load(yaml_str1)
     my1 = yaml.load(yaml_str2)
 
@@ -222,6 +238,7 @@ maintainers:
 
 def update_ingress(p, yaml,ports_array):
     print("-- update ingress -- ")
+    processed_cnt = 0 
     # Copy the bitnami inspired ingress over the existing ingress
     bn_ingress_file = script_path.parent.parent / "./etc/bitnami/bn_ingress.yaml"
     #print(f"  ==> bn_ingress_file is : {bn_ingress_file}")
@@ -229,6 +246,8 @@ def update_ingress(p, yaml,ports_array):
     for ingf in p.rglob('**/*ingress.yaml'): 
         #print(f" ==> copying new ingress to {ingf} ")
         shutil.copy(bn_ingress_file, ingf)
+        processed_cnt += 1
+    print(f" total number of ingress files copied in [{processed_cnt}]")
 
 def get_sp(p,vf,ing_file,spa):
     # get the servicePort for the ingress file being processed
@@ -244,13 +263,17 @@ def get_sp(p,vf,ing_file,spa):
 def get_sp_new(x,value,spa):
     if len(x) >= 2 : 
         parent_node = x[len(x)-2]
-        print(f"    >parent node is {parent_node}")
+        if parent_node : 
+            #print(f"    >parent node is {parent_node}")
+            print("    parent node is ")
         try : 
             if spa[parent_node]:
                 print(f"found servicePort {spa[parent_node]} from ingress_parent  ")
                 return spa[parent_node] 
         except: 
-            return [] 
+            #print=(f"WARNING : can't find parent node for x = {x} and value = {value} in ports array")
+            print=(f"WARNING : can't find parent node in ports array")
+            return
 
 def update_values_for_ingress(p, yaml,spa):
     # copy in the bitnami template ingress values 
@@ -273,16 +296,12 @@ def update_values_for_ingress(p, yaml,spa):
         #template_dir=vf.relative_to("templates")
         #print(f" templates_dir is {template_dir}")
         print(f"    ing_file is {ing_file}")
-
-
         data=[]
         vf_count+=1
         # load the values file 
         with open(vf) as f:
             data = yaml.load(f)
 
-        toplist = [] 
-        ingress_parent_list = []
         hostname=""
         path_value=""
         epath_value=""
@@ -304,9 +323,15 @@ def update_values_for_ingress(p, yaml,spa):
                 ing_sections_count +=1 
                 hosts_section=value['hosts']
                 if isinstance(hosts_section, list):
+                    print(f"DEBUG: hosts section is list ")
                     for i in hosts_section: 
-                        hostname=i
+                        if ( isinstance(i,dict)):
+                            hostname = i['host']
+                        else:
+                            print(f"DEBUG1 type of host sub section is {type(i)}")
+                            hostname=i
                 if isinstance(hosts_section,dict):
+                    print(f"DEBUG: hosts section is dict ")
                     for v in hosts_section.values():
                         hostname=v
                 if len(hostname) > 0 : 
@@ -352,9 +377,9 @@ def update_values_for_ingress(p, yaml,spa):
         with open(vf, "w") as vfile:
             yaml.dump(data, vfile)
 
-    print(f" number of values files updated is [{vf_count}]")
-    print(f" number of ingress files catered for  is [{ing_file_count}]")
-    print(f" number of individual ingress values sections updated [{ing_sections_count}]")
+    print(f" total number of values files updated is [{vf_count}]")
+    print(f" total number of ingress files catered for  is [{ing_file_count}]")
+    print(f" total number of individual ingress values sections updated [{ing_sections_count}]")
 
 def update_json_files (p) : 
     # update all the references to the old ingress values
@@ -373,8 +398,8 @@ def update_json_files (p) :
                 #print(f"cnt is {cnt}", file=sys.stderr)
                 print(line)
             processed_cnt +=1
-    print(f" number of json files processed [{processed_cnt}]")
-    print(f" number of updates made [{updates_cnt}]")
+    print(f" total number of json files processed [{processed_cnt}]")
+    print(f" total number of updates made to json files [{updates_cnt}]")
        
 
 def parse_args(args=sys.argv[1:]):
@@ -436,23 +461,23 @@ def main(argv) :
         "emailnotifier" : 80 ,
         "ml-api-adapter/chart-service" : 80 ,
         "ml-api-adapter/chart-handler-notification" : 80 ,
-        "ml-operator" : "4006" ,
-        "centralkms" : "5432" ,
-        "ml-testing-toolkit/chart-connection-manager-frontend" : "5060" ,
+        "ml-operator" : 4006 ,
+        "centralkms" : 5432 ,
+        "ml-testing-toolkit/chart-connection-manager-frontend" : 5060 ,
         "ml-testing-toolkit/chart-keycloak" : 80 ,
         "bulk-centralledger/chart-handler-bulk-transfer-get" : 80 ,
         "bulk-centralledger/chart-handler-bulk-transfer-processing" : 80 ,
         "bulk-centralledger/chart-handler-bulk-transfer-prepare" : 80 ,
         "bulk-centralledger/chart-handler-bulk-transfer-fulfil" : 80 ,
-        "centralenduserregistry" : "3001" ,
+        "centralenduserregistry" : 3001 ,
         "als-oracle-pathfinder" : 80 ,
-        "forensicloggingsidecar" : "5678" ,
+        "forensicloggingsidecar" : 5678 ,
         "bulk-api-adapter/chart-service" : 80 ,
         "bulk-api-adapter/chart-handler-notification" : 80 ,
-        "thirdparty/chart-tp-api-svc" : "3008" ,
-        "thirdparty/chart-consent-oracle" : "3000" ,
-        "thirdparty/chart-auth-svc" : "4004" ,
-        "ml-testing-toolkit/chart-connection-manager-backend" : "5061" 
+        "thirdparty/chart-tp-api-svc" : 3008 ,
+        "thirdparty/chart-consent-oracle" : 3000 ,
+        "thirdparty/chart-auth-svc" : 4004 ,
+        "ml-testing-toolkit/chart-connection-manager-backend" : 5061 
     }
     ports_array  = {
         "simapi" : "3000",
@@ -477,6 +502,7 @@ def main(argv) :
     yaml.indent(mapping=2, sequence=6, offset=2)
     yaml.width = 4096
 
+    update_helpers_files(p)
     update_json_files(p)
     update_requirements_files(p, yaml) 
     move_requirements_yaml(p,yaml) 

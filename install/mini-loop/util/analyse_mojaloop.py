@@ -59,34 +59,6 @@ def lookup(sk, d, path=[]):
            for res in lookup(sk, item, path + [item]):
                yield res
 
-def update(d, n):
-    if isinstance(n, CommentedMap):
-        for k in n:
-            d[k] = update(d[k], n[k]) if k in d else n[k]
-            if k in n.ca._items and n.ca._items[k][2] and \
-               n.ca._items[k][2].value.strip():
-                d.ca._items[k] = n.ca._items[k]  # copy non-empty comment
-    else:
-        d = n
-    return d
-
-"""
-update_key: recursively 
-"""
-def update_key(key, value, dictionary):
-        for k, v in dictionary.items():
-            if k == key:
-                dictionary[key]=value
-                print(f">>>>> the dictionary got updated in the previous line : {dictionary[key]} ")
-            elif isinstance(v, dict):
-                for result in update_key(key, value, v):
-                    yield result
-            elif isinstance(v, list):
-                for d in v:
-                    if isinstance(d, dict):
-                        for result in update_key(key, value, d):
-                            yield result
-
 def print_ingress_yaml_files (p, yaml): 
      for ingf in p.rglob('**/*ingress.yaml'): 
         print(f"ingress: {ingf.parent}/{ingf}")
@@ -145,15 +117,15 @@ def dig_out_values_for_ingress(p, yaml,spa):
                  enabled_value="false"
             #print("    enabled") if enabled_value=="true" else 0 
             print(f"    enabled_value is {enabled_value}")
-            if value.get('hosts'):
-                hosts_section=value['hosts']
+            if value.get('hostname'):
+                hosts_section=value['hostname']
                 if isinstance(hosts_section, list):
                     for i in hosts_section: 
                         hostname=i
                 if isinstance(hosts_section,dict):
                     for v in hosts_section.values():
                         hostname=v
-                if len(hostname) > 1 : 
+                if len(hostname) >= 1 : 
                         print(f"    hostname is {hostname}")
             if value.get('path'):
                 paths_section=value['path']
@@ -165,23 +137,23 @@ def dig_out_values_for_ingress(p, yaml,spa):
                         path_value=v
                 if isinstance(paths_section,str):
                     path_value = paths_section
-                if len(path_value) > 0 : 
+                if len(path_value) >= 1 : 
                         print(f"    path is {path_value}")
-            if value.get('externalPath'):
-                epaths_section=value['externalPath']
-                if isinstance(p, list):
-                    for i in epaths_section: 
-                        epath_value=i
-                if isinstance(epaths_section,dict):
-                    for v in epaths_section.values():
-                        epath_value=v
-                if isinstance(epaths_section,str):
-                    epath_value = epaths_section
-                if len(epath_value) > 0 : 
-                        print(f"    path is {epath_value}")
+            # if value.get('externalPath'):
+            #     epaths_section=value['externalPath']
+            #     if isinstance(p, list):
+            #         for i in epaths_section: 
+            #             epath_value=i
+            #     if isinstance(epaths_section,dict):
+            #         for v in epaths_section.values():
+            #             epath_value=v
+            #     if isinstance(epaths_section,str):
+            #         epath_value = epaths_section
+            #     if len(epath_value) > 0 : 
+            #             print(f"    path is {epath_value}")
 
-    print(f"\n  number of values files updated is [{vf_count}]")
-    print(f"  number of ingress files catered for  is [{ing_file_count}]")
+    print(f"\n  number of values files examined is [{vf_count}]")
+    print(f"  number of ingress files examined  is [{ing_file_count}]")
 
 
 
