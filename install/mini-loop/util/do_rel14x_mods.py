@@ -12,7 +12,11 @@
     - _helper.tpl updated to use 
     todo
     - update _helpers.tpl to remove ingress version logic completely 
-
+    - handle ./finance-portal-settlement-management/templates/operator-settlement-ingress.yaml
+             ./finance-portal-settlement-management/templates/settlement-management-ingress.yaml
+             ./mojaloop-simulator/templates/ingress-thirdparty-sdk.yaml
+             ./finance-portal/templates/backend-ingress.yaml
+             ./finance-portal/templates/frontend-ingress.yaml
     - ensure the updated values files have the correct hostname 
     - ensure the updated values files have the correct port number  
     - update config/default.json files for values.ingress.api.host or similar to .Values.ingress.hostname 
@@ -162,14 +166,14 @@ def move_requirements_yaml (p,yaml):
         # yaml.dump(cfdata,sys.stdout)
         with open(cf, "w") as cfile:
             yaml.dump(cfdata, cfile)
-    print(f" ==> processed: [{processed_cnt}] requirements files ")
-    print(f" ==> Deleting requirements.yaml files ")
+    print(f"Deleting requirements.yaml files ")
     for rf in p.rglob('**/*requirements.yaml'):        
         #print(f"  ==> unlink/delete requirements: {rf}")    
         rf.unlink(missing_ok=True)
     print(f" ==> Deleting requirements.lock files ")  
     for rf in p.rglob('**/*requirements.lock'):           
         rf.unlink(missing_ok=True)   
+    print(f"total number of requirements files  processed: [{processed_cnt}] ")
 
 def update_all_helm_charts_yaml (p,yaml): 
     # 1 add the common dependencies chart to each chart in mojaloop
@@ -234,17 +238,34 @@ maintainers:
         #yaml.dump(cfdata, sys.stdout)
         with open(cf, "w") as f:
             yaml.dump(cfdata, f)
-    print(f" ==> processed: [{processed_cnt}] chart.yaml files ")
+    print(f" ==> total number of chart.yaml files processed  [{processed_cnt}] ")
 
 def update_ingress(p, yaml,ports_array):
     print("-- update ingress -- ")
     processed_cnt = 0 
     # Copy the bitnami inspired ingress over the existing ingress
     bn_ingress_file = script_path.parent.parent / "./etc/bitnami/bn_ingress.yaml"
+    for ingf in p.rglob('**/*ingress.yaml'): 
+        with open(ingf,'r') as f: 
+            path_count=0
+            host_count=0
+            for line in f:
+                line=line.rstrip()
+                if re.search("path:", line ):
+                    path_count += 1 
+                if re.search("path:", line ):
+                   host_count += 1 
+                if re.search("range", line):
+                    print(f" line is {line} for ingress {ingf.parent/ingf}")
+            if path_count > 1 : 
+                print(f" path_count is {path_count} for ingress {ingf.parent/ingf}")
+            if host_count > 1 : 
+                print(f" host_count is {host_count} for ingress {ingf.parent/ingf}")
+               
     #print(f"  ==> bn_ingress_file is : {bn_ingress_file}")
     # for each existing ingress, write the new ingress content over it
     for ingf in p.rglob('**/*ingress.yaml'): 
-        #print(f" ==> copying new ingress to {ingf} ")
+        print(f" DEBUG2 copying new ingress to {ingf} ")
         shutil.copy(bn_ingress_file, ingf)
         processed_cnt += 1
     print(f" total number of ingress files copied in [{processed_cnt}]")
@@ -264,18 +285,16 @@ def get_sp_new(x,value,spa):
     if len(x) >= 2 : 
         parent_node = x[len(x)-2]
         if parent_node : 
-            #print(f"    >parent node is {parent_node}")
-            print("    parent node is ")
+            print(f"    >parent node is {parent_node}")
         try : 
             if spa[parent_node]:
                 print(f"found servicePort {spa[parent_node]} from ingress_parent  ")
                 return spa[parent_node] 
         except: 
-            #print=(f"WARNING : can't find parent node for x = {x} and value = {value} in ports array")
-            print=(f"WARNING : can't find parent node in ports array")
+            print(f"    WARNING : can't find parent node for x = {x} and value = {value} in ports array")
             return
 
-def update_values_for_ingress(p, yaml,spa):
+def update_values_for_ingress(p, yaml,spa,set_enabled=False):
     # copy in the bitnami template ingress values 
     print("-- update the values for ingress -- ")
     bivf = script_path.parent.parent / "./etc/bitnami/bn_ingress_values.yaml"
@@ -287,14 +306,11 @@ def update_values_for_ingress(p, yaml,spa):
     ing_sections_count=0
     service_port = ""
     #for vf in p.rglob('*account*/**/*values.yaml'):
-    for vf in p.rglob('**/*values.yaml'):
-        print(f"===> Processing file < {vf.parent}/{vf.name} > ")
-        
+    for vf in p.rglob('**/mojaloop/*values.yaml'):
+        print(f"===> Processing file < {vf.parent}/{vf.name} > ")   
         # for each values file if there is an ingress we need to get the 
         # servicePort so we can set it in the updated / new values file 
         ing_file = vf.parent / 'templates' / 'ingress.yaml'
-        #template_dir=vf.relative_to("templates")
-        #print(f" templates_dir is {template_dir}")
         print(f"    ing_file is {ing_file}")
         data=[]
         vf_count+=1
@@ -311,29 +327,50 @@ def update_values_for_ingress(p, yaml,spa):
             if ing_file.exists():
                 ing_file_count += 1
                 service_port=get_sp(p,vf,ing_file,spa)
+                print("service_port set from ingress file ")
             else : 
                 service_port=get_sp_new(x,value,spa) 
+            #if len(service_port) < 2  :
+            if not service_port: 
+                print(f"     WARNING service_port is not set") 
             if value.get('enabled'):
                 enabled_value=value['enabled']
             else:
                  enabled_value="false"
+            # set em all to true if indicated 
+
+
             #print("    enabled") if enabled_value=="true" else 0 
             print(f"    enabled_value is {enabled_value}")
-            if value.get('hosts'):
+            if value.get('hosts') is not None : 
                 ing_sections_count +=1 
                 hosts_section=value['hosts']
                 if isinstance(hosts_section, list):
-                    print(f"DEBUG: hosts section is list ")
+                    if len(hosts_section) >= 1 : 
+                        n = 0 
+                        for h in hosts_section:
+                            n += 1 
+                            print(f"    DEBUG4 need extra paths for {h} and count = {n}")
                     for i in hosts_section: 
                         if ( isinstance(i,dict)):
                             hostname = i['host']
                         else:
-                            print(f"DEBUG1 type of host sub section is {type(i)}")
+                            #print(f"DEBUG1 type of host sub section is {type(i)}")
                             hostname=i
                 if isinstance(hosts_section,dict):
-                    print(f"DEBUG: hosts section is dict ")
-                    for v in hosts_section.values():
-                        hostname=v
+                        print(f"parent_sec : {parent_node} is a dict ")
+                        extraHosts = []
+                        n = 0 
+                        for v,z in hosts_section.items():
+                            if n == 0 : 
+                                print(f"n = 0 and hostname == {z}")
+                                hostname=z
+                            else : 
+                                print(f"n = {n} and z = {z}")
+                                extraHosts.append(z['host']) 
+                            n += 1 
+                            if len(extraHosts) > 0: 
+                                print(f"      DEBUG6: hosts section is dict {hosts_section} extraHosts = {extraHosts}")
                 if len(hostname) > 0 : 
                         print(f"    hostname is {hostname}")
             if value.get('path'):
@@ -447,15 +484,23 @@ def main(argv) :
         "account-lookup-service-admin" : "http-admin",
         "quoting-service" : 80 ,
         "centralsettlement/chart-service" : 80, 
+        "centralsettlement-handler-deferredsettlement" : 80,
+        "centralsettlement-handler-grosssettlement" : 80 , 
         "ml-testing-toolkit/chart-backend" : 5050 , 
         "ml-testing-toolkit/chart-frontend" : 6060 ,
         "centralledger/chart-handler-timeout" : 80 ,
+        "centralledger-handler-timeout" : 80, 
         "centralledger/chart-service" : 80 ,
+        "centralledger-service" : 80, 
         "centralledger/chart-handler-transfer-get" : 80 ,
+        "centralledger-handler-transfer-get" : 80, 
         "centralledger/chart-handler-admin-transfer" : 80 ,
+        "centralledger-handler-admin-transfer" : 80, 
         "centralledger/chart-handler-transfer-fulfil" : 80 ,
         "centralledger/chart-handler-transfer-position" : 80  ,
+        "centralledger-handler-transfer-position" : 80, 
         "centralledger/chart-handler-transfer-prepare" : 80 ,
+        "centralledger-handler-transfer-prepare" : 80,
         "simulator" : 80  ,
         "centraleventprocessor" : 80 ,
         "emailnotifier" : 80 ,
@@ -475,8 +520,11 @@ def main(argv) :
         "bulk-api-adapter/chart-service" : 80 ,
         "bulk-api-adapter/chart-handler-notification" : 80 ,
         "thirdparty/chart-tp-api-svc" : 3008 ,
+        "tp-api-svc": 3008, 
         "thirdparty/chart-consent-oracle" : 3000 ,
+        "consent-oracle" : 3000,
         "thirdparty/chart-auth-svc" : 4004 ,
+        "auth-svc" : 4004,
         "ml-testing-toolkit/chart-connection-manager-backend" : 5061 
     }
     ports_array  = {
@@ -502,13 +550,14 @@ def main(argv) :
     yaml.indent(mapping=2, sequence=6, offset=2)
     yaml.width = 4096
 
-    update_helpers_files(p)
-    update_json_files(p)
-    update_requirements_files(p, yaml) 
-    move_requirements_yaml(p,yaml) 
-    update_all_helm_charts_yaml(p,yaml)
-    update_values_for_ingress(p,yaml,service_ports_ary)
-    update_ingress(p,yaml,ports_array)  
+    ingress_print_toplevel_details(p,yaml)
+    # update_helpers_files(p)
+    # update_json_files(p)
+    # update_requirements_files(p, yaml) 
+    # move_requirements_yaml(p,yaml) 
+    # update_all_helm_charts_yaml(p,yaml)
+    # update_values_for_ingress(p,yaml,service_ports_ary,set_enabled=True)
+    # update_ingress(p,yaml,ports_array)  
  
 if __name__ == "__main__":
     main(sys.argv[1:])

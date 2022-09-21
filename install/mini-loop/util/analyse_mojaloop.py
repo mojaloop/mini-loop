@@ -75,6 +75,70 @@ def get_sp(p,vf,ing_file,spa):
         print(f"    found servicePort {spa[ing_file]} for ingress file {ing_file}  ")
         return spa[ing_file]
 
+def ingress_print_toplevel_details(p,yaml):
+   for vf in p.rglob('**/mojaloop/*values.yaml'):
+        print(f"===> Processing file < {vf.parent}/{vf.name} > ")
+        data=[]
+        # extraHosts = []
+        # load the values file 
+        with open(vf) as f:
+            data = yaml.load(f)
+            for x, value in lookup('ingress', data):
+                if value.get('enabled'):
+                    enabled_value=value['enabled']
+                else:
+                    enabled_value="false"
+                if len(x) >= 2 : 
+                    parent_node = x[len(x)-2]
+                #print(f" ingress for {parent_node} is {enabled_value}")
+                if value.get('hosts') is not None : 
+                    hosts_section=value['hosts']
+                    if isinstance(hosts_section, list):
+                        print(f"parent_sec : {parent_node} is a list ")
+                        if len(hosts_section) > 1 : 
+                            n = 0 
+                            for h in hosts_section:
+                                n += 1 
+                                #print(f"    DEBUG5 list and need extra hosts for {h} and count = {n}")
+                        # print(f"DEBUG: hosts section is list ")
+                        for i in hosts_section: 
+                            if ( isinstance(i,dict)):
+                                hostname = i['host']
+                            else:
+                                #print(f"          DEBUG8 type of host sub section is {type(i)}")
+                                hostname=i
+                            
+                    if isinstance(hosts_section,dict):
+                        print(f"parent_sec : {parent_node} is a dict ")
+                        extraHosts = []
+                        n = 0 
+                        for v,z in hosts_section.items():
+                            if n == 0 : 
+                                print(f"n = 0 and hostname == {z}")
+                                hostname=z
+                            else : 
+                                print(f"n = {n} and z = {z}")
+                                extraHosts.append(z['host']) 
+                            n += 1 
+                            if len(extraHosts) > 0: 
+                                print(f"      DEBUG6: hosts section is dict {hosts_section} extraHosts = {extraHosts}")
+
+                    if len(hostname) > 0 : 
+                            print(f"    hostname is {hostname}")
+                if value.get('path'):
+                    paths_section=value['path']
+                    if isinstance(p, list):
+                        for i in paths_section: 
+                            path_value=i
+                    if isinstance(paths_section,dict):
+                        for v in paths_section.values():
+                            path_value=v
+                    if isinstance(paths_section,str):
+                        path_value = paths_section
+                    if len(path_value) > 0 : 
+                            print(f"    path is {path_value}")
+
+
 def dig_out_values_for_ingress(p, yaml,spa):
     # copy in the bitnami template ingress values 
     print("-- dig out the  values for ingress -- ")
