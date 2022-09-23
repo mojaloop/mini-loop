@@ -3,50 +3,118 @@
 # run tests 
 WORK_DIR="$HOME/work"
 
-declare -a charts=(
-        eventstreamprocessor
-        simulator
-        monitoring/promfana
-        monitoring/efk
-        account-lookup-service
-        als-oracle-pathfinder
-        centralkms
-        forensicloggingsidecar
-        centralledger
-        centralenduserregistry
-        centralsettlement
-        emailnotifier
-        centraleventprocessor
-        central
-        ml-api-adapter
-        quoting-service
-        finance-portal
-        finance-portal-settlement-management
-        transaction-requests-service
-        bulk-centralledger/
-        bulk-api-adapter/
-        mojaloop-bulk/
-        mojaloop-simulator
-        ml-testing-toolkit
-        ml-testing-toolkit-cli
-        thirdparty/chart-auth-svc
-        thirdparty/chart-consent-oracle
-        thirdparty/chart-tp-api-svc
-        thirdparty
-        mojaloop
-        kube-system/ntpd/
-        ml-operator
+declare -A test_charts=(
+    [eventstreamprocessor]="esp" 
+    [simulator]=sim
+    [monitoring/promfana]=prom
+)
+
+#ok charts 
+# [eventstreamprocessor]=evs
+# [simulator]=sim
+# [monitoring/promfana]=prof
+# [monitoring/efk]=efk
+# [account-lookup-service]=als
+# [als-oracle-pathfinder]=alsp
+# [centralkms]=ckms
+# [centralenduserregistry]=ceur
+# [emailnotifier]=email
+# [centraleventprocessor]=cep
+# [central]=cent
+# OK -[ml-api-adapter]=apia
+# [quoting-service]=qs
+# [finance-portal]=fp
+# [finance-portal-settlement-management]=fpsm
+# [transaction-requests-service]=trs
+# [bulk-centralledger]=bcl
+# OK - [bulk-api-adapter]=baa
+# [mojaloop-bulk]=mb
+# [mojaloop-simulator]=msim
+# [ml-testing-toolkit]=ttk
+# [ml-testing-toolkit-cli]=ttkc
+# [thirdparty]=tp
+# [ml-operator]=mlo
+
+# [forensicloggingsidecar]=fls  <== has error in V14 
+# [centralledger]=cl <==contained in central
+# [centralsettlement]=cs <==contained in central
+# [finance-portal]=fp <==deprecated and not in top level values
+# [finance-portal-settlement-management]=fpsm <==deprecated and not in top level values
+declare -A CHARTS=(
+        [eventstreamprocessor]=evs
+        [simulator]=sim
+        [monitoring/promfana]=prof
+        [monitoring/efk]=efk
+        [account-lookup-service]=als
+        [als-oracle-pathfinder]=alsp
+        [centralkms]=ckms
+        [centralenduserregistry]=ceur
+        [emailnotifier]=email
+        [centraleventprocessor]=cep
+        [central]=cent
+        [ml-api-adapter]=apia
+        [quoting-service]=qs
+        [transaction-requests-service]=trs
+        [bulk-centralledger]=bcl
+        [bulk-api-adapter]=baa
+        [mojaloop-bulk]=mb
+        [mojaloop-simulator]=msim
+        [ml-testing-toolkit]=ttk
+        [ml-testing-toolkit-cli]=ttkc
+        [thirdparty]=tp
+        [ml-operator]=mlo
     )
 
+if [[ $1 == "delete" ]]; then 
+    for K in "${!CHARTS[@]}"
+        do 
+            helm delete "${CHARTS[$K]}" 
+        done
+else 
+    for K in "${!CHARTS[@]}"
+        do
+            helm delete "${CHARTS[$K]}"  > /dev/null 2>&1 
+            printf "\ninstalling %s \n" "$K" 
+            printf "===========================================\n"
+            helm install "${CHARTS[$K]}" $WORK_DIR/$K
+        done 
+fi
+exit 1 
 
-for chart in "${charts[@]}"
-do
+if [[ $1 == "delete" ]]; then 
+    for chart in "${charts[@]}"
+    do
+        helm delete "$chart" > /dev/null 2>&1 
+    done 
+else 
+    for chart in "${charts[@]}"
+    do
 
-    helm delete "$chart" > /dev/null 2>&1 
-    printf "\ninstalling %s \n" $chart
-    printf "===========================================\n"
-    helm install $chart $WORK_DIR/$chart
-done 
+        helm delete "$chart" > /dev/null 2>&1 
+        printf "\ninstalling %s \n" $chart
+        printf "===========================================\n"
+        helm install $chart $WORK_DIR/$chart
+    done 
+fi 
+
+# if [[ $1 == "delete" ]]; then 
+#     for chart in "${charts[@]}"
+#     do
+#         helm delete "$chart" > /dev/null 2>&1 
+#     done 
+# else 
+#     for chart in "${charts[@]}"
+#     do
+
+#         helm delete "$chart" > /dev/null 2>&1 
+#         printf "\ninstalling %s \n" $chart
+#         printf "===========================================\n"
+#         helm install $chart $WORK_DIR/$chart
+#     done 
+# fi 
+
+
+
 
 # cd  ~/work/centralledger/chart-service
 # helm dependency build 

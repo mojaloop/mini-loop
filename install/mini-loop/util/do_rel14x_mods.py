@@ -213,6 +213,7 @@ maintainers:
 
     processed_cnt = 0 
     for cf in p.rglob('**/*Chart.yaml'):
+        processed_cnt += 1
         # if  cf.parent.parent != p : 
         #     d1['repository']="file://../../common"
         #     dy1['dependencies'][0]['repository'] = "file://../../common"
@@ -255,34 +256,45 @@ maintainers:
             yaml.dump(cfdata, f)
     print(f" ==> total number of chart.yaml files processed  [{processed_cnt}] ")
 
-def update_ingress(p, yaml,ports_array):
+def update_ingress(p, yaml,ports_array,ceplist):
     print("-- update ingress -- ")
     processed_cnt = 0 
     # Copy the bitnami inspired ingress over the existing ingress
+    # Note the ingress name must be ingress.yaml other ingress names are not over written yet
     bn_ingress_file = script_path.parent.parent / "./etc/bitnami/bn_ingress.yaml"
-    for ingf in p.rglob('**/*ingress.yaml'): 
-        with open(ingf,'r') as f: 
-            path_count=0
-            host_count=0
-            for line in f:
-                line=line.rstrip()
-                if re.search("path:", line ):
-                    path_count += 1 
-                if re.search("path:", line ):
-                   host_count += 1 
-                # if re.search("range", line):
-                #     #print(f" line is {line} for ingress {ingf.parent/ingf}")
-            if path_count > 1 : 
-                print(f" path_count is {path_count} for ingress {ingf.parent/ingf}")
-            if host_count > 1 : 
-                print(f" host_count is {host_count} for ingress {ingf.parent/ingf}")
+    #print(f"ceplist is {ceplist}")
+    for ingf in p.rglob('**/ingress.yaml'): 
+        #print(f" parent is {ingf.parent}, parent.parent is {ingf.parent.parent} ")
+        if ingf.parent.parent in ceplist: 
+            print(f"Excluding chart {ingf.parent.parent/ingf}")
+        else : 
+            print(f" copying to {ingf.parent/ingf}")
+            with open(ingf,'r') as f: 
+                path_count=0
+                host_count=0
+                for line in f:
+                    line=line.rstrip()
+                    if re.search("path:", line ):
+                        path_count += 1 
+                    if re.search("path:", line ):
+                        host_count += 1 
+                        # if re.search("range", line):
+                        #     #print(f" line is {line} for ingress {ingf.parent/ingf}")
+                if path_count > 1 : 
+                    print(f" path_count is {path_count} for ingress {ingf.parent/ingf}")
+                if host_count > 1 : 
+                    print(f" host_count is {host_count} for ingress {ingf.parent/ingf}")
                
     #print(f"  ==> bn_ingress_file is : {bn_ingress_file}")
     # for each existing ingress, write the new ingress content over it
-    for ingf in p.rglob('**/*ingress.yaml'): 
-        #print(f" DEBUG2 copying new ingress to {ingf} ")
-        shutil.copy(bn_ingress_file, ingf)
-        processed_cnt += 1
+
+    for ingf in p.rglob('**/ingress.yaml'): 
+        if ingf.parent.parent in ceplist:
+            print(f"Excluding chart {ingf.parent.parent/ingf}")
+        else : 
+            #print(f" DEBUG2 copying new ingress to {ingf} ")
+            shutil.copy(bn_ingress_file, ingf)
+            processed_cnt += 1
     print(f" total number of ingress files copied in [{processed_cnt}]")
 
 def get_sp(p,vf,ing_file,spa):
@@ -309,7 +321,7 @@ def get_sp_new(x,value,spa):
             print(f"    WARNING1 : can't find serviceport for parent_node {parent_node} in ports array")
             return
 
-def update_values_for_ingress(p, yaml,spa,set_enabled=False):
+def update_values_for_ingress(p, yaml,spa,ceplist,ynel,set_enabled=False):
     # copy in the bitnami template ingress values 
     print("-- update the values for ingress -- ")
     bivf = script_path.parent.parent / "./etc/bitnami/bn_ingress_values.yaml"
@@ -320,125 +332,138 @@ def update_values_for_ingress(p, yaml,spa,set_enabled=False):
     ing_file_count = 0 
     ing_sections_count=0
     service_port = ""
+    print(f"ceplist is {ceplist}")
     #for vf in p.rglob('*account*/**/*values.yaml'):
     for vf in p.rglob('**/*values.yaml'):
-        print(f"===> Processing file < {vf.parent}/{vf.name} > ")   
-        # for each values file if there is an ingress we need to get the 
-        # servicePort so we can set it in the updated / new values file 
-        ing_file = vf.parent / 'templates' / 'ingress.yaml'
-        print(f"    ing_file is {ing_file}")
-        data=[]
-        vf_count+=1
-        # load the values file 
-        with open(vf) as f:
-            data = yaml.load(f)
+        # we exclude the values files of the charts where we are not unifying the ingress
+        print(f"vf.parent.parent is {vf.parent.parent}")
+        if vf.parent.parent in ceplist or vf.parent in ceplist : 
+            print(f"DEBUG5 Excluding values files updating for {vf.parent.parent/vf}")
+        else : 
+            print(f"===> Processing file < {vf.parent}/{vf.name} > ")   
+            # for each values file if there is an ingress we need to get the 
+            # servicePort so we can set it in the updated / new values file 
+            ing_file = vf.parent / 'templates' / 'ingress.yaml'
+            print(f"    ing_file is {ing_file}")
+            data=[]
+            vf_count+=1
+            # load the values file 
+            with open(vf) as f:
+                data = yaml.load(f)
 
-        hostname=""
-        path_value=""
-        epath_value=""
-        enabled_value=""
-        # get the top level yaml structures
-        for x, value in lookup('ingress', data):
-            if ing_file.exists():
-                ing_file_count += 1
-                service_port=get_sp(p,vf,ing_file,spa)
-                print("    service_port set from ingress file ")
-            else : 
-                service_port=get_sp_new(x,value,spa) 
-            #if len(service_port) < 2  :
-            if not service_port: 
-                print(f"     WARNING service_port is not set") 
-            if value.get('enabled'):
-                enabled_value=value['enabled']
-            else:
-                 enabled_value="false"
-            #print(f"    enabled_value is {enabled_value}")
-            if value.get('hosts') is not None : 
-                ing_sections_count +=1 
-                hosts_section=value['hosts']
-                if isinstance(hosts_section, list):
-                    if len(hosts_section) > 1 : 
-                        n = 0 
-                        for h in hosts_section:
-                            n += 1 
-                            print(f"      DEBUG4 need extra hosts for {h} count = {n} x = {x}")
-                    for i in hosts_section: 
-                        if ( isinstance(i,dict)):
-                            hostname = i['host']
-                        else:
-                            #print(f"DEBUG1 type of host sub section is {type(i)}")
-                            hostname=i
-                if isinstance(hosts_section,dict):
-                        #print(f"parent_sec : {parent_node} is a dict ")
-                        extraHosts = []
-                        n = 0 
-                        for v,z in hosts_section.items():
-                            #print(f" v = {v} and z = {z}")
-                            if n == 0 : 
-                                #print(f"n = 0 and hostname == {z}")
-                                if (isinstance(z,dict)):
-                                    if z.get('host'): 
-                                        hostname = z['host']
-                                else: 
-                                    hostname = z
-                            else : 
-                                #print(f"n = {n} and z = {z}")
-                                extraHosts.append(z['host']) 
-                            n += 1 
-                            if len(extraHosts) > 0: 
-                                print(f"  FOUND EXTRA HOSTS hosts section is dict {hosts_section} extraHosts = {extraHosts}")
-                            
-                if len(hostname) > 0 : 
-                    print(f"      hostname is {hostname}")
-                else : 
-                    print("     WARNING HOSTNAME NOT FOUND")
-            # NOTE: turns out that path is almost always / so we can just default to that 
-            # and pick up discrepencies during testing 
+            parent_node=""
+            hostname=""
+            path_value=""
+            epath_value=""
+            enabled_value=""
+            # get the top level yaml structures
+            for x, value in lookup('ingress', data):
+                if (len(x)) >=2:
+                    parent_node = x[len(x)-2]
+                if parent_node in ynel:
+                    print(f" excluding parent node {parent_node}")
+                else: 
+                    if ing_file.exists():
+                        ing_file_count += 1
+                        service_port=get_sp(p,vf,ing_file,spa)
+                        print("    service_port set from ingress file ")
+                    else : 
+                        service_port=get_sp_new(x,value,spa) 
+                    #if len(service_port) < 2  :
+                    if not service_port: 
+                        print(f"     WARNING service_port is not set") 
+                    if value.get('enabled'):
+                        enabled_value=value['enabled']
+                    else:
+                        enabled_value="false"
+                    #print(f"    enabled_value is {enabled_value}")
+                    if value.get('hosts') is not None : 
+                        ing_sections_count +=1 
+                        hosts_section=value['hosts']
+                        if isinstance(hosts_section, list):
+                            if len(hosts_section) > 1 : 
+                                n = 0 
+                                for h in hosts_section:
+                                    n += 1 
+                                    print(f"      DEBUG4 need extra hosts for {h} count = {n} x = {x}")
+                            for i in hosts_section: 
+                                if ( isinstance(i,dict)):
+                                    hostname = i['host']
+                                else:
+                                    #print(f"DEBUG1 type of host sub section is {type(i)}")
+                                    hostname=i
+                        if isinstance(hosts_section,dict):
+                                #print(f"parent_sec : {parent_node} is a dict ")
+                                extraHosts = []
+                                n = 0 
+                                for v,z in hosts_section.items():
+                                    #print(f" v = {v} and z = {z}")
+                                    if n == 0 : 
+                                        #print(f"n = 0 and hostname == {z}")
+                                        if (isinstance(z,dict)):
+                                            if z.get('host'): 
+                                                hostname = z['host']
+                                        else: 
+                                            hostname = z
+                                    else : 
+                                        #print(f"n = {n} and z = {z}")
+                                        extraHosts.append(z['host']) 
+                                    n += 1 
+                                    if len(extraHosts) > 0: 
+                                        print(f"  FOUND EXTRA HOSTS hosts section is dict {hosts_section} extraHosts = {extraHosts}")
+                                    
+                        if len(hostname) > 0 : 
+                            print(f"      hostname is {hostname}")
+                        else : 
+                            print("     WARNING HOSTNAME NOT FOUND")
+                    # NOTE: turns out that path is almost always / so we can just default to that 
+                    # and pick up discrepencies during testing 
 
-            # if value.get('path'):
-            #     paths_section=value['path']
-            #     if isinstance(p, list):
-            #         for i in paths_section: 
-            #             path_value=i
-            #     if isinstance(paths_section,dict):
-            #         for v in paths_section.values():
-            #             path_value=v
-            #     if isinstance(paths_section,str):
-            #         path_value = paths_section
-            #     if len(path_value) > 0 : 
-            #         print(f"    path is {path_value}")
-            #     else : 
-            #         print(" WARNING PATH NOT FOUND ")
-            # NOTE for the moment it looks like externalpath
-            # is usd just as path for many of the old ingress.yaml
-            # so I think this can remain unset
-            # if value.get('externalPath'):
-            #     epaths_section=value['externalPath']
-            #     if isinstance(p, list):
-            #         for i in epaths_section: 
-            #             epath_value=i
-            #     if isinstance(epaths_section,dict):
-            #         for v in epaths_section.values():
-            #             epath_value=v
-            #     if isinstance(epaths_section,str):
-            #         epath_value = epaths_section
-            #     if len(epath_value) > 0 : 
-            #             print(f"    path is {epath_value}")
-            value.clear()
-            with open(bivf) as f:
-                newdata = yaml.load(f)
-            update(value,newdata)
-            value['hostname'] = hostname
-            if len(extraHosts) > 0 : 
-                value['extraHosts'] = extraHosts
-            if len(path_value) > 0 : 
-                value['path'] = path_value
-            # if len(epath_value): >0 : 
-            #     value['extraPaths'] = epath_value 
-            value['servicePort'] = service_port 
+                    # if value.get('path'):
+                    #     paths_section=value['path']
+                    #     if isinstance(p, list):
+                    #         for i in paths_section: 
+                    #             path_value=i
+                    #     if isinstance(paths_section,dict):
+                    #         for v in paths_section.values():
+                    #             path_value=v
+                    #     if isinstance(paths_section,str):
+                    #         path_value = paths_section
+                    #     if len(path_value) > 0 : 
+                    #         print(f"    path is {path_value}")
+                    #     else : 
+                    #         print(" WARNING PATH NOT FOUND ")
+                    # NOTE for the moment it looks like externalpath
+                    # is usd just as path for many of the old ingress.yaml
+                    # so I think this can remain unset
+                    # if value.get('externalPath'):
+                    #     epaths_section=value['externalPath']
+                    #     if isinstance(p, list):
+                    #         for i in epaths_section: 
+                    #             epath_value=i
+                    #     if isinstance(epaths_section,dict):
+                    #         for v in epaths_section.values():
+                    #             epath_value=v
+                    #     if isinstance(epaths_section,str):
+                    #         epath_value = epaths_section
+                    #     if len(epath_value) > 0 : 
+                    #             print(f"    path is {epath_value}")
+                    value.clear()
+                    with open(bivf) as f:
+                        newdata = yaml.load(f)
+                    update(value,newdata)
+                    #value['enabled'] = enabled_value
+                    value['hostname'] = hostname
+                    if len(extraHosts) > 0 : 
+                        value['extraHosts'] = extraHosts
+                    if len(path_value) > 0 : 
+                        value['path'] = path_value
+                    # if len(epath_value): >0 : 
+                    #     value['extraPaths'] = epath_value 
+                    value['servicePort'] = service_port 
 
-        with open(vf, "w") as vfile:
-            yaml.dump(data, vfile)
+            with open(vf, "w") as vfile:
+                yaml.dump(data, vfile)
 
     print(f" total number of values files updated is [{vf_count}]")
     print(f" total number of ingress files catered for  is [{ing_file_count}]")
@@ -464,6 +489,44 @@ def update_json_files (p) :
     print(f" total number of json files processed [{processed_cnt}]")
     print(f" total number of updates made to json files [{updates_cnt}]")
        
+
+#### in place modifications 
+def in_place_update_ingress_values_files(p, yaml,spa,ceplist,pary,set_enabled=False):
+    for vf in ceplist:
+        ing_file=vf/"templates"/"ingress.yaml"
+        if ing_file.exists():
+            print(f"ingress file to update in place is {ing_file.parent/ing_file}")
+            with FileInput(files=[ing_file], inplace=True) as f:
+                for line in f:
+                    line = line.rstrip()
+                    if re.search("path:", line ):
+                        line_dup = line
+                        line_dup = re.sub(r"- path:.*$", r"  pathType: ImplementationSpecific", line_dup)
+                        print(line)
+                        print(line_dup)
+                    elif re.search("serviceName:", line ):
+                        line_dup=line
+                        line_dup = re.sub(r"serviceName:.*$", r"service:", line_dup)
+                        print(line_dup)
+                        line=re.sub(r"serviceName:", r"  name:", line)
+                        print(line)
+                    elif re.search("servicePort:", line ):                        
+                        line_dup = line 
+                        line_dup=re.sub(r"servicePort:.*$", r"  port:", line_dup)
+                        line = re.sub(r"servicePort: ", r"    number: ", line)
+                        # need to replace port names with numbers 
+                        for pname , pnum  in pary.items() : 
+                            line = re.sub(f"number: {pname}$", f"number: {pnum}", line )
+                        print(line_dup)
+                        print(line)
+                    elif re.search("ingressClassName" , line ):
+                        # skip any ingressClassname already set => we can re-run program without issue 
+                        continue
+                    elif re.search("spec:" , line ):        
+                        print(line)
+                        print("  ingressClassName: nginx") 
+                    else :  
+                        print(line)
 
 def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Automate modifications across mojaloop helm charts')
@@ -497,6 +560,8 @@ def main(argv) :
         'emailnotifier/values.yaml'
     ]
     
+
+
     service_ports_ary = {
         "transaction-requests-service" : "http",
         "mojaloop-simulator" : "outboundapi" ,
@@ -588,8 +653,54 @@ def main(argv) :
         "outboundapi" : "{{ $config.config.schemeAdapter.env.OUTBOUND_LISTEN_PORT }}"
     }
 
+    # which nodes in the top level yaml file to exclude unifying
+    yaml_node_exclude_list = [
+        "chart-tp-api-svc",
+        "chart-consent-oracle",
+        "chart-auth-svc",
+        "chart-keycloak",
+        "ml-testing-toolkit-backend"
+        "alertmanager",
+        "server",
+        "pushgateway",
+        "grafana",
+        "elasticsearch",
+        "kibana",
+        "apm-server",
+        "keycloak",
+        "payerfsp",
+        "payeefsp",
+        "testfsp1",
+        "testfsp2",
+        "testfsp3",
+        "testfsp4",
+        "defaults"
+    ]
+
+    # the charts and ingress in this list will not be unified to the new ingress standard
+    # rather just updated to the new ingress API in-place.
+    chart_names_exclude_list = [
+        "finance-portal-settlement-management",
+        "finance-portal",
+        "thirdparty",
+        "thirdparty/chart-tp-api-svc",
+        "thirdparty/chart-consent-oracle",
+        "thirdparty/chart-auth-svc",
+        "mojaloop-simulator",
+        "keycloak",
+        "monitoring",
+        "monitoring/promfana",
+        "monitoring/elk",
+        "ml-testing-toolkit/chart-keycloak",
+        "ml-testing-toolkit/backend",
+    ]
+
     p = Path() / args.directory
     print(f"Processing helm charts in directory: [{args.directory}]")
+
+    chart_path_exclude_list = []
+    for c in chart_names_exclude_list : 
+        chart_path_exclude_list.append(p / c)
 
     yaml = YAML()
     yaml.allow_duplicate_keys = True
@@ -602,8 +713,9 @@ def main(argv) :
     update_requirements_files(p, yaml) 
     move_requirements_yaml(p,yaml) 
     update_all_helm_charts_yaml(p,yaml)
-    update_values_for_ingress(p,yaml,service_ports_ary,set_enabled=True)
-    update_ingress(p,yaml,ports_array)  
+    update_values_for_ingress(p,yaml,service_ports_ary,chart_path_exclude_list,yaml_node_exclude_list,set_enabled=True)
+    update_ingress(p,yaml,ports_array,chart_path_exclude_list)  
+    in_place_update_ingress_values_files(p,yaml,service_ports_ary,chart_path_exclude_list,ports_array,set_enabled=True)
  
 if __name__ == "__main__":
     main(sys.argv[1:])
