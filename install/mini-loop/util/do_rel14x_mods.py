@@ -11,6 +11,11 @@
     - update the thirdparty charts.yaml to have the correct local common lib
     - _helper.tpl updated to use 
     todo
+    - verify that charts that have ingress names other than exactly ingress.yaml do not 
+      have these ingress copied over i.e. thirdparty charts with 2 ingress and or make sure 
+      that the copied in version is correct
+    - 4 paths for mojaloop-simulator/templates/ingress.yaml
+    - 2 paths for ml-operator/templates/ingress.yaml
     - update _helpers.tpl to remove ingress version logic completely 
     - handle ./finance-portal-settlement-management/templates/operator-settlement-ingress.yaml
              ./finance-portal-settlement-management/templates/settlement-management-ingress.yaml
@@ -185,26 +190,36 @@ dependencies:
     repository : "file://../common" 
     version : 2.0.0  
 """
+    yaml_str1a = """
+dependencies: 
+  - name : common 
+    repository : "https://docs.mojaloop.io/charts/repo"
+    tags:
+      - moja-common
+    version : 2.0.0  
+"""
+
     yaml_str2 = """
 maintainers: 
   - name : Tom Daly 
     email : tomd@crosslaketech
 """
+
     print("\n-- updating charts.yaml update vers, add dependencies, maintainers -- ")
-    d1 = {"name":"common", "repository":"file://../common", "version":"2.0.0"}
+    d1 = {"name":"common", "repository":"https://docs.mojaloop.io/charts/repo", "version":"2.0.0" , "tags":['moja-common']}
     m1 = {"name" : "Tom Daly" , "email":"tomd@crosslaketech.com"}
-    dy1 = yaml.load(yaml_str1)
+    dy1 = yaml.load(yaml_str1a)
     my1 = yaml.load(yaml_str2)
 
     processed_cnt = 0 
     for cf in p.rglob('**/*Chart.yaml'):
-        if  cf.parent.parent != p : 
-            d1['repository']="file://../../common"
-            dy1['dependencies'][0]['repository'] = "file://../../common"
-        else: 
-            d1['repository']="file://../common"
-            dy1['dependencies'][0]['repository'] = "file://../common"
-        processed_cnt +=1
+        # if  cf.parent.parent != p : 
+        #     d1['repository']="file://../../common"
+        #     dy1['dependencies'][0]['repository'] = "file://../../common"
+        # else: 
+        #     d1['repository']="file://../common"
+        #     dy1['dependencies'][0]['repository'] = "file://../common"
+        # processed_cnt +=1
         with open(cf) as f:
             cfdata = yaml.load(f)
         if cfdata.get("dependencies"): 
@@ -255,8 +270,8 @@ def update_ingress(p, yaml,ports_array):
                     path_count += 1 
                 if re.search("path:", line ):
                    host_count += 1 
-                if re.search("range", line):
-                    print(f" line is {line} for ingress {ingf.parent/ingf}")
+                # if re.search("range", line):
+                #     #print(f" line is {line} for ingress {ingf.parent/ingf}")
             if path_count > 1 : 
                 print(f" path_count is {path_count} for ingress {ingf.parent/ingf}")
             if host_count > 1 : 
@@ -265,7 +280,7 @@ def update_ingress(p, yaml,ports_array):
     #print(f"  ==> bn_ingress_file is : {bn_ingress_file}")
     # for each existing ingress, write the new ingress content over it
     for ingf in p.rglob('**/*ingress.yaml'): 
-        print(f" DEBUG2 copying new ingress to {ingf} ")
+        #print(f" DEBUG2 copying new ingress to {ingf} ")
         shutil.copy(bn_ingress_file, ingf)
         processed_cnt += 1
     print(f" total number of ingress files copied in [{processed_cnt}]")
@@ -288,10 +303,10 @@ def get_sp_new(x,value,spa):
             print(f"    >parent node is {parent_node}")
         try : 
             if spa[parent_node]:
-                print(f"found servicePort {spa[parent_node]} from ingress_parent  ")
+                print(f"      found servicePort {spa[parent_node]} from ingress_parent  ")
                 return spa[parent_node] 
         except: 
-            print(f"    WARNING : can't find parent node for x = {x} and value = {value} in ports array")
+            print(f"    WARNING1 : can't find serviceport for parent_node {parent_node} in ports array")
             return
 
 def update_values_for_ingress(p, yaml,spa,set_enabled=False):
@@ -306,7 +321,7 @@ def update_values_for_ingress(p, yaml,spa,set_enabled=False):
     ing_sections_count=0
     service_port = ""
     #for vf in p.rglob('*account*/**/*values.yaml'):
-    for vf in p.rglob('**/mojaloop/*values.yaml'):
+    for vf in p.rglob('**/*values.yaml'):
         print(f"===> Processing file < {vf.parent}/{vf.name} > ")   
         # for each values file if there is an ingress we need to get the 
         # servicePort so we can set it in the updated / new values file 
@@ -327,7 +342,7 @@ def update_values_for_ingress(p, yaml,spa,set_enabled=False):
             if ing_file.exists():
                 ing_file_count += 1
                 service_port=get_sp(p,vf,ing_file,spa)
-                print("service_port set from ingress file ")
+                print("    service_port set from ingress file ")
             else : 
                 service_port=get_sp_new(x,value,spa) 
             #if len(service_port) < 2  :
@@ -337,20 +352,16 @@ def update_values_for_ingress(p, yaml,spa,set_enabled=False):
                 enabled_value=value['enabled']
             else:
                  enabled_value="false"
-            # set em all to true if indicated 
-
-
-            #print("    enabled") if enabled_value=="true" else 0 
-            print(f"    enabled_value is {enabled_value}")
+            #print(f"    enabled_value is {enabled_value}")
             if value.get('hosts') is not None : 
                 ing_sections_count +=1 
                 hosts_section=value['hosts']
                 if isinstance(hosts_section, list):
-                    if len(hosts_section) >= 1 : 
+                    if len(hosts_section) > 1 : 
                         n = 0 
                         for h in hosts_section:
                             n += 1 
-                            print(f"    DEBUG4 need extra paths for {h} and count = {n}")
+                            print(f"      DEBUG4 need extra hosts for {h} count = {n} x = {x}")
                     for i in hosts_section: 
                         if ( isinstance(i,dict)):
                             hostname = i['host']
@@ -358,33 +369,46 @@ def update_values_for_ingress(p, yaml,spa,set_enabled=False):
                             #print(f"DEBUG1 type of host sub section is {type(i)}")
                             hostname=i
                 if isinstance(hosts_section,dict):
-                        print(f"parent_sec : {parent_node} is a dict ")
+                        #print(f"parent_sec : {parent_node} is a dict ")
                         extraHosts = []
                         n = 0 
                         for v,z in hosts_section.items():
+                            #print(f" v = {v} and z = {z}")
                             if n == 0 : 
-                                print(f"n = 0 and hostname == {z}")
-                                hostname=z
+                                #print(f"n = 0 and hostname == {z}")
+                                if (isinstance(z,dict)):
+                                    if z.get('host'): 
+                                        hostname = z['host']
+                                else: 
+                                    hostname = z
                             else : 
-                                print(f"n = {n} and z = {z}")
+                                #print(f"n = {n} and z = {z}")
                                 extraHosts.append(z['host']) 
                             n += 1 
                             if len(extraHosts) > 0: 
-                                print(f"      DEBUG6: hosts section is dict {hosts_section} extraHosts = {extraHosts}")
+                                print(f"  FOUND EXTRA HOSTS hosts section is dict {hosts_section} extraHosts = {extraHosts}")
+                            
                 if len(hostname) > 0 : 
-                        print(f"    hostname is {hostname}")
-            if value.get('path'):
-                paths_section=value['path']
-                if isinstance(p, list):
-                    for i in paths_section: 
-                        path_value=i
-                if isinstance(paths_section,dict):
-                    for v in paths_section.values():
-                        path_value=v
-                if isinstance(paths_section,str):
-                    path_value = paths_section
-                if len(path_value) > 0 : 
-                        print(f"    path is {path_value}")
+                    print(f"      hostname is {hostname}")
+                else : 
+                    print("     WARNING HOSTNAME NOT FOUND")
+            # NOTE: turns out that path is almost always / so we can just default to that 
+            # and pick up discrepencies during testing 
+
+            # if value.get('path'):
+            #     paths_section=value['path']
+            #     if isinstance(p, list):
+            #         for i in paths_section: 
+            #             path_value=i
+            #     if isinstance(paths_section,dict):
+            #         for v in paths_section.values():
+            #             path_value=v
+            #     if isinstance(paths_section,str):
+            #         path_value = paths_section
+            #     if len(path_value) > 0 : 
+            #         print(f"    path is {path_value}")
+            #     else : 
+            #         print(" WARNING PATH NOT FOUND ")
             # NOTE for the moment it looks like externalpath
             # is usd just as path for many of the old ingress.yaml
             # so I think this can remain unset
@@ -405,6 +429,8 @@ def update_values_for_ingress(p, yaml,spa,set_enabled=False):
                 newdata = yaml.load(f)
             update(value,newdata)
             value['hostname'] = hostname
+            if len(extraHosts) > 0 : 
+                value['extraHosts'] = extraHosts
             if len(path_value) > 0 : 
                 value['path'] = path_value
             # if len(epath_value): >0 : 
@@ -484,6 +510,8 @@ def main(argv) :
         "account-lookup-service-admin" : "http-admin",
         "quoting-service" : 80 ,
         "centralsettlement/chart-service" : 80, 
+        "centralsettlement-service" : 80 ,
+        "centralsettlement-handler-rules" : 80,
         "centralsettlement-handler-deferredsettlement" : 80,
         "centralsettlement-handler-grosssettlement" : 80 , 
         "ml-testing-toolkit/chart-backend" : 5050 , 
@@ -497,6 +525,7 @@ def main(argv) :
         "centralledger/chart-handler-admin-transfer" : 80 ,
         "centralledger-handler-admin-transfer" : 80, 
         "centralledger/chart-handler-transfer-fulfil" : 80 ,
+        "centralledger-handler-transfer-fulfil" : 80 ,
         "centralledger/chart-handler-transfer-position" : 80  ,
         "centralledger-handler-transfer-position" : 80, 
         "centralledger/chart-handler-transfer-prepare" : 80 ,
@@ -505,27 +534,45 @@ def main(argv) :
         "centraleventprocessor" : 80 ,
         "emailnotifier" : 80 ,
         "ml-api-adapter/chart-service" : 80 ,
+        "ml-api-adapter-service" : 80 ,
         "ml-api-adapter/chart-handler-notification" : 80 ,
+        "ml-api-adapter-handler-notification" : 80 ,
         "ml-operator" : 4006 ,
         "centralkms" : 5432 ,
         "ml-testing-toolkit/chart-connection-manager-frontend" : 5060 ,
         "ml-testing-toolkit/chart-keycloak" : 80 ,
         "bulk-centralledger/chart-handler-bulk-transfer-get" : 80 ,
+        "cl-handler-bulk-transfer-get" : 80 ,
         "bulk-centralledger/chart-handler-bulk-transfer-processing" : 80 ,
+        "cl-handler-bulk-transfer-processing" : 80 ,
         "bulk-centralledger/chart-handler-bulk-transfer-prepare" : 80 ,
+        "cl-handler-bulk-transfer-prepare" : 80 ,
         "bulk-centralledger/chart-handler-bulk-transfer-fulfil" : 80 ,
+        "cl-handler-bulk-transfer-fulfil" : 80 ,
         "centralenduserregistry" : 3001 ,
         "als-oracle-pathfinder" : 80 ,
         "forensicloggingsidecar" : 5678 ,
         "bulk-api-adapter/chart-service" : 80 ,
+        "bulk-api-adapter-service" : 80 ,
         "bulk-api-adapter/chart-handler-notification" : 80 ,
+        "bulk-api-adapter-handler-notification" : 80 , 
         "thirdparty/chart-tp-api-svc" : 3008 ,
         "tp-api-svc": 3008, 
         "thirdparty/chart-consent-oracle" : 3000 ,
         "consent-oracle" : 3000,
         "thirdparty/chart-auth-svc" : 4004 ,
         "auth-svc" : 4004,
-        "ml-testing-toolkit/chart-connection-manager-backend" : 5061 
+        "ml-testing-toolkit/chart-connection-manager-backend" : 5061 , 
+        "ml-testing-toolkit-backend" : 5061, 
+        "ml-testing-toolkit-frontend" : 80 , 
+        # assume port 80 for sims 
+        "payerfsp" : 80,
+        "payeefsp" : 80,
+        "testfsp1" : 80,
+        "testfsp2" : 80,
+        "testfsp3" : 80,
+        "testfsp4" : 80,
+        "defaults" : 80
     }
     ports_array  = {
         "simapi" : "3000",
@@ -550,14 +597,13 @@ def main(argv) :
     yaml.indent(mapping=2, sequence=6, offset=2)
     yaml.width = 4096
 
-    ingress_print_toplevel_details(p,yaml)
-    # update_helpers_files(p)
-    # update_json_files(p)
-    # update_requirements_files(p, yaml) 
-    # move_requirements_yaml(p,yaml) 
-    # update_all_helm_charts_yaml(p,yaml)
-    # update_values_for_ingress(p,yaml,service_ports_ary,set_enabled=True)
-    # update_ingress(p,yaml,ports_array)  
+    update_helpers_files(p)
+    update_json_files(p)
+    update_requirements_files(p, yaml) 
+    move_requirements_yaml(p,yaml) 
+    update_all_helm_charts_yaml(p,yaml)
+    update_values_for_ingress(p,yaml,service_ports_ary,set_enabled=True)
+    update_ingress(p,yaml,ports_array)  
  
 if __name__ == "__main__":
     main(sys.argv[1:])

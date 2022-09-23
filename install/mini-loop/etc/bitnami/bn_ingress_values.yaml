@@ -16,7 +16,7 @@
   servicePort: ml_service_port_dummy
     ## @param ingress.path Default path for the ingress record
     ## NOTE: You may need to set this to '/*' in order to use this with ALB ingress controllers
-  path:
+  path: / 
     ## @param ingress.annotations Additional custom annotations for the ingress record
     ## NOTE: If `ingress.certManager=true`, annotation `kubernetes.io/tls-acme: "true"` will automatically be added
     ##

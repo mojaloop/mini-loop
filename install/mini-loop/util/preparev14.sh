@@ -9,4 +9,4 @@ cp -r $HOME//mini-loop/install/mini-loop/etc/bitnami/common $HOME/work
 helm package $HOME/work/common 
 mv $HOME/mini-loop/install/mini-loop/util/common-2.0.0.tgz $HOME/work
 cp $HOME/work/common-2.0.0.tgz $HOME/work/repo
-cp $HOME/mini-loop/install/mini-loop/etc/package.sh $HOME/work
+#cp $HOME/mini-loop/install/mini-loop/etc/package.sh $HOME/work
