@@ -10,3 +10,10 @@ $HOME/mini-loop/install/mini-loop/util/do_rel14x_mods.py -d $HOME/work
 #mv $HOME/mini-loop/install/mini-loop/util/common-2.0.0.tgz $HOME/work
 #cp $HOME/work/common-2.0.0.tgz $HOME/work/repo
 #cp $HOME/mini-loop/install/mini-loop/etc/package.sh $HOME/work
+
+if [[ "$1" == "d" ]]; then 
+    cd $HOME/work
+    ./package.sh
+    helm install mltest --dry-run ./mojaloop
+fi
+

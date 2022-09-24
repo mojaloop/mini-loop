@@ -23,8 +23,8 @@ declare -A test_charts=(
 # [central]=cent
 # OK -[ml-api-adapter]=apia
 # [quoting-service]=qs
-# [finance-portal]=fp
-# [finance-portal-settlement-management]=fpsm
+# [finance-portal]=fp <==deprecated and not in top level values
+# [finance-portal-settlement-management]=fpsm <==deprecated and not in top level values
 # [transaction-requests-service]=trs
 # [bulk-centralledger]=bcl
 # OK - [bulk-api-adapter]=baa
@@ -38,8 +38,7 @@ declare -A test_charts=(
 # [forensicloggingsidecar]=fls  <== has error in V14 
 # [centralledger]=cl <==contained in central
 # [centralsettlement]=cs <==contained in central
-# [finance-portal]=fp <==deprecated and not in top level values
-# [finance-portal-settlement-management]=fpsm <==deprecated and not in top level values
+
 declare -A CHARTS=(
         [eventstreamprocessor]=evs
         [simulator]=sim

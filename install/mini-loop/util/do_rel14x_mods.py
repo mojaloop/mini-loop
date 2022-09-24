@@ -306,6 +306,7 @@ def get_sp(p,vf,ing_file,spa):
     ing_file = str(x_file.parent)
     if spa[ing_file]:
         print(f"    - found servicePort {spa[ing_file]} for ingress file {ing_file}  ")
+        
         return spa[ing_file]
 
 def get_sp_new(x,value,spa):
@@ -321,7 +322,7 @@ def get_sp_new(x,value,spa):
             print(f"    WARNING1 : can't find serviceport for parent_node {parent_node} in ports array")
             return
 
-def update_values_for_ingress(p, yaml,spa,ceplist,ynel,set_enabled=False):
+def update_values_for_ingress(p, yaml,spa,ceplist,ynel,pary,set_enabled=False):
     # copy in the bitnami template ingress values 
     print("-- update the values for ingress -- ")
     bivf = script_path.parent.parent / "./etc/bitnami/bn_ingress_values.yaml"
@@ -459,8 +460,16 @@ def update_values_for_ingress(p, yaml,spa,ceplist,ynel,set_enabled=False):
                     if len(path_value) > 0 : 
                         value['path'] = path_value
                     # if len(epath_value): >0 : 
-                    #     value['extraPaths'] = epath_value 
+                    #     value['extraPaths'] = epath_value  
+                    if (isinstance(service_port,str)):
+                        print(f"DEBUG7 servicePort is str ")
+                        if pary.get(service_port):
+                            service_port=pary[service_port]
+                            print(f"DEBUG8 servicePort is in ports_array ")
+                        else :
+                            service_port=int(service_port)
                     value['servicePort'] = service_port 
+                    print(f"DEBUG6 servicePort is {service_port}")
 
             with open(vf, "w") as vfile:
                 yaml.dump(data, vfile)
@@ -516,7 +525,8 @@ def in_place_update_ingress_values_files(p, yaml,spa,ceplist,pary,set_enabled=Fa
                         line = re.sub(r"servicePort: ", r"    number: ", line)
                         # need to replace port names with numbers 
                         for pname , pnum  in pary.items() : 
-                            line = re.sub(f"number: {pname}$", f"number: {pnum}", line )
+                            #print(f"DEBUG9 servicePort before replacement is {line}")
+                            line = re.sub(f"number: .*{pname}.*$", f"number: {pnum}", line )
                         print(line_dup)
                         print(line)
                     elif re.search("ingressClassName" , line ):
@@ -566,13 +576,13 @@ def main(argv) :
         "transaction-requests-service" : "http",
         "mojaloop-simulator" : "outboundapi" ,
         "mojaloop-simulator" : "inboundapi" ,
-        "mojaloop-simulator" : "testapi" ,
-        "mojaloop-simulator" : "testapi" ,
-        "eventstreamprocessor" : "http" ,
-        "account-lookup-service/chart-service" : "http-api" ,
+        "mojaloop-simulator" : 3003 ,
+        "mojaloop-simulator" : 3003 ,
+        "eventstreamprocessor" : 80 ,
+        "account-lookup-service/chart-service" : 4002 ,
         "account-lookup-service" : 4002,
-        "account-lookup-service/chart-admin" : "http-admin" ,
-        "account-lookup-service-admin" : "http-admin",
+        "account-lookup-service/chart-admin" : 4002 ,
+        "account-lookup-service-admin" : 4002,
         "quoting-service" : 80 ,
         "centralsettlement/chart-service" : 80, 
         "centralsettlement-service" : 80 ,
@@ -639,18 +649,20 @@ def main(argv) :
         "testfsp4" : 80,
         "defaults" : 80
     }
+
     ports_array  = {
-        "simapi" : "3000",
-        "reportapi" : "3002",
-        "testapi" : "3003",
-        "https" : "80",
-        "http"  : "80",
-        "http-admin" : "4001",
-        "http-api"  : "4002",
-        "mysql" : "3306",
-        "mongodb" : "27017",
+        "simapi" : 3000,
+        "reportapi" : 3002,
+        "testapi" : 3003,
+        "https" : 80,
+        "http"  : 80,
+        "http-admin" : 4001,
+        "http-api"  : 4002,
+        "mysql" : 3306,
+        "mongodb" : 27017,
         "inboundapi" : "{{ $config.config.schemeAdapter.env.INBOUND_LISTEN_PORT }}",
-        "outboundapi" : "{{ $config.config.schemeAdapter.env.OUTBOUND_LISTEN_PORT }}"
+        "outboundapi" : "{{ $config.config.schemeAdapter.env.OUTBOUND_LISTEN_PORT }}",
+        "ingress.servicePort" : 80
     }
 
     # which nodes in the top level yaml file to exclude unifying
@@ -659,7 +671,8 @@ def main(argv) :
         "chart-consent-oracle",
         "chart-auth-svc",
         "chart-keycloak",
-        "ml-testing-toolkit-backend"
+        "ml-testing-toolkit-backend",
+        "ml-testing-toolkit-frontend",
         "alertmanager",
         "server",
         "pushgateway",
@@ -674,7 +687,8 @@ def main(argv) :
         "testfsp2",
         "testfsp3",
         "testfsp4",
-        "defaults"
+        "defaults",
+        "mojaloop-simulator"
     ]
 
     # the charts and ingress in this list will not be unified to the new ingress standard
@@ -692,7 +706,10 @@ def main(argv) :
         "monitoring/promfana",
         "monitoring/elk",
         "ml-testing-toolkit/chart-keycloak",
-        "ml-testing-toolkit/backend",
+        "ml-testing-toolkit/chart-backend",
+        "ml-testing-toolkit/chart-frontend",
+        "ml-testing-toolkit/chart-connection-manager-backend",
+        "ml-testing-toolkit/chart-connection-manager-frontend"
     ]
 
     p = Path() / args.directory
@@ -713,7 +730,7 @@ def main(argv) :
     update_requirements_files(p, yaml) 
     move_requirements_yaml(p,yaml) 
     update_all_helm_charts_yaml(p,yaml)
-    update_values_for_ingress(p,yaml,service_ports_ary,chart_path_exclude_list,yaml_node_exclude_list,set_enabled=True)
+    update_values_for_ingress(p,yaml,service_ports_ary,chart_path_exclude_list,yaml_node_exclude_list,ports_array,set_enabled=True)
     update_ingress(p,yaml,ports_array,chart_path_exclude_list)  
     in_place_update_ingress_values_files(p,yaml,service_ports_ary,chart_path_exclude_list,ports_array,set_enabled=True)
  
