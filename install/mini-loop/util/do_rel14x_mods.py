@@ -250,11 +250,17 @@ maintainers:
         else : 
             # currently no maintainers in chart.yaml
             update(cfdata,my1)
+        
+        ## update apiVersion
+        cfdata['apiVersion']="v2"
 
         #yaml.dump(cfdata, sys.stdout)
         with open(cf, "w") as f:
             yaml.dump(cfdata, f)
     print(f" ==> total number of chart.yaml files processed  [{processed_cnt}] ")
+
+
+
 
 def update_ingress(p, yaml,ports_array,ceplist):
     print("-- update ingress -- ")

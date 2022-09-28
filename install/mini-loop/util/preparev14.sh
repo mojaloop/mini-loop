@@ -10,6 +10,7 @@ $HOME/mini-loop/install/mini-loop/util/do_rel14x_mods.py -d $HOME/work
 #mv $HOME/mini-loop/install/mini-loop/util/common-2.0.0.tgz $HOME/work
 #cp $HOME/work/common-2.0.0.tgz $HOME/work/repo
 #cp $HOME/mini-loop/install/mini-loop/etc/package.sh $HOME/work
+cd $HOME/work; find . -name requirements.lock -type f -exec rm {} \;
 
 if [[ "$1" == "d" ]]; then 
     cd $HOME/work
