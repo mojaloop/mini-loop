@@ -259,9 +259,6 @@ maintainers:
             yaml.dump(cfdata, f)
     print(f" ==> total number of chart.yaml files processed  [{processed_cnt}] ")
 
-
-
-
 def update_ingress(p, yaml,ports_array,ceplist):
     print("-- update ingress -- ")
     processed_cnt = 0 
@@ -576,8 +573,6 @@ def main(argv) :
         'emailnotifier/values.yaml'
     ]
     
-
-
     service_ports_ary = {
         "transaction-requests-service" : "http",
         "mojaloop-simulator" : "outboundapi" ,
@@ -733,7 +728,7 @@ def main(argv) :
 
     update_helpers_files(p)
     update_json_files(p)
-    update_requirements_files(p, yaml) 
+    #update_requirements_files(p, yaml) 
     move_requirements_yaml(p,yaml) 
     update_all_helm_charts_yaml(p,yaml)
     update_values_for_ingress(p,yaml,service_ports_ary,chart_path_exclude_list,yaml_node_exclude_list,ports_array,set_enabled=True)
