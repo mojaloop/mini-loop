@@ -65,54 +65,61 @@ def update(d, n):
 
 
  
-def tidy_values_files(p, yaml):
-    # copy in the bitnami template ingress values 
-    print("-- tidy up the values files  -- ")
-   
+def fix_values_files_json(p,ceplist):
+    # ceplist = chart exclue path list 
+    # any chart in the ceplist does not need to have the json formatting fixed
+    # note that in testing the json works ok , it is just that it is even harder to 
+    # read after being re-written by ruamel for the v14.x api updates 
+    print("-- fix formatting of the json in the values files   -- ") 
     json_cnt = 0
-    line_cnt = 0 
     #for vf in p.rglob('*account*/**/*values.yaml'):
-    for vf in p.rglob('**/*mojaloop/*values.yaml'):
-        outfile = open("/tmp/out.txt","w")
-        with open(str(vf)) as f:
-            lines = f.readlines()
+    for vf in p.rglob('**/*values.yaml'):
+        #print(f" parent is {vf.parent/vf} and granny is {vf.parent.parent/vf} ")
+        if vf.parent.parent in ceplist or vf.parent in ceplist : 
+            print(f"DEBUG5 Excluding values files updating for {vf.parent.parent/vf}")
+        else : 
+            line_cnt = 0 
+            outfile = open("/tmp/out.txt","w")
+            with open(str(vf)) as f:
+                lines = f.readlines()
 
-        for l in lines : 
-            line_cnt += 1 
-            #l = l.rstrip()
-            if re.search(r".json:",l): 
-                jstart=re.search(r".json:",l).start()
-                if re.search(r"#",l[0:jstart]):
-                    # then the .json is commented out 
-                    outfile.writelines(l)
-                    #continue
-                else:
-                    print(f"===> Processing file < {vf.parent}/{vf.name} > ") 
-                    json_cnt += 1 
-                    # #print(f"jstart is {jstart} and contents of line at jstart is {l[jstart:50]}")
-                    # #jstartpos=re.search(r"{\"",l[jstart:]).start()
-                    # jstartpos=re.search(r"{\"",l[jstart:]).start()
-                    # l=l.substr(r"{\",l)
-                    # print(f"jstartpos is {jstartpos} at line number {line_cnt} json looks like  {l[jstartpos:50]}")
-                    x = l.find("{")
-                    print(f" start {x}, line num is {line_cnt} and substr is {l[x:40]}")
-                    #print ()
-                    try : 
-                        data = json.loads(l[x:])
-                        l=json.dumps(data, indent=4)
-                        outfile.write("fred")
+            for l in lines : 
+                line_cnt += 1 
+                #l = l.rstrip()
+                if re.search(r".json:",l): 
+                    jstart=re.search(r".json:",l).start()
+                    if re.search(r"#",l[0:jstart]):
+                        # then the .json is commented out 
                         outfile.writelines(l)
-                        #print(json.dumps(data, indent=4))
-                        #print(l)
-                    except Exception as e : 
-                        print(f"Error with json : in file {vf.parent}/{vf.name}  start {x}, line num is {line_cnt} and substr is {l[x:40]}")
-                        #outfile.writelines(l)
-            else: 
-                outfile.writelines(l)
-        outfile.close()
+                        #continue
+                    else:
+                        print(f"===> Processing file < {vf.parent}/{vf.name} > ") 
+                        json_cnt += 1 
+                        # #print(f"jstart is {jstart} and contents of line at jstart is {l[jstart:50]}")
+                        # #jstartpos=re.search(r"{\"",l[jstart:]).start()
+                        # jstartpos=re.search(r"{\"",l[jstart:]).start()
+                        # l=l.substr(r"{\",l)
+                        # print(f"jstartpos is {jstartpos} at line number {line_cnt} json looks like  {l[jstartpos:50]}")
+                        x = l.find("{",jstart)
+                        #print(f" start {x}, line num is {line_cnt} and substr is {l[x:50]}")
+                        #print ()
+                        try : 
+                            data = json.loads(l[x:])
+                            l="fred1" + json.dumps(data, indent=4)
+                            outfile.write("fred")
+                            outfile.writelines(l)
+                            #print(json.dumps(data, indent=4))
+                            #print(l)
+                        except Exception as e : 
+                            outfile.writelines(f"DEBUG1 [{line_cnt}]" + l)
+                            print(f"Error with json : in file {vf.parent}/{vf.name}  start {x}, line num is {line_cnt} and substr is {l[x:40]}")
+                            #outfile.writelines(l)
+                else: 
+                    outfile.writelines(l)
+            outfile.close()
     print(f" total number of .json sections  [{json_cnt}]")
 
-def fix_ingress_values_indents(p,yaml):
+def fix_ingress_values_indents(p,ceplist):
     delete_list = [
            "# Secrets must be manually created in the namespace",
           "# - secretName: chart-example-tls",
@@ -123,42 +130,45 @@ def fix_ingress_values_indents(p,yaml):
     ing_section_cnt = 0 
     #for vf in p.rglob('*account*/**/*values.yaml'):
     for vf in p.rglob('**/*values.yaml'):
-        outfile = open("/tmp/out.txt","w")
-        with open(str(vf)) as f:
-            lines = f.readlines()
+        if vf.parent.parent in ceplist or vf.parent in ceplist : 
+            print(f"DEBUG6 Excluding values files updating for {vf.parent.parent/vf}")
+        else : 
+            outfile = open("/tmp/out.txt","w")
+            with open(str(vf)) as f:
+                lines = f.readlines()
 
-        ing_section=False
-        for l in lines : 
-            line_cnt += 1 
-            if re.search(r"ingress:",l):
-                ing_section=True
-                ing_section_cnt += 1 
-                # how many spaces before the ingress
-                indent1=re.search(r"ingress:",l).start()
-                print(f"ingress found at line {line_cnt} and col {indent1} ing_section is {ing_section}")
-            elif re.search(r"className: \"nginx\"",l):
-                ing_section=False
+            ing_section=False
+            for l in lines : 
+                line_cnt += 1 
+                if re.search(r"ingress:",l):
+                    ing_section=True
+                    ing_section_cnt += 1 
+                    # how many spaces before the ingress
+                    indent1=re.search(r"ingress:",l).start()
+                    print(f"ingress found at line {line_cnt} and col {indent1} ing_section is {ing_section}")
+                elif re.search(r"className: \"nginx\"",l):
+                    ing_section=False
 
-            if ing_section: 
-                #fix the indentation 
-                x = l.find(r"##")
-                #print (f"hello ing_section is {ing_section} and x is {x}")
-                if x > -1 : 
-                    #new_spaces = indent1+2
-                    spaces_str="                  "
-                    l1 = re.sub(r"^.*##",spaces_str[0:indent1+2]+"##",l) 
-                    #print(f"comment found at col {x} but ingress is at col {indent1} ")
-                    outfile.writelines(l1)
-                else:
-                    outfile.writelines(l)
-            else: 
-                found=False
-                for item in delete_list: 
-                    if l.find(item) > -1:
-                        found=True 
-                if not found : 
-                    outfile.writelines(l)
-        outfile.close()
+                if ing_section: 
+                    #fix the indentation 
+                    x = l.find(r"##")
+                    #print (f"hello ing_section is {ing_section} and x is {x}")
+                    if x > -1 : 
+                        #new_spaces = indent1+2
+                        spaces_str="                  "
+                        l1 = re.sub(r"^.*##",spaces_str[0:indent1+2]+"##",l) 
+                        #print(f"comment found at col {x} but ingress is at col {indent1} ")
+                        outfile.writelines(l1)
+                    else:
+                        outfile.writelines(l)
+                else: 
+                    found=False
+                    for item in delete_list: 
+                        if l.find(item) > -1:
+                            found=True 
+                    if not found : 
+                        outfile.writelines(l)
+            outfile.close()
     print(f" total number of ingress sections  [{ing_section_cnt}]")         
 
 def parse_args(args=sys.argv[1:]):
@@ -188,11 +198,35 @@ def main(argv) :
     yaml.indent(mapping=2, sequence=6, offset=2)
     yaml.width = 4096
 
+    chart_names_exclude_list = [
+        "finance-portal-settlement-management",
+        "finance-portal",
+        "thirdparty",
+        "thirdparty/chart-tp-api-svc",
+        "thirdparty/chart-consent-oracle",
+        "thirdparty/chart-auth-svc",
+        "mojaloop-simulator",
+        "keycloak",
+        "monitoring",
+        "monitoring/promfana",
+        "monitoring/elk",
+        "ml-testing-toolkit",
+        "ml-testing-toolkit/chart-keycloak",
+        "ml-testing-toolkit/chart-backend",
+        "ml-testing-toolkit/chart-frontend",
+        "ml-testing-toolkit/chart-connection-manager-backend",
+        "ml-testing-toolkit/chart-connection-manager-frontend"
+    ]
+
+    chart_path_exclude_list = []
+    for c in chart_names_exclude_list : 
+        chart_path_exclude_list.append(p / c)
+
     # s1 = "production.json: { then some text"
     # print(f"s1[5:] is {s1[5:]}")
 
-    #tidy_values_files(p,yaml)
-    fix_ingress_values_indents(p,yaml)
+    fix_values_files_json(p,chart_path_exclude_list)
+    fix_ingress_values_indents(p,chart_path_exclude_list)
  
 if __name__ == "__main__":
     main(sys.argv[1:])
