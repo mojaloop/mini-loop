@@ -22,7 +22,7 @@ script_path = Path( __file__ ).absolute()
 
 s1= """
 {
-  "inputValues": {
+      "inputValues": {
     "BASE_CENTRAL_LEDGER_ADMIN": "",
     "CALLBACK_ENDPOINT_BASE_URL": "http://$release_name-ml-testing-toolkit-backend:4040",
     "ENABLE_JWS_SIGNING": true,

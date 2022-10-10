@@ -4,27 +4,18 @@
     This script modifies a copy of the Mojaloop helm repo (version 14) to 
     - move dependencies in the requirements.yaml to Charts.yaml
     - update the apiVersion for helm in all the Charts.yaml to 2 
-    - updates the ingress if there is one with the ingress from bitnami
+    - if the chart has an ingress and it is not on the exclusion list => 
+                      update the ingress if there is one with the ingress from bitnami
+    - ensure the updated values files have the correct hostname for the ingress
+    - ensure the updated values files have the correct port number for the ingress 
     - add the common dependency to each chart that already has an ingress
     - updates the values files for the new ingress settings 
     - update maintainers in chart.yaml to include tomd@crosslaketech
-    - update the thirdparty charts.yaml to have the correct local common lib
-    - _helper.tpl updated to use 
-    todo
-    - verify that charts that have ingress names other than exactly ingress.yaml do not 
-      have these ingress copied over i.e. thirdparty charts with 2 ingress and or make sure 
-      that the copied in version is correct
-    - 4 paths for mojaloop-simulator/templates/ingress.yaml
-    - 2 paths for ml-operator/templates/ingress.yaml
+    - _helper.tpl updated to use correct ingress APIs 
     - update _helpers.tpl to remove ingress version logic completely 
-    - handle ./finance-portal-settlement-management/templates/operator-settlement-ingress.yaml
-             ./finance-portal-settlement-management/templates/settlement-management-ingress.yaml
-             ./mojaloop-simulator/templates/ingress-thirdparty-sdk.yaml
-             ./finance-portal/templates/backend-ingress.yaml
-             ./finance-portal/templates/frontend-ingress.yaml
-    - ensure the updated values files have the correct hostname 
-    - ensure the updated values files have the correct port number  
-    - update config/default.json files for values.ingress.api.host or similar to .Values.ingress.hostname 
+    - verify that charts that have ingress names other than exactly ingress.yaml do not 
+      have these ingress copied over i.e. thirdparty charts with 2 ingress.
+    - update config/default.json files for values.ingress.api.host or similar to use .Values.ingress.hostname 
 
     author : Tom Daly 
     Date   : Aug 2022
@@ -202,7 +193,7 @@ dependencies:
     yaml_str2 = """
 maintainers: 
   - name : Tom Daly 
-    email : tomd@crosslaketech
+    email : tomd@crosslaketech.com
 """
 
     print("\n-- updating charts.yaml update vers, add dependencies, maintainers -- ")
