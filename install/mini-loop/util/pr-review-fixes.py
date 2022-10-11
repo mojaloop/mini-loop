@@ -72,7 +72,9 @@ def bump_chart_version(p,yaml):
             if(isinstance(value,list)) : 
                 for dep in value:
                     print(f"    dependency : {dep['name']} ")
-                    alt_chart_name=dep['repository'].rsplit('/',1)[-1]
+                    # remove any railing space from repository 
+                    
+                    alt_chart_name=(dep['repository'].rstrip('/')).rsplit('/',1)[-1]
                     #print(f" one of ours ? : {cf.parent/alt_chart_name}")
                     #print(f" dep is {dep['name']} and version is [{dep['version']}]")
                     # for chart_name ,version in new_version_dict.items():
@@ -84,25 +86,61 @@ def bump_chart_version(p,yaml):
                     #         print(f"         {cf.parent/alt_chart_name}  exists cf is {cf} and alt chart name is {alt_chart_name}")
 
                     if cf.parent.parent/alt_chart_name  in  new_version_dict.keys() :
-                        print(f"     >> found in repo updated ML chart: {cf.parent.parent/alt_chart_name} oldv {dep['version']} new version {new_version_dict[cf.parent.parent/alt_chart_name]}" )
+                        print(f"     >> found in repo updated ML chart: {cf.parent.parent/alt_chart_name} oldv {dep['version']} new version {new_version_dict[cf.parent.parent/alt_chart_name]} parent/parent" )
                         dep['version'] = new_version_dict[cf.parent.parent/alt_chart_name]    
                     elif cf.parent/alt_chart_name in new_version_dict.keys() :
-                        print(f"     >> found repo updated ML chart: {cf.parent/alt_chart_name} oldv {dep['version']} new version {new_version_dict[cf.parent/alt_chart_name]}" )
-                        dep['version'] == new_version_dict[cf.parent/alt_chart_name]
-                    elif cf.parent/dep['name'] in  new_version_dict.keys() :
-                        print(f"     >> found updated chart: {cf.parent/dep['name']} oldv {dep['version']} new version {new_version_dict[dep['name]']]}" )
-                        dep['version'] == new_version_dict[dep['name]']]
+                        print(f"     >> found repo updated ML chart: {cf.parent/alt_chart_name} oldv {dep['version']} new version {new_version_dict[cf.parent/alt_chart_name]} parent" )
+                        dep['version'] = new_version_dict[cf.parent/alt_chart_name]
+                    # elif cf.parent/dep['name'] in  new_version_dict.keys() :
+                    #     print(f"     >> found updated chart: {cf.parent/dep['name']} oldv {dep['version']} new version {new_version_dict[dep['name]']]}" )
+                    #     dep['version'] = new_version_dict[dep['name]']]
             else: 
                 print(f"dependency in {cf.parent} is not a list ==> investigate ")
 
         with open(cf, "w") as f:
             yaml.dump(cfdata, f)
 
+def fix_helpers_remove_ing_logic(p,ceplist):
+    ## remove unused / redundant ingress templates ##
+    print("-- removing unused ingress templates from _helper.tpl files  -- ")
+    processed_cnt = 0 
+    excluded_cnt = 0 
+    updates_cnt = 0 
+    nlines=7
+    n=0
+    for hf in p.rglob('**/*_helpers.tpl'):
+        if hf.parent.parent in ceplist or hf.parent in ceplist : 
+            print(f" Excluding helper files  {hf.parent.parent/hf} or {hf.parent/hf}")
+            excluded_cnt +=1 
+        else: 
+            processed_cnt +=1 
+            with open(str(hf)) as f:
+                lines = f.readlines()
+
+            with open(str(hf), "w") as f:
+                print(f"  processing : {hf.parent/hf}")
+                printem = True
+                for l in lines:
+                    #l = l.rstrip()
+                    if re.search(r".apiVersion.Ingress\" -\}\}",l):
+                        updates_cnt += 1 
+                        printem=False
+                        n=0
+                    if printem: 
+                        f.writelines(l)
+                        n+=1 
+                    if n > nlines: 
+                        printem = True
+
+                processed_cnt += 1    
+    print(f" total number of _helpers.tpl files processed [{processed_cnt}]")
+    print(f" total number of _helpers.tpl files excluded [{excluded_cnt}]")
+    print(f" total number of ingress templates removed [{updates_cnt}]")
+
 def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Automate modifications across mojaloop helm charts')
     parser.add_argument("-d", "--directory", required=True, help="directory for helm charts")
     parser.add_argument("-v", "--verbose", required=False, action="store_true", help="print more verbose messages ")
-    parser.add_argument("-k", "--kubernetes", type=str, default="microk8s", choices=["microk8s", "k3s" ] , help=" kubernetes distro  ")
 
     args = parser.parse_args(args)
     if len(sys.argv[1:])==0:
@@ -125,7 +163,32 @@ def main(argv) :
     yaml.indent(mapping=2, sequence=6, offset=2)
     yaml.width = 4096
 
+    chart_names_exclude_list = [
+        "finance-portal-settlement-management",
+        "finance-portal",
+        "thirdparty",
+        "thirdparty/chart-tp-api-svc",
+        "thirdparty/chart-consent-oracle",
+        "thirdparty/chart-auth-svc",
+        "mojaloop-simulator",
+        "keycloak",
+        "monitoring",
+        "monitoring/promfana",
+        "monitoring/elk",
+        "ml-testing-toolkit",
+        "ml-testing-toolkit/chart-keycloak",
+        "ml-testing-toolkit/chart-backend",
+        "ml-testing-toolkit/chart-frontend",
+        "ml-testing-toolkit/chart-connection-manager-backend",
+        "ml-testing-toolkit/chart-connection-manager-frontend"
+    ]
+
+    chart_path_exclude_list = []
+    for c in chart_names_exclude_list : 
+        chart_path_exclude_list.append(p / c)
+
     bump_chart_version(p,yaml)
+    fix_helpers_remove_ing_logic(p,chart_path_exclude_list)
 
  
 if __name__ == "__main__":

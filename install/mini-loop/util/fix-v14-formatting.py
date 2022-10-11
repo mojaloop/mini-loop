@@ -263,7 +263,7 @@ def fix_values_files_json(p,ceplist):
     json_cnt = 0
     #for vf in p.rglob('*account*/**/*values.yaml'):
     for vf in p.rglob('**/*values.yaml'):
-        #print(f" parent is {vf.parent/vf} and granny is {vf.parent.parent/vf} ")
+        print(f" parent is {vf.parent/vf} and granny is {vf.parent.parent/vf} ")
         if vf.parent.parent in ceplist or vf.parent in ceplist : 
             print(f"DEBUG5 excluding values files updating for {vf.parent.parent/vf}")
         else : 
@@ -317,12 +317,90 @@ def fix_values_files_json(p,ceplist):
                                     print(f"Error with json : in file {vf.parent}/{vf.name}  start {x}, line num is {line_cnt} and substr is {l[x:45]}")
                                     print(l)
                                     #outfile.writelines(l)
+                    elif re.search(r"protocol_versions:",l):
+                        #print(f"DEBUG2P file is {vf.parent/vf} and line is {l}")
+                        x = l.find("{\"")
+                        lstart=l[0:x-1] + " "
+                        try : 
+                            data = json.loads(l[x:])
+                            l= lstart + json.dumps(data, indent=4)
+                            f.writelines(l) 
+                        except Exception as e : 
+                            print(f"Error with protocol_version : in file {vf.parent}/{vf.name}  start {x}, line num is {line_cnt} and substr is {l[x:45]}")
+                            print(l)
+                            sys.exit(1)
                     else: 
                         f.writelines(l)
 
     print(f" total number of .json sections  [{json_cnt}]")
 
-def fix_ingress_values_indents(p,ceplist):
+# def fix_ingress_values_indents(p,ceplist):
+#     delete_list = [
+#            "# Secrets must be manually created in the namespace",
+#           "# - secretName: chart-example-tls",
+#           "#   hosts:",
+#           "#     - chart-example.local"
+#     ]
+#     line_cnt = 0 
+#     ing_section_cnt = 0 
+#     spaces_str="                  "
+#     indent_level=0
+#     dbl_comments_cnt=0
+#     #for vf in p.rglob('*account*/**/*values.yaml'):
+#     for vf in p.rglob('**/*mojaloop/values.yaml'):
+#         if vf.parent.parent in ceplist or vf.parent in ceplist : 
+#             #print(f"DEBUG6 Excluding values files updating for {vf.parent.parent/vf}")
+#             continue ; 
+#         else : 
+#             #outfile = open("/tmp/out.txt","w")
+#             with open(str(vf)) as f:
+#                 lines = f.readlines()
+
+#             with open(str(vf), "w") as f:
+#                 ing_section=False
+#                 for l in lines : 
+#                     line_cnt += 1 
+#                     if re.search(r"ingress:",l):
+#                         ing_section=True
+#                         ing_section_cnt += 1 
+#                         # how many spaces before the ingress
+#                         indent1=re.search(r"ingress:",l).start()
+#                         #print(f"ingress found at line {line_cnt} and col {indent1} ing_section is {ing_section}")
+#                     if re.search(r"className: \"nginx\"",l):
+#                         ing_section=False
+
+#                     if ing_section: 
+#                         #fix the indentation 
+#                         x = l.find(r"##")
+#                         #print (f"hello ing_section is {ing_section} and x is {x}")
+#                         if x > -1 : 
+#                             #new_spaces = indent1+2        
+#                             l1 = re.sub(r"^.*##",spaces_str[0:indent1+2]+"##",l) 
+#                             #print(f"comment found at col {x} but ingress is at col {indent1} ")
+#                             f.writelines(l1)
+#                         else:
+#                             f.writelines(l)
+#                     else: 
+#                         found=False
+#                         x = l.find(r"##")
+#                         if x > -1 : 
+#                             dbl_comments_cnt +=1 
+#                             l1 = re.sub(r"^.*##",spaces_str[0:1]+"##",l)  
+#                             print(f"fixung indent on {l} ")
+#                             f.writelines(l1)
+#                         else: 
+#                             for item in delete_list: 
+#                                 if l.find(item) > -1:
+#                                     found=True 
+#                             if not found : 
+#                                 f.writelines(l)
+#                         if re.search('(\s+)', l): 
+#                             indent_level=re.search('(\s+)', l).start()
+#     print(f" total number of ingress sections  [{ing_section_cnt}]")   
+#     print(f" total number of double comment lines   [{dbl_comments_cnt}]")       
+
+
+def new_fix_ingress_values_indents(p,ceplist):
     delete_list = [
            "# Secrets must be manually created in the namespace",
           "# - secretName: chart-example-tls",
@@ -331,6 +409,9 @@ def fix_ingress_values_indents(p,ceplist):
     ]
     line_cnt = 0 
     ing_section_cnt = 0 
+    spaces_str="                  "
+    indent_level=0
+    dbl_comments_cnt=0
     #for vf in p.rglob('*account*/**/*values.yaml'):
     for vf in p.rglob('**/*values.yaml'):
         if vf.parent.parent in ceplist or vf.parent in ceplist : 
@@ -345,27 +426,15 @@ def fix_ingress_values_indents(p,ceplist):
                 ing_section=False
                 for l in lines : 
                     line_cnt += 1 
-                    if re.search(r"ingress:",l):
-                        ing_section=True
-                        ing_section_cnt += 1 
-                        # how many spaces before the ingress
-                        indent1=re.search(r"ingress:",l).start()
-                        #print(f"ingress found at line {line_cnt} and col {indent1} ing_section is {ing_section}")
-                    elif re.search(r"className: \"nginx\"",l):
-                        ing_section=False
-
-                    if ing_section: 
-                        #fix the indentation 
-                        x = l.find(r"##")
-                        #print (f"hello ing_section is {ing_section} and x is {x}")
-                        if x > -1 : 
-                            #new_spaces = indent1+2
-                            spaces_str="                  "
-                            l1 = re.sub(r"^.*##",spaces_str[0:indent1+2]+"##",l) 
-                            #print(f"comment found at col {x} but ingress is at col {indent1} ")
-                            f.writelines(l1)
-                        else:
-                            f.writelines(l)
+                    #fix the indentation 
+                    x = l.find("##")
+                    if x > -1 :   
+                        dbl_comments_cnt +=1  
+                        if x >= indent_level:   
+                            l1 = re.sub(r"^.*##",spaces_str[0:x]+"##",l) 
+                        else: 
+                            l1 = re.sub(r"^.*##",spaces_str[0:indent_level+2]+"##",l) 
+                        f.writelines(l1)
                     else: 
                         found=False
                         for item in delete_list: 
@@ -373,7 +442,15 @@ def fix_ingress_values_indents(p,ceplist):
                                 found=True 
                         if not found : 
                             f.writelines(l)
-    print(f" total number of ingress sections  [{ing_section_cnt}]")         
+                        if re.search('ingress:', l): 
+                            indent_level=re.search('ingress:', l).start()
+                            print(f"BEBUG9A setting indent_level to {indent_level}")
+    # print(f" total number of ingress sections  [{ing_section_cnt}]")   
+    print(f" total number of double comment lines   [{dbl_comments_cnt}]")       
+
+
+
+
 
 def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Automate modifications across mojaloop helm charts')
@@ -426,7 +503,6 @@ def main(argv) :
     for c in chart_names_exclude_list : 
         chart_path_exclude_list.append(p / c)
 
-
     # s2=re.sub(r"\\\\\\\\",r"\\\\\\",s1)
     # print(s2)
     # data = json.loads(s1)
@@ -445,7 +521,7 @@ def main(argv) :
     # # print(f"s1[5:] is {s1[5:]}")
 
     fix_values_files_json(p,chart_path_exclude_list)
-    fix_ingress_values_indents(p,chart_path_exclude_list)
- 
+    new_fix_ingress_values_indents(p,chart_path_exclude_list)
+
 if __name__ == "__main__":
     main(sys.argv[1:])
