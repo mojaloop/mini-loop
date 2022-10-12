@@ -444,7 +444,7 @@ def new_fix_ingress_values_indents(p,ceplist):
                             f.writelines(l)
                         if re.search('ingress:', l): 
                             indent_level=re.search('ingress:', l).start()
-                            print(f"BEBUG9A setting indent_level to {indent_level}")
+                            #print(f"BEBUG9A setting indent_level to {indent_level}")
     # print(f" total number of ingress sections  [{ing_section_cnt}]")   
     print(f" total number of double comment lines   [{dbl_comments_cnt}]")       
 

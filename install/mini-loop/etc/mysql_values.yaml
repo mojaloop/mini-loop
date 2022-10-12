@@ -113,7 +113,7 @@ auth:
   username: "mluser"
   ## @param auth.password Password for the new user. Ignored if existing secret is provided
   ##
-  password: '8*ehSVJw'
+  password: 'HxTEUMxw'
   ## @param auth.replicationUser MySQL replication user
   ## ref: https://github.com/bitnami/bitnami-docker-mysql#setting-up-a-replication-cluster
   ##
@@ -150,14 +150,14 @@ initdbScripts:
     DROP DATABASE IF EXISTS account_lookup;
     CREATE DATABASE account_lookup;
     DROP USER IF EXISTS account_lookup@'%';
-    CREATE USER 'account_lookup'@'%' IDENTIFIED WITH mysql_native_password BY '8*ehSVJw';
+    CREATE USER 'account_lookup'@'%' IDENTIFIED WITH mysql_native_password BY 'HxTEUMxw';
     GRANT ALL PRIVILEGES ON account_lookup.* TO 'account_lookup'@'%';
     FLUSH PRIVILEGES;
   centralLedgerInit.sql: |-
     DROP DATABASE IF EXISTS central_ledger;
     CREATE DATABASE central_ledger;
     DROP USER IF EXISTS central_ledger@'%';
-    CREATE USER 'central_ledger'@'%' IDENTIFIED WITH mysql_native_password BY '8*ehSVJw';
+    CREATE USER 'central_ledger'@'%' IDENTIFIED WITH mysql_native_password BY 'HxTEUMxw';
     GRANT ALL PRIVILEGES ON central_ledger.* TO 'central_ledger'@'%';
     FLUSH PRIVILEGES;
 
