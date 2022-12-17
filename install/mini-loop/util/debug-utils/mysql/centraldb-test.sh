@@ -8,7 +8,7 @@ echo " kubectl run -it --rm --image=mysql:5.6 --restart=Never mysql-client -- my
 echo " mysql -h mysql-cl -P 3306 -u central_ledger --password=password  central_ledger -ss -N -e 'select is_locked from migration_lock;'
 kubectl run -it --rm --image=mysql:5.6 --restart=Never mysql-client -- "until result=$(mysql -h mysql-cl -P 3306 -u central_ledger --password=password  central_ledger -ss -N -e 'select is_locked from migration_lock;') && \
 eval 'echo is_locked=$result' && if [ -z $result ]; then false; fi && if [ $result -ne 0 ]; then false; fi; echo waiting for MySQL; sleep 2
-k  run -it --rm --image=mysql:5.6 --restart=Never mysql-client -- mysql -h ml-mysql -u account_lookup --password=7wRaR96f account_lookup
+k  run -it --rm --image=mysql:5.6 --restart=Never mysql-client -- mysql -h mysqldb -u account_lookup --password=HY#Mz%_z account_lookup
 
 #kubectl run -it --rm --image=mysql:5.6 --restart=Never mysql-client -- "until result=$(mysql -h mysql-cl -P 3306 -u central_ledger --password=password  central_ledger -ss -N -e 'select is_locked from migration_lock;') && \
 #eval 'echo is_locked=$result' && if [ -z $result ]; then false; fi && if [ $result -ne 0 ]; then false; fi; do echo waiting for MySQL; sleep 2; done;
