@@ -279,7 +279,7 @@ def main(argv) :
             for i in range(len(dlist)): 
                 if (dlist[i]['name'] in ["percona-xtradb-cluster","mysql"] ): 
                     dlist[i]['name'] = "mysql"
-                    dlist[i]['version'] = 8.0
+                    dlist[i]['version'] = 9.0
                     dlist[i]['repository'] = "https://charts.bitnami.com/bitnami"
                     dlist[i]['alias'] = "mysql"
                     dlist[i]['condition'] = "mysql.enabled"
