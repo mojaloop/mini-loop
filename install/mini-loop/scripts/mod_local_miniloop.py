@@ -302,6 +302,7 @@ def main(argv) :
                     line = line.rstrip()
                     line = re.sub(r"(\s+)hostname: (\S+).local", f"\\1hostname: \\2.{args.domain_name}", line)
                     line = re.sub(r"(\s+)host: (\S+).local", f"\\1host: \\2.{args.domain_name}", line)
+                    line = re.sub(r"testing-toolkit.local", f"testing-toolkit.{args.domain_name}", line)
                     print(line)
 
     print(f"Sucessfully finished processing helm charts in directory: [{args.directory}]")      
