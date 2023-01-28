@@ -20,11 +20,7 @@ function check_arch {
     printf " ** Error: Mojaloop is only running on x86_64 today and not yet running on ARM cpus \n"
     printf "    please see https://github.com/mojaloop/project/issues/2317 for ARM status \n"
     printf " ** \n"
-    if [[ ! -z "${devmode}" ]]; then 
-      printf "devmode Flag set ==> this flag is for mini-loop development only ==> continuing \n"
-    else
-      exit 1
-    fi
+    exit 1
   fi
 }
 
@@ -143,7 +139,13 @@ function modify_local_helm_charts {
   printf "==> modifying the local mojaloop helm charts to run on kubernetes v1.22+  "
   # note: this also updates $ETC_DIR/mysql_values.yaml with a new DB password
   # this password is and needs to be the same in all the values files which access the DB
-  $SCRIPTS_DIR/mod_local_miniloop.py -d $HOME/helm -k $k8s_distro >> $LOGFILE 2>>$ERRFILE
+  if [ -z ${domain_name+x} ]; then 
+    $SCRIPTS_DIR/mod_local_miniloop.py -d $HOME/helm -k $k8s_distro >> $LOGFILE 2>>$ERRFILE
+  else 
+    printf "==> setting domain name to <%s> \n " $domain_name >> $LOGFILE 2>>$ERRFILE
+    $SCRIPTS_DIR/mod_local_miniloop.py -d $HOME/helm -k $k8s_distro --domain_name $domain_name  >> $LOGFILE 2>>$ERRFILE
+  fi
+
   NEED_TO_REPACKAGE="true"
   printf " [ done ] \n"
 }
@@ -322,6 +324,7 @@ Example 5 : $0 -m check_ml           # check the health of the ML endpoints
  
 Options:
 -m mode ............ install_ml|check_ml|delete_ml|install_db|delete_db 
+-d domain name ..... domain name for ingress hosts e.g mydomain.com 
 -s skip_repackage .. mainly for test/dev use (skips the repackage of the local charts)
 -t secs ............ number of seconds (timeout) to wait for pods to all be reach running state
 -n namespace ....... the namespace to deploy mojaloop into 
@@ -356,7 +359,7 @@ EXTERNAL_ENDPOINTS_LIST=(ml-api-adapter.local central-ledger.local quoting-servi
 #ML_VALUES_FILE="miniloop_values.yaml"
 
 # Process command line options as required
-while getopts "dfst:n:m:l:hH" OPTION ; do
+while getopts "fsd:t:n:m:l:hH" OPTION ; do
    case "${OPTION}" in
         f)  force="true"
         ;; 
@@ -364,7 +367,7 @@ while getopts "dfst:n:m:l:hH" OPTION ; do
         ;;
         n)  nspace="${OPTARG}"
         ;;
-        d)  devmode="true"
+        d)  domain_name="${OPTARG}"
         ;; 
         m)  mode="${OPTARG}"
         ;;

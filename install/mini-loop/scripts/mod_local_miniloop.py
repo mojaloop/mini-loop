@@ -83,6 +83,7 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("-d", "--directory", required=True, help="directory for helm charts")
     parser.add_argument("-v", "--verbose", required=False, action="store_true", help="print more verbose messages ")
     parser.add_argument("-k", "--kubernetes", type=str, default="microk8s", choices=["microk8s", "k3s" ] , help=" kubernetes distro  ")
+    parser.add_argument("--domain_name", type=str, required=False, default=None, help="e.g. mydomain.com   ")
 
     args = parser.parse_args(args)
     if len(sys.argv[1:])==0:
@@ -95,7 +96,7 @@ def parse_args(args=sys.argv[1:]):
 ##################################################
 def main(argv) :
     args=parse_args()
-    
+
     ingress_cn = set_ingressclassname(args.kubernetes)
     script_path = Path( __file__ ).absolute()
     mysql_values_file = script_path.parent.parent / "./etc/mysql_values.yaml"
@@ -289,6 +290,19 @@ def main(argv) :
 
         with open(rf, "w") as f:
             yaml.dump(reqs_data, f)   
+
+    if args.domain_name : 
+        # modify ingress hostname in values file to use DNS name     
+        print(" ==> mod_local_miniloop : Modify helm values to use DNS name for ingress hostname")
+        #DNSNAME="eastus.cloudapp.azure.com"
+        #DNSNAME="fred1"
+        for vf in p.glob('**/*values.yaml') :
+            with FileInput(files=[str(vf)], inplace=True) as f:
+                for line in f:
+                    line = line.rstrip()
+                    line = re.sub(r"(\s+)hostname: (\S+).local", f"\\1hostname: \\2.{args.domain_name}", line)
+                    line = re.sub(r"(\s+)host: (\S+).local", f"\\1host: \\2.{args.domain_name}", line)
+                    print(line)
 
     print(f"Sucessfully finished processing helm charts in directory: [{args.directory}]")      
 
