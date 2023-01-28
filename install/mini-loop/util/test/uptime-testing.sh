@@ -16,10 +16,9 @@
 # Use a for loop to repeat the command the specified number of times
 function run_test {
     # ==> for testing echo "define fact(n) { if (n == 0) return 1; return n * fact(n-1); }; fact(10000)" | bc > /dev/null 
-    helm test ml --logs 
+    #helm test ml --logs 
+    echo "define fact(n) { if (n == 0) return 1; return n * fact(n-1); }; fact(10000)" | bc > /dev/null 
 } 
-
-
 
 ################################################################################
 # Function: showUsage
@@ -82,11 +81,13 @@ printf "********************* << START  >> *************************************
 # check if the num_times is greater than 1
 if [ $num_times -gt 0 ]; then
   printf "\n==> mini-loop Mojaloop uptime test ==> Iterations <%s>  Sleep Secs <%s>  \n" $num_times $sleep_secs
-  for ((i=1; i<=num_times; i++)); do
+  i=0; 
+  for ((i=1; i<=num_times ; i++)); do
     printf " --- Iteration <%s> start --------- \n" "$i"
     time run_test 
     sleep $sleep_secs
   done
+  printf "\n --- End: Iterations completed  <%s> \n" $((i-1))
 else
   echo "num_times to run the tests should be greater than zero"
 fi
