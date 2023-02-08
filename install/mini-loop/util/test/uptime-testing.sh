@@ -16,8 +16,8 @@
 # Use a for loop to repeat the command the specified number of times
 function run_test {
     # ==> for testing echo "define fact(n) { if (n == 0) return 1; return n * fact(n-1); }; fact(10000)" | bc > /dev/null 
-    #helm test ml --logs 
-    echo "define fact(n) { if (n == 0) return 1; return n * fact(n-1); }; fact(10000)" | bc > /dev/null 
+    helm test ml --logs 
+    #echo "define fact(n) { if (n == 0) return 1; return n * fact(n-1); }; fact(10000)" | bc > /dev/null 
 } 
 
 ################################################################################
