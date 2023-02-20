@@ -12,6 +12,7 @@
 #        testers and deployers a lot of simplicity and flexibility in the future in light of the rapidly evolving kubernetes releases
 # Author Tom Daly 
 # Date July 2022
+# 
 
 function check_arch {
   ## check architecture Mojaloop deploys on x64 only today arm is coming  
@@ -140,10 +141,10 @@ function modify_local_helm_charts {
   # note: this also updates $ETC_DIR/mysql_values.yaml with a new DB password
   # this password is and needs to be the same in all the values files which access the DB
   if [ -z ${domain_name+x} ]; then 
-    $SCRIPTS_DIR/mod_local_miniloop.py -d $HOME/helm -k $k8s_distro >> $LOGFILE 2>>$ERRFILE
+    $SCRIPTS_DIR/mod_local_miniloop_v15.py -d $HOME/helm -k $k8s_distro >> $LOGFILE 2>>$ERRFILE
   else 
     printf "==> setting domain name to <%s> \n " $domain_name >> $LOGFILE 2>>$ERRFILE
-    $SCRIPTS_DIR/mod_local_miniloop.py -d $HOME/helm -k $k8s_distro --domain_name $domain_name  >> $LOGFILE 2>>$ERRFILE
+    $SCRIPTS_DIR/mod_local_miniloop_v15.py -d $HOME/helm -k $k8s_distro --domain_name $domain_name  >> $LOGFILE 2>>$ERRFILE
   fi
 
   NEED_TO_REPACKAGE="true"
@@ -170,39 +171,39 @@ function repackage_charts {
 
 function delete_db {
   #  delete any existing deployment and clean up any pv and pvc's that the bitnami mysql chart seems to leave behind
-  printf "==> deleting mojaloop database release %s " "$DB_RELEASE_NAME"
-  db_exists=`helm ls  --namespace $NAMESPACE | grep $DB_RELEASE_NAME | cut -d " " -f1`
-  if [ ! -z $db_exists ] && [ "$db_exists" == "$DB_RELEASE_NAME" ]; then 
-    helm delete $DB_RELEASE_NAME  --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
+  printf "==> deleting mojaloop backend services in helm release  [%s] " "$BE_RELEASE_NAME"
+  db_exists=`helm ls  --namespace $NAMESPACE | grep $BE_RELEASE_NAME | cut -d " " -f1`
+  if [ ! -z $db_exists ] && [ "$db_exists" == "$BE_RELEASE_NAME" ]; then 
+    helm delete $BE_RELEASE_NAME  --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
     sleep 2 
   fi
-  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE"  2>>$ERRFILE | grep $DB_RELEASE_NAME` >> $LOGFILE 2>>$ERRFILE
+  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE"  2>>$ERRFILE | grep $BE_RELEASE_NAME` >> $LOGFILE 2>>$ERRFILE
   if [ ! -z "$pvc_exists" ]; then 
     kubectl get pvc --namespace "$NAMESPACE" | cut -d " " -f1 | xargs kubectl delete pvc >> $LOGFILE 2>>$ERRFILE
     kubectl get pv  --namespace "$NAMESPACE" | cut -d " " -f1 | xargs kubectl delete pv >> $LOGFILE 2>>$ERRFILE
   fi 
   # now check it is all clean
-  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE" 2>>$ERRFILE | grep $DB_RELEASE_NAME`
+  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE" 2>>$ERRFILE | grep $BE_RELEASE_NAME`
   if [ -z "$pvc_exists" ]; then
     #TODO check that the DB is actually gone along with the pv and pvc's 
     printf " [ ok ] \n"
   else
-    printf "** Error: the database has not been deleted cleanly  \n" 
+    printf "** Error: the database may not have been deleted cleanly  \n" 
     printf "   please try running the delete again or use helm and kubectl to remove manually  \n"
-    printf "   ensure no pv or pvc resources remain defore trying to re-install the dabatase ** \n"
+    printf "   ensure no pv or pvc resources remain defore trying to re-install the example-mojaloop-backend chart ** \n"
     exit 1
   fi
 }
 
-function install_db { 
+function install_be { 
   # delete  db cleanly if it is already deployed => so we can confifdently reinstall cleanly 
-  delete_db
+  delete_be
 
   # deploy the bitnami mysql database chart
-  printf "==> deploying mojaloop database from bitnami helm chart, waiting upto 300s for it to be ready  \n"
-  helm install $DB_RELEASE_NAME bitnami/mysql --wait --timeout 300s --namespace "$NAMESPACE" -f $ETC_DIR/mysql_values.yaml >> $LOGFILE 2>>$ERRFILE
-  if [[ `helm status $DB_RELEASE_NAME --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
-    printf "==> [%s] deployed sucessfully \n" "$DB_RELEASE_NAME"
+  printf "==> deploying mojaloop example backend services helm chart , waiting upto 300s for it to be ready  \n"
+  helm install $BE_RELEASE_NAME >> $LOGFILE 2>>$ERRFILE
+  if [[ `helm status $BE_RELEASE_NAME --namespace "$NAMESPACE" $HOME/helm/example-mojaloop-backend | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
+    printf "==> [%s] deployed sucessfully \n" "$BE_RELEASE_NAME"
   else 
       printf " ** Error database has *NOT* been deployed \n" 
   fi 
@@ -211,7 +212,7 @@ function install_db {
 function install_mojaloop_from_local {
   # delete the old chart if it exists
   delete_mojaloop_helm_chart 
-  install_db
+  install_be
 
   # install the chart
   printf  " ==> install %s helm chart and wait for upto %s  secs for it to be ready \n" "$ML_RELEASE_NAME" "$TIMEOUT_SECS"
@@ -343,7 +344,7 @@ Options:
 # Environment Config & global vars 
 ##
 ML_RELEASE_NAME="ml"
-DB_RELEASE_NAME="db"
+BE_RELEASE_NAME="db"
 LOGFILE="/tmp/miniloop-install.log"
 ERRFILE="/tmp/miniloop-install.err"
 DEFAULT_TIMEOUT_SECS="2400s"
@@ -410,8 +411,8 @@ elif [[ "$mode" == "delete_ml" ]]; then
   delete_mojaloop_helm_chart
   print_end_banner
 elif [[ "$mode" == "install_ml" ]]; then
-  clone_helm_charts_repo
-  modify_local_helm_charts
+  #clone_helm_charts_repo
+  #modify_local_helm_charts
   if [ -z ${skip_repackage+x} ]; then 
     repackage_charts
   fi
