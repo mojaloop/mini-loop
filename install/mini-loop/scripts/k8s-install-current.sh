@@ -415,16 +415,14 @@ function showUsage {
 		exit 1
 	else
 echo  "USAGE: $0 -m [mode] -u [user] -v [k8 version] -k [distro] [-f] 
-Example 1 : k8s-install-current.sh -m install -u ubuntu -v 1.22 # install k8s k3s version 1.22
-Example 2 : k8s-install-current.sh -m delete -u ubuntu -v 1.24 # delete  k8s microk8s version 1.20
-Example 3 : k8s-install-current.sh -m install -k microk8s -u ubuntu -v 1.24 # install k8s microk8s distro version 1.24
-Example 4 : k8s-install-current.sh -m install -k microk8s -u ubuntu -v 1.24 # force install on non-tested os (mainlt for test/dev)
-
+Example 1 : k8s-install-current.sh -m install -u ubuntu -v 1.24 # install k8s k3s version 1.24
+Example 2 : k8s-install-current.sh -m delete -u ubuntu -v 1.24 # delete  k8s microk8s version 1.24
+Example 3 : k8s-install-current.sh -m install -k microk8s -u ubuntu -v 1.26 # install k8s microk8s distro version 1.26
 
 Options:
 -m mode ............... install|delete (-m is required)
 -k kubernetes distro... microk8s|k3s (default=k3s as it installs across multiple linux distros)
--v k8s version ........ 1.22|1.23|1.24 i.e. current k8s release
+-v k8s version ........ 1.24|1.25|1.26 i.e. current k8s release
 -u user ............... non root user to run helm and k8s commands and to own mojaloop deployment
 -h|H .................. display this message
 "

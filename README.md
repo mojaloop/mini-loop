@@ -1,17 +1,17 @@
-# mini-loop v4.0 with Microk8s or k3s (versions 1.22 - 1.24) 
+# mini-loop v4.1 with Microk8s or k3s (versions 1.24 - 1.26) 
 
 ## Description 
 mini-loop is a simple, scripted/automated installer for Mojaloop (http://mojaloop.io) to enable demo, test, training and development of the Mojaloop switch
 
 The goal is to make it easy, quick and scriptable to deploy Mojaloop in a variety of local or cloud environments. 
 - easy : you only need to run 2 simple shell scripts
-- quick : With a sufficiently configured linux instance and internet connection it should be possible to deploy and configure Mojaloop in 30 mins or less.
+- quick : With a sufficiently configured linux instance and internet connection it should be possible to deploy and configure Mojaloop in approx 30 mins or less.
 - scriptable: the scripts are easily callable from other scripts or from CI/CD tools
 
 Example environments include:-
-- an x86_64 laptop with 8GB ram and 64GB free disk , server running ubuntu / redhat 
-- an x86_64 laptop or server running ubuntu/redhat as a guest VM (say using virtualbox , prarallels, qemu or similar) 
-- an appropriately sized x86_64 ubuntu/redhat cloud instance running in any of the major cloud vendors
+- an x86_64 laptop with 8GB ram and 64GB free disk , server running ubuntu 20 or 22
+- an x86_64 laptop or server running ubuntu 20 or 22 as a guest VM (say using virtualbox , prarallels, qemu or similar) 
+- an appropriately sized x86_64 ubuntu cloud instance running in any of the major cloud vendors
 
 mini-loop also demonstrates the configuration of the mojaloop helm charts, via example values file provided in the mini-loop/install/mini-loop/etc directory and further mojaloop configuration 
 instructions are available at https://github.com/mojaloop/helm. 
@@ -28,8 +28,8 @@ source $HOME/.bashrc                                                           #
 ./mini-loop/install/mini-loop/scripts/miniloop-local-install.sh -m install_ml  # deploy and configure the mojaloop helm chart from the local $HOME/helm repository that the script creates
 ```
 
-## Deployment Instructions option #2 install and use Rancher k3s (Ubuntu or Redhat 8)
-Assuming you have an x86_64 environment running Ubuntu release 16, 18 or 20 **or Redhat 8** and are logged in as a non-root user (e.g. mluser)
+## Deployment Instructions option #2 install and use Rancher k3s (Ubuntu 20 or 22 )
+Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                                # i.e. login as an existing non-root user we use mluser just as an example
 cd $HOME                                                      
@@ -64,7 +64,7 @@ For a good overview of the Testing Toolkit functionality please see the video (h
 
 
 ## Prerequisites 
-- a running x86_64 ubuntu or redhat 8 environment. ubuntu release 16,18 or 2  or redhat 8  
+- a running x86_64 ubuntu 20 or 22 environment.
 - root user or sudo access
 - non-root user (with bash shell)
 - git installed   
@@ -73,7 +73,7 @@ For a good overview of the Testing Toolkit functionality please see the video (h
 - broadband internet connection from the ubuntu OS (for downloading helm charts and container images )
 
 ## Notes:
-- For Ubuntu you can use select to install Microk8s or k3s kubernetes engine but if you are using Redhat 8 you should select k3s.  
+- You can use select to install Microk8s or k3s kubernetes engine but k3s is more frequently tested and quicker to install  
 - Mojaloop code is developed to be deployable in a robust, highly available and highly secure fashion *BUT* the mini-loop deployment focusses on simplicity and hence is not deploying Mojaloop in either a robust fashion nor a secure fashion.  So the mini-loop deployment of Mojaloop is *NOT* suitable for production purposes rather it is for trial, test , education and demonstration purposes only!
 - the mini-loop scripts output messages to help guide your deployment , please pay attention to these messages
 - .log and .err files are written to /tmp
@@ -91,12 +91,17 @@ For a good overview of the Testing Toolkit functionality please see the video (h
 - at release v4.0 of mini-loop clones the latest current release of Mojaloop is version 14.0 
 - mini-loop v4.0 clones the latest version of the Mojaloop helm charts to $HOME/mluser and then modifies the charts and values to facilitate deployment to kubernetes 1.22+ , the scripts then package and deploy these locally modified charts.  These local modifications by mini-loop scripts of the Mojaloop charts, is a short-term utility as the Mojaloop charts are currently being updated to deploy to the latest kubernetes releases and are expected to deploy to **current** releases in the future.
 
-## Redhat 8 specific
-- the k8s-install-current.sh script stops and disables the  nm-cloud-setup.service, nm-cloud-setup.timer services and stops the NetworkManager service, k3s will not run correctly without this change see https://github.com/rancher/rke2/issues/1053
-
 ## known issues
-1. mini-loop v4.0 deployment of Mojaloop has only been tested properly with ubuntu 16,18, 20  and redhat 8.
-2. Not contradicting point 1. above BUT the k3s option should(?) work on linux distros other than Ubuntu and Redhat 8. It has been tested on fedora36 where there are some unresolved issues around open files. [Note if you try mini-loop k3s on Linux other than Ubuntu or Redhat 8 please let me know (tdaly61@gmail.com) ]
+1. mini-loop v4.1 deployment of Mojaloop has only been tested properly with ubuntu 20 and 22 
+2. Not contradicting point 1. above BUT the k3s option should(?) work on linux distros other than Ubuntu. It has been tested on fedora36 where there are some unresolved issues around open files. [Note if you try mini-loop k3s on Linux other than Ubuntu please let me know (tdaly61@gmail.com) ]
+
+## Notable changes in mini-loop v4.1
+- dropped support for out of date kubernetes versions. mini-loop version 4.1 only allows use of kubernetes 1.24,1.25 and 1.26
+- now deploys Mojaloop v14.1.0 (where Vija's mobile emulator works nicely)
+- dont have time to test redhat so dropped support of it for v4.1
+- added a proper apache 2.0 license
+- 
+
 
 ## Notable changes in mini-loop v4.0
 - dropped support for out of date kubernetes versions. mini-loop version 4.0 only allows use of kubernetes v1.22 - 1.24
