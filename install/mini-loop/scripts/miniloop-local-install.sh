@@ -130,7 +130,7 @@ function clone_helm_charts_repo {
     rm -rf $HOME/helm >> $LOGFILE 2>>$ERRFILE
   fi 
   if [ ! -d $HOME/helm ]; then 
-    git clone https://github.com/mojaloop/helm.git --branch v14.0.0 --single-branch $HOME/helm >> $LOGFILE 2>>$ERRFILE
+    git clone https://github.com/mojaloop/helm.git --branch v14.1.0 --single-branch $HOME/helm >> $LOGFILE 2>>$ERRFILE
     printf " [ done ] \n"
   else 
     printf "\n ** INFO: helm repo is not cloned as there is an existing $HOME/helm directory\n"

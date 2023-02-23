@@ -446,14 +446,14 @@ DEFAULT_K8S_DISTRO="k3s"   # default to microk8s as this is what is in the mojal
 K8S_VERSION="" 
 
 HELM_VERSION="3.9.0"
-OS_VERSIONS_LIST=(16 18 20 )
-K8S_CURRENT_RELEASE_LIST=( "1.22" "1.23" "1.24" )
+OS_VERSIONS_LIST=( 20 22 )
+K8S_CURRENT_RELEASE_LIST=( "1.24" "1.25" "1.26" )
 CURRENT_RELEASE="false"
 k8s_user_home=""
 k8s_arch=`uname -p`  # what arch
 
-LINUX_OS_LIST=( "Ubuntu", "Redhat" )
-UBUNTU_OK_VERSIONS_LIST=(16 18 20 )
+LINUX_OS_LIST=( "Ubuntu" )
+UBUNTU_OK_VERSIONS_LIST=(20 22 )
 FEDORA_OK_VERSIONS_LIST=( 36 )
 REDHAT_OK_VERSIONS_LIST=( 8 )
 
