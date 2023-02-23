@@ -3,6 +3,16 @@
 # based on the older k8s-install.sh this script will only install current versions of kubernetes
 # Author:  Tom Daly 
 # Date : July 2022 
+#  -- Feb 2023 : updated for Mojaloop v15 and later kubernetes 
+
+# Updates for release notes 
+# - clean ups : remove support for fedora 
+# 
+
+# todo for update : 
+#   - check helm repo list : is this all active including for BizOps framework ? 
+#   - include 3ppi install as option (check the work I have in the branch for this)
+# 
 
 # TODO : add command line params to enable selection of which ML release etc 
 #       - put this into circle-ci and merge with k8s-versions-test.sh in charts repo so that little/no code is duplicated
@@ -73,17 +83,11 @@ function check_os_ok {
     printf "==> checking OS and kubernetes distro is tested with mini-loop scripts\n"
     set_linux_os_distro
     if [[ $LINUX_OS == "Untested" ]] || [[ $LINUX_OS == "Fedora" ]];  then 
-        printf " ** WARNING: miniloop is untested with operating system [%s] \n" "$LINUX_OS"
+        printf " ** Error: miniloop is untested with operating system [%s] \n" "$LINUX_OS"
         printf "    currently mini-loop is only well tested on the following Linux OS  \n"
         for i in "${LINUX_OS_LIST[@]}"; do
             printf "    %s\n" "$i"
         done
-        if [ ! -z ${force+x} ]; then  
-            printf "    -f flag (force) specified so k8s install will continue but will likely experience errors **\n"
-        else 
-            printf "    -f flag (force) not specified so k8s install exiting **\n"
-            exit 1
-        fi
     fi
 
     #check for Ubuntu as this is ok for microk8s and k3s otherwise advise just k3s 
@@ -109,20 +113,6 @@ function install_prerequisites {
             apt install snapd -y > /dev/null 2>&1
         fi
     fi 
-    if [[ $LINUX_OS == "Redhat" ]]; then  
-        systemctl stop nm-cloud-setup.service 
-        systemctl stop nm-cloud-setup.timer
-        systemctl disable nm-cloud-setup.service 
-        systemctl disable nm-cloud-setup.timer
-        systemctl stop NetworkManager
-        ip rule del pref 30400
-        sleep 10 
-        ip rule 
-        dnf install python3 -y 
-        dnf install python3-pip -y 
-        pip3 install ruamel.yaml
-    fi 
-
 }
 
 function add_hosts {
@@ -141,7 +131,6 @@ function add_hosts {
 }
 
 function set_k8s_distro { 
-
     if [ -z ${k8s_distro+x} ]; then  
         k8s_distro=$DEFAULT_K8S_DISTRO
         printf "==> Using default kubernetes distro [%s]\n" "$k8s_distro"
@@ -168,9 +157,8 @@ function set_k8s_version {
     # printf "========================================================================================\n"
     # printf " set the k8s version to install  \n"
     # printf "========================================================================================\n\n"
-    # Users who want to run non-current versions of kubernetes will need to use mini-loop version 3.0 and 
-    # or the older script in ubuntu directory for as long as it is included in current versions of mini-loop
-    # (which might not be too long)
+    # Users who want to run non-current versions of kubernetes will need to use earlier releases of mini-loop and 
+    # and be aware that these are not being actively maintained
     if [ ! -z ${k8s_user_version+x} ] ; then
         # strip off any leading characters
         k8s_user_version=`echo $k8s_user_version |  tr -d A-Z | tr -d a-z `
@@ -236,14 +224,16 @@ function do_k3s_install {
     printf "========================================================================================\n"
     printf "Mojaloop k3s install : Installing Kubernetes k3s engine and tools (helm/ingress etc) \n"
     printf "========================================================================================\n"
-
     # ensure k8s_user has clean .kube/config 
     rm -rf $k8s_user_home/.kube >> /dev/null 2>&1 
     printf "=> installing k3s \n"
     echo $K8S_VERSION
     curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
                             INSTALL_K3S_CHANNEL="v$K8S_VERSION" \
-                            INSTALL_K3S_EXEC=" --no-deploy traefik " sh 
+                            INSTALL_K3S_EXEC=" --disable traefik " sh 
+    # curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
+    #                         INSTALL_K3S_CHANNEL="v$K8S_VERSION" \
+    #                         INSTALL_K3S_EXEC=" --no-deploy traefik " sh                             
     
     export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
     cp /etc/rancher/k3s/k3s.yaml  $k8s_user_home/k3s.yaml
@@ -321,7 +311,7 @@ function configure_k8s_user_env {
         echo "complete -F __start_kubectl k " >>  $k8s_user_home/.bashrc
         echo "alias ksetns=\"kubectl config set-context --current --namespace\" " >>  $k8s_user_home/.bashrc
         echo "alias ksetuser=\"kubectl config set-context --current --user\" "  >>  $k8s_user_home/.bashrc 
-        echo "alias cdml=\"cd $k8s_user_home/mini-loop/install/mini-loop\" " >>  $k8s_user_home/.bashrc 
+        echo "alias cdml=\"cd $k8s_user_home/mini-loop\" " >>  $k8s_user_home/.bashrc 
         printf "# end of config added by mini-loop #\n" >> $k8s_user_home/.bashrc 
     else 
         printf "==> Configuration for .bashrc for %s for user %s already exists ..skipping\n" "$k8s_distro" "$k8s_user"
@@ -393,13 +383,7 @@ function print_end_message {
     printf "\n\n*********************** << success >> *******************************************\n"
     printf "            -- mini-loop kubernetes install utility -- \n"
     printf "  utilities for deploying kubernetes in preparation for Mojaloop deployment   \n"
- 
     printf "************************** << end  >> *******************************************\n\n"
-
-   
-    # printf "\n\n****************************************************************************************\n"
-    # printf " Mojaloop.io mini-loop kubernetes installer end        \n"
-    # printf "****************************************************************************************\n" 
 } 
 
 ################################################################################
@@ -415,17 +399,15 @@ function showUsage {
 		exit 1
 	else
 echo  "USAGE: $0 -m [mode] -u [user] -v [k8 version] -k [distro] [-f] 
-Example 1 : k8s-install-current.sh -m install -u ubuntu -v 1.22 # install k8s k3s version 1.22
-Example 2 : k8s-install-current.sh -m delete -u ubuntu -v 1.24 # delete  k8s microk8s version 1.20
-Example 3 : k8s-install-current.sh -m install -k microk8s -u ubuntu -v 1.24 # install k8s microk8s distro version 1.24
-Example 4 : k8s-install-current.sh -m install -k microk8s -u ubuntu -v 1.24 # force install on non-tested os (mainlt for test/dev)
-
+Example 1 : k8s-install-current.sh -m install -u ubuntu -v 1.24 # install k8s k3s version 1.24
+Example 2 : k8s-install-current.sh -m delete -u ubuntu -v 1.26 # delete  k8s microk8s version 1.26
+Example 3 : k8s-install-current.sh -m install -k microk8s -u ubuntu -v 1.26 # install k8s microk8s distro version 1.26
 
 Options:
 -m mode ............... install|delete (-m is required)
 -k kubernetes distro... microk8s|k3s (default=k3s as it installs across multiple linux distros)
 -v k8s version ........ 1.22|1.23|1.24 i.e. current k8s release
--u user ............... non root user to run helm and k8s commands and to own mojaloop deployment
+-u user ............... (-u is required) non root user to run helm and k8s commands and to own mojaloop deployment
 -h|H .................. display this message
 "
 	fi
@@ -435,9 +417,6 @@ Options:
 # MAIN
 ################################################################################
 
-##
-# Environment Config
-##
 BASE_DIR=$( cd $(dirname "$0")/../.. ; pwd )
 RUN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" # the directory that this script is run from 
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
@@ -445,17 +424,17 @@ SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 DEFAULT_K8S_DISTRO="k3s"   # default to microk8s as this is what is in the mojaloop linux deploy docs.
 K8S_VERSION="" 
 
-HELM_VERSION="3.9.0"
+HELM_VERSION="3.11.1"
 OS_VERSIONS_LIST=(16 18 20 )
-K8S_CURRENT_RELEASE_LIST=( "1.22" "1.23" "1.24" )
+K8S_CURRENT_RELEASE_LIST=( "1.24" "1.25" "1.26" )
 CURRENT_RELEASE="false"
 k8s_user_home=""
 k8s_arch=`uname -p`  # what arch
 
-LINUX_OS_LIST=( "Ubuntu", "Redhat" )
-UBUNTU_OK_VERSIONS_LIST=(16 18 20 )
-FEDORA_OK_VERSIONS_LIST=( 36 )
-REDHAT_OK_VERSIONS_LIST=( 8 )
+LINUX_OS_LIST=( "Ubuntu" )
+UBUNTU_OK_VERSIONS_LIST=(20 22)
+# FEDORA_OK_VERSIONS_LIST=( 36 )
+# REDHAT_OK_VERSIONS_LIST=( 8 )
 
 # ensure we are running as root 
 if [ "$EUID" -ne 0 ]
@@ -471,10 +450,8 @@ if [ $# -lt 1 ] ; then
 fi
 
 # Process command line options as required
-while getopts "fm:k:v:u:hH" OPTION ; do
+while getopts "m:k:v:u:hH" OPTION ; do
    case "${OPTION}" in
-        f)      force="true"
-        ;;
         m)	    mode="${OPTARG}"
         ;;
         k)      k8s_distro="${OPTARG}"
