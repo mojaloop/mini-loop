@@ -3,8 +3,8 @@
 #               - install mojaloop for kubernetes releases >= v1.22
 #                 the install_ml option of this script will git clone the latest version of mojaloop helm charts from the master branch
 #                 and then make local modifications to these charts to enable Mojaloop to deploy and run 
-#                 in the latetest kubernetes versions.  This local deployment which is intended for demo purposes 
-#                 deploys a single database which uses a newly geneerated database password which this script  inserts 
+#                 in the latetest kubernetes versions.  This local deployment which is intended for demo , test and development purposes 
+#                 deploys a single database which uses a newly generated database password which this script  inserts 
 #                 into the local values file prior to local packaging and deployment. 
 #                      
 # Note:  once the mojaloop helm charts are updated for kubernbetes 1.22 much (but not all) of the mods here will become 
@@ -12,9 +12,11 @@
 #        testers and deployers a lot of simplicity and flexibility in the future in light of the rapidly evolving kubernetes releases
 # Author Tom Daly 
 # Date July 2022
+# updated Feb 2023 for later versions of Mojaloop and to further simplify
+#   - now installs Mojaloop v4.1.0 (see Mojaloop release notes : https://github.com/mojaloop/helm/tree/v14.1.0 ) 
 
 function check_arch {
-  ## check architecture Mojaloop deploys on x64 only today arm is coming  
+  ## check architecture Mojaloop deploys on x64 only today (it is anticipated ARM will work in the near future)
   arch=`uname -p`
   if [[ ! "$arch" == "x86_64" ]]; then 
     printf " ** Error: Mojaloop is only running on x86_64 today and not yet running on ARM cpus \n"
