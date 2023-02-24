@@ -11,31 +11,31 @@ The goal is to make it realistic, easy, quick ,scriptable and cost effective to 
 - cost effective : uses minimal resources, everything you need to test Mojaloop and nothing you don't need
 
 Example environments include:-
-- an x86_64 laptop with 8GB ram and 64GB free disk , server running ubuntu 20 or 22
+- an x86_64 laptop or server running ubuntu 20 or 22 
 - an x86_64 laptop or server running ubuntu 20 or 22 as a guest VM (say using virtualbox , prarallels, qemu or similar) 
-- an appropriately sized x86_64 ubuntu cloud instance running in any of the major cloud vendors
+- an appropriately sized x86_64 ubuntu 20 or 22 cloud instance running in any of the major cloud vendors
  
 This project automates the instructions for mojaloop deployment in the mojaloop.io documentation at https://docs.mojaloop.io/documentation/deployment-guide/local-setup-linux.html. 
 ## Deployment option #1 install and use Microk8s (Ubuntu 20 or 22) 
 Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
-login as mluser                                                                # i.e. login as an existing non-root user we use mluser just as an example
+login as mluser                                                                # login as an existing non-root user e.g. mluser
 cd $HOME                                                      
-git clone https://github.com/tdaly61/mini-loop.git                             # clone the mini-loop scripts into the mluser home directory
-sudo ./mini-loop/install/mini-loop/scripts/k8s-install-current.sh -m install -u mluser -k microk8s -v 1.24 # install and configure microk8s v1.24 & prepare for mojaloop deploy
-source $HOME/.bashrc                                                           # you may need to lougout and login again to ensure your kubernetes env is correctly established
-./mini-loop/install/mini-loop/scripts/miniloop-local-install.sh -m install_ml  # deploy and configure the mojaloop helm chart from the local $HOME/helm repository that the script creates
+git clone https://github.com/tdaly61/mini-loop.git                             # clone the mini-loop scripts
+sudo ./mini-loop/install/mini-loop/scripts/k8s-install-current.sh -m install -u mluser -k microk8s -v 1.24 # install and configure microk8s 
+source $HOME/.bashrc                                                           # or logout/log back in again to set kubernetes env
+./mini-loop/install/mini-loop/scripts/miniloop-local-install.sh -m install_ml  # deploy and configure the mojaloop helm chart 
 ```
 
 ## Deployment option #2 install and use Rancher k3s (Ubuntu 20 or 22 )
 Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
-login as mluser                                                                # i.e. login as an existing non-root user we use mluser just as an example
+login as mluser                                                                # login as an existing non-root user e.g. mluser
 cd $HOME                                                      
-git clone https://github.com/tdaly61/mini-loop.git                             # clone the mini-loop scripts into the mluser home directory
-sudo ./mini-loop/install/mini-loop/scripts/k8s-install-current.sh -m install -u mluser -k k3s -v 1.24 # install and configure k3s v1.24 & prepare for mojaloop deploy
-source $HOME/.bashrc                                                           # you may need to lougout and login again to ensure your kubernetes env is correctly established
-./mini-loop/install/mini-loop/scripts/miniloop-local-install.sh -m install_ml  # deploy and configure the mojaloop helm chart from the local $HOME/helm repository that the script creates
+git clone https://github.com/tdaly61/mini-loop.git                             # clone the mini-loop scripts
+sudo ./mini-loop/install/mini-loop/scripts/k8s-install-current.sh -m install -u mluser -k k3s -v 1.24 # install and configure k3s 
+source $HOME/.bashrc                                                           # or logout/log back in again to set kubernetes env
+./mini-loop/install/mini-loop/scripts/miniloop-local-install.sh -m install_ml  # deploy and configure the mojaloop helm chart 
 ```
 ## accessing Mojaloop from beyond "localhost" (e.g. from a linux or OSX laptop)
 The mini-loop scripts add the required host names to the 127.0.0.1 entry in the /etc/hosts of the "install system" i.e. the system where Mojaloop is deployed.  To access Mojaloop from beyond this system it is necessary to:- 
@@ -50,7 +50,7 @@ You should now be able to browse or curl to Mojaloop url's e.g. http://central-l
 
 ## Running the Testing Toolkit via ```helm test```
 To ensure that your deployment is all up and running and Mojaloop functioning correctly you can run the testing Toolkit.
-as the non-root user (e.g. mluser)
+login to the system or VM where you install Mojaloop and as the non-root user (e.g. mluser)... 
 ```
 helm test ml --logs 
 ```
@@ -66,7 +66,7 @@ For a good overview of the Testing Toolkit functionality please see the video (h
 - a running x86_64 ubuntu 20 or 22 environment.
 - root user or sudo access
 - non-root user (with bash shell)
-- git installed   
+- git installed (usually installed by default on Ubuntu 20 or 22) 
 - min 8GB ram available  (8GB or more recommended) 
 - min 64GB storage available
 - broadband internet connection from the ubuntu OS (for downloading helm charts and container images )
@@ -76,24 +76,18 @@ For a good overview of the Testing Toolkit functionality please see the video (h
 - Mojaloop code is developed to be deployable in a robust, highly available and highly secure fashion *BUT* the mini-loop deployment focusses on simplicity and hence is not deploying Mojaloop in a highly secure, highly available fashion.  The mini-loop deployment of Mojaloop is *NOT* intended for production purposes rather it enables:
   - trial: users new,expert and in-between to quickly run and access Mojaloop and its various features
   - test : the Mojaloop community do realistic testing of Mojaloop across a broad range of settings 
-           From DFSPs working on integrating with Mojaloop to the Mojaloop core team wherte mini-loop is being used to enhance the quality of the Mojalop switch.
-  - education: a powerful education on-ramp when used in conjunction with the testing toolkit and the Mojaloop tutorial.
-  - demonstrations: an excellent platform for a range of Mojaloop demonstrations due to the cost-effect and light-weight yet realistic (e.g. uses kubernetes) nature of mini-loop to deploy Mojaloop it provides 
-  - simplicity: anyone can read the simple bash scripts and understand how kubernetes is being configured and Mojaloop is being configured and deployed
+           From DFSPs working on integrating with Mojaloop to the Mojaloop core team where mini-loop is being used to enhance the quality of the Mojalop switch.
+  - education: a powerful education "on-ramp" especially when used in conjunction with the testing toolkit and the Mojaloop tutorial.
+  - demonstrations: an excellent platform for a range of Mojaloop demonstrations. This is due to the cost-effect and light-weight yet realistic (e.g. uses kubernetes) nature of the Mojaloop deployment 
+  - simplicity: anyone can read the simple bash scripts and understand how kubernetes is being installed and Mojaloop is being configured and deployed
 - the mini-loop scripts output messages to help guide your deployment , please pay attention to these messages
 - .log and .err files are written to /tmp
 - each of the scripts has a -h flag to show parameters and give examples of how to use and customise
-- helm chart modification is enabled by providing your own values file, simply change the `helm deploy` command in the miniloop-local-install.sh to point to your
-  customised values e.g. alter the -f value in the line 
-  `helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS  --namespace "$NAMESPACE"  mojaloop/mojaloop --version $MOJALOOP_VERSION -f $ETC_DIR/miniloop_values.yaml `
-- mini-loop currently deploys a single node kubernetes environment. 
-- reading the scripts can be a useful way to learn about both kubernetes (microk8s / k3s ) and mojaloop deployment.
 - The the scripts are intended to provide a starting point, for further customisation. For instance it should be easy for the user to 
-  add extra nodes to the kubernetes cluster or as mentioned above to modify the mojaloop configuration etc. 
+  add extra nodes to the kubernetes cluster or as mentioned above to modify the mojaloop configuration etc.
 - please note that the installation adds the /etc/hosts entries for the endpoints configured in the $ETC_DIR/miniloop_values.yaml file if you 
   use different values you will likely have to adjust the /etc/hosts endpoints
 - the mini-loop/install/mini-loop/util directory contains a few scripts and debugging tools that I find useful , I am not really maintaining these but you might find some of them handy as I do. 
-- release v4.1 of mini-loop clones the 14.1.0 releaase of Mojaloop 
 - mini-loop v4.1 clones the  14.1.0 release of the Mojaloop helm charts to $HOME and then modifies the charts and values to facilitate deployment to kubernetes 1.24+ , the scripts then package and deploy these locally modified charts.  These local modifications by mini-loop scripts of the Mojaloop charts, is a short-term utility as the Mojaloop charts are currently being updated to deploy to the latest kubernetes releases and are expected to deploy to **current** releases when Mojaloop release 15 is available.
 
 ## known issues
@@ -133,5 +127,4 @@ For a good overview of the Testing Toolkit functionality please see the video (h
    See the instructions at the end of the mojaloop deployment for instructions on running the tests and also refer to the testing section of 
    https://github.com/mojaloop/helm 
 
-2. I'm having issues with `\r`'s on Windows (`$'\r': command not found`)
-   Currently deployment into windows environments is not supported , please let me know (tdaly61@gmail.com) or on the mojaloop slack if this is a significant problem also you can check out https://github.com/vijayg10/vm-mojaloop where Vijay has a nice Vagrant/VirtualBox image for use (currently using k8s v1.21 e.g. mini-loop v3.0)
+2. The best way to run on a windows laptop is to provision an Ubuntu 20 or 22 virtual machine using one of the popular Hypervisors available today (HyperV, VirtualBox, UTM etc) 
