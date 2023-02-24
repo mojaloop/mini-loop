@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # miniloop-local-install.sh
-#               - install mojaloop for kubernetes releases >= v1.22
+#               - install mojaloop using kubernetes release 1.24
 #                 the install_ml option of this script will git clone the latest version of mojaloop helm charts from the master branch
 #                 and then make local modifications to these charts to enable Mojaloop to deploy and run 
 #                 in the latetest kubernetes versions.  This local deployment which is intended for demo , test and development purposes 
@@ -14,6 +14,8 @@
 # Date July 2022
 # updated Feb 2023 for later versions of Mojaloop and to further simplify
 #   - now installs Mojaloop v4.1.0 (see Mojaloop release notes : https://github.com/mojaloop/helm/tree/v14.1.0 ) 
+#   - restrict to kubernetes v1.24 (the soon to come mini-loop v5 release will move to k8s v1.25/1.26)
+#   - drop support for redhat and fedora for the moment 
 
 function check_arch {
   ## check architecture Mojaloop deploys on x64 only today (it is anticipated ARM will work in the near future)
@@ -350,7 +352,7 @@ TIMEOUT_SECS=0
 DEFAULT_NAMESPACE="default"
 k8s_distro=""
 k8s_version=""
-K8S_CURRENT_RELEASE_LIST=( "1.24" "1.25" "1.26" )
+K8S_CURRENT_RELEASE_LIST=( "1.24" )
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 ETC_DIR="$( cd $(dirname "$0")/../etc ; pwd )"
 NEED_TO_REPACKAGE="false"

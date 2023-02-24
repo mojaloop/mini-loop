@@ -3,6 +3,11 @@
 # based on the older k8s-install.sh this script will only install current versions of kubernetes
 # Author:  Tom Daly 
 # Date : July 2022 
+# Updates : Feb 2023 
+#  - limit k8s release to v1.24 as older ones are likely now to cause issues and mini-loop v5 will support later k8s releases
+#  - limit OS to Ubuntu 20 or 22 both these seem to work well , some earlier versions lack some packages (e.g. git) 
+#  - updated helm release to 3.10.2 
+# 
 
 # TODO : add command line params to enable selection of which ML release etc 
 #       - put this into circle-ci and merge with k8s-versions-test.sh in charts repo so that little/no code is duplicated
@@ -26,18 +31,18 @@ function check_arch_ok {
     fi
 } 
 
-function print_ok_oses {
-    printf "      Fedora versions: " 
-    for i in "${FEDORA_OK_VERSIONS_LIST[@]}"; do
-        printf " [%s]" "$i"
-    done
-    printf "\n"
-    printf "      Ubuntu versions: " 
-    for i in "${UBUNTU_OK_VERSIONS_LIST[@]}"; do
-        printf " [%s]" "$i"
-    done
-    printf "\n"
-}
+# function print_ok_oses {
+#     printf "      Fedora versions: " 
+#     for i in "${FEDORA_OK_VERSIONS_LIST[@]}"; do
+#         printf " [%s]" "$i"
+#     done
+#     printf "\n"
+#     printf "      Ubuntu versions: " 
+#     for i in "${UBUNTU_OK_VERSIONS_LIST[@]}"; do
+#         printf " [%s]" "$i"
+#     done
+#     printf "\n"
+# }
 
 function k8s_already_installed {  
     if [[ -f "/usr/local/bin/k3s" ]]; then 
@@ -110,19 +115,20 @@ function install_prerequisites {
         fi
     fi 
     if [[ $LINUX_OS == "Redhat" ]]; then  
-        systemctl stop nm-cloud-setup.service 
-        systemctl stop nm-cloud-setup.timer
-        systemctl disable nm-cloud-setup.service 
-        systemctl disable nm-cloud-setup.timer
-        systemctl stop NetworkManager
-        ip rule del pref 30400
-        sleep 10 
-        ip rule 
-        dnf install python3 -y 
-        dnf install python3-pip -y 
-        pip3 install ruamel.yaml
+        printf "** Error : Only Ubuntu OS is supported for mini-loop v4.1 \n"
+            exit 1
+        # systemctl stop nm-cloud-setup.service 
+        # systemctl stop nm-cloud-setup.timer
+        # systemctl disable nm-cloud-setup.service 
+        # systemctl disable nm-cloud-setup.timer
+        # systemctl stop NetworkManager
+        # ip rule del pref 30400
+        # sleep 10 
+        # ip rule 
+        # dnf install python3 -y 
+        # dnf install python3-pip -y 
+        # pip3 install ruamel.yaml
     fi 
-
 }
 
 function add_hosts {
@@ -141,7 +147,6 @@ function add_hosts {
 }
 
 function set_k8s_distro { 
-
     if [ -z ${k8s_distro+x} ]; then  
         k8s_distro=$DEFAULT_K8S_DISTRO
         printf "==> Using default kubernetes distro [%s]\n" "$k8s_distro"
@@ -157,7 +162,7 @@ function set_k8s_distro {
 }
 
 function print_current_k8s_releases {
-    printf "          Current Kubernetes releases are : " 
+    printf "          Please select one of the following kubernetes releases : " 
     for i in "${K8S_CURRENT_RELEASE_LIST[@]}"; do
         printf " [v%s]" "$i"
     done
@@ -184,7 +189,7 @@ function set_k8s_version {
             K8S_VERSION=$k8s_user_version
         else 
             printf "** Error: The specified kubernetes release [ %s ] is not a current release \n" "$k8s_user_version"
-            printf "          when using the -v flag you must specify a current supported release \n"
+            printf "**        or is not tested with this version of mini-loop and/or Mojaloop \n"
             print_current_k8s_releases 
             printf "** \n"
             exit 1 
@@ -417,12 +422,11 @@ function showUsage {
 echo  "USAGE: $0 -m [mode] -u [user] -v [k8 version] -k [distro] [-f] 
 Example 1 : k8s-install-current.sh -m install -u ubuntu -v 1.24 # install k8s k3s version 1.24
 Example 2 : k8s-install-current.sh -m delete -u ubuntu -v 1.24 # delete  k8s microk8s version 1.24
-Example 3 : k8s-install-current.sh -m install -k microk8s -u ubuntu -v 1.26 # install k8s microk8s distro version 1.26
 
 Options:
 -m mode ............... install|delete (-m is required)
 -k kubernetes distro... microk8s|k3s (default=k3s as it installs across multiple linux distros)
--v k8s version ........ 1.24|1.25|1.26 i.e. current k8s release
+-v k8s version ........ 1.24 
 -u user ............... non root user to run helm and k8s commands and to own mojaloop deployment
 -h|H .................. display this message
 "
@@ -443,9 +447,9 @@ SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 DEFAULT_K8S_DISTRO="k3s"   # default to microk8s as this is what is in the mojaloop linux deploy docs.
 K8S_VERSION="" 
 
-HELM_VERSION="3.9.0"
+HELM_VERSION="3.10.2"
 OS_VERSIONS_LIST=( 20 22 )
-K8S_CURRENT_RELEASE_LIST=( "1.24" "1.25" "1.26" )
+K8S_CURRENT_RELEASE_LIST=( "1.24" )
 CURRENT_RELEASE="false"
 k8s_user_home=""
 k8s_arch=`uname -p`  # what arch
