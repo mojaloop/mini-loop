@@ -232,8 +232,11 @@ function do_microk8s_install {
 
     # ensure .kube/config points to this new cluster and KUBECONFIG is not set in .bashrc
     perl -p -i.bak -e 's/^.*KUBECONFIG.*$//g' $k8s_user_home/.bashrc
+    perl -p -i.bak -e 's/^.*KUBECONFIG.*$//g' $k8s_user_home/.bash_profile
+    mkdir -p $k8s_user_home/.kube
     chown -f -R $k8s_user $k8s_user_home/.kube
     microk8s config > $k8s_user_home/.kube/config
+    #echo "KUBECONFIG=$k8s_user_home/.kube/config" >> $k8s_user_home/.bashrc
 
 }
 
@@ -385,6 +388,8 @@ function delete_k8s {
 
 function check_k8s_installed { 
     printf "==> Check the cluster is available and ready from kubectl  "
+    echo "kubeconfig is $KUBECONFIG"
+
     k8s_ready=`su - $k8s_user -c "kubectl get nodes" | perl -ne 'print  if s/^.*Ready.*$/Ready/'`
     if [[ ! "$k8s_ready" == "Ready" ]]; then 
         printf "** Error : kubernetes is not installed , please run $0 -m install -u $k8s_user \n"

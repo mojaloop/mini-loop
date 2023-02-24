@@ -144,7 +144,7 @@ function clone_helm_charts_repo {
 }
 
 function modify_local_helm_charts {
-  printf "==> modifying the local mojaloop helm charts to run on kubernetes v1.22+  "
+  printf "==> modifying the local mojaloop helm charts to run on kubernetes v1.24+  "
   # note: this also updates $ETC_DIR/mysql_values.yaml with a new DB password
   # this password is and needs to be the same in all the values files which access the DB
   $SCRIPTS_DIR/mod_local_miniloop.py -d $HOME/helm -k $k8s_distro >> $LOGFILE 2>>$ERRFILE
@@ -389,7 +389,7 @@ done
 
 printf "\n\n****************************************************************************************\n"
 printf "            -- mini-loop Mojaloop local install utility -- \n"
-printf " utilities for deploying local Mojaloop helm chart for kubernetes 1.22+  \n"
+printf " utilities for deploying local Mojaloop helm chart for kubernetes 1.24  \n"
 printf "********************* << START  >> *****************************************************\n\n"
 check_arch
 check_user
