@@ -97,11 +97,9 @@ For a good overview of the Testing Toolkit functionality please see the video (h
 
 ## Notable changes in mini-loop v4.1
 - dropped support for out of date kubernetes versions. mini-loop version 4.1 only allows use of kubernetes 1.24,1.25 and 1.26
-- now deploys Mojaloop v14.1.0 (where Vija's mobile emulator works nicely)
+- now deploys Mojaloop v14.1.0 (where Vijay's mobile emulator works nicely)
 - dont have time to test redhat so dropped support of it for v4.1
-- added a proper apache 2.0 license
-- 
-
+- added a more current (short) apache 2.0 license to top level directory
 
 ## Notable changes in mini-loop v4.0
 - dropped support for out of date kubernetes versions. mini-loop version 4.0 only allows use of kubernetes v1.22 - 1.24

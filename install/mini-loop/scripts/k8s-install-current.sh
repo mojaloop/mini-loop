@@ -243,7 +243,7 @@ function do_k3s_install {
     echo $K8S_VERSION
     curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
                             INSTALL_K3S_CHANNEL="v$K8S_VERSION" \
-                            INSTALL_K3S_EXEC=" --no-deploy traefik " sh 
+                            INSTALL_K3S_EXEC=" --disable traefik " sh 
     
     export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
     cp /etc/rancher/k3s/k3s.yaml  $k8s_user_home/k3s.yaml
