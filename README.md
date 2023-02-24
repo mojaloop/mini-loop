@@ -16,7 +16,7 @@ Example environments include:-
 - an appropriately sized x86_64 ubuntu cloud instance running in any of the major cloud vendors
  
 This project automates the instructions for mojaloop deployment in the mojaloop.io documentation at https://docs.mojaloop.io/documentation/deployment-guide/local-setup-linux.html. 
-## Deployment Instructions option #1 install and use Microk8s (Ubuntu only) 
+## Deployment option #1 install and use Microk8s (Ubuntu 20 or 22) 
 Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                                # i.e. login as an existing non-root user we use mluser just as an example
@@ -27,7 +27,7 @@ source $HOME/.bashrc                                                           #
 ./mini-loop/install/mini-loop/scripts/miniloop-local-install.sh -m install_ml  # deploy and configure the mojaloop helm chart from the local $HOME/helm repository that the script creates
 ```
 
-## Deployment Instructions option #2 install and use Rancher k3s (Ubuntu 20 or 22 )
+## Deployment option #2 install and use Rancher k3s (Ubuntu 20 or 22 )
 Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                                # i.e. login as an existing non-root user we use mluser just as an example
