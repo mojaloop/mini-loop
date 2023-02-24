@@ -1,24 +1,23 @@
-# mini-loop v4.1 with Microk8s or k3s (versions 1.24 - 1.26) 
+# mini-loop v4.1 with Microk8s or k3s (version 1.24) 
 
 ## Description 
-mini-loop is a simple, scripted/automated installer for Mojaloop (http://mojaloop.io) to enable demo, test, training and development of the Mojaloop switch
+mini-loop is a simple, scripted/automated installer for Mojaloop (http://mojaloop.io) to enable demo, test, training and development of the Mojaloop switch and its associated environment. 
 
-The goal is to make it easy, quick and scriptable to deploy Mojaloop in a variety of local or cloud environments. 
+The goal is to make it realistic, easy, quick ,scriptable and cost effective to deploy Mojaloop in a variety of local or cloud environments. 
+- realistic: running a full kubernetes stack , so you can do real-world tests
 - easy : you only need to run 2 simple shell scripts
 - quick : With a sufficiently configured linux instance and internet connection it should be possible to deploy and configure Mojaloop in approx 30 mins or less.
 - scriptable: the scripts are easily callable from other scripts or from CI/CD tools
+- cost effective : uses minimal resources, everything you need to test Mojaloop and nothing you don't need
 
 Example environments include:-
 - an x86_64 laptop with 8GB ram and 64GB free disk , server running ubuntu 20 or 22
 - an x86_64 laptop or server running ubuntu 20 or 22 as a guest VM (say using virtualbox , prarallels, qemu or similar) 
 - an appropriately sized x86_64 ubuntu cloud instance running in any of the major cloud vendors
-
-mini-loop also demonstrates the configuration of the mojaloop helm charts, via example values file provided in the mini-loop/install/mini-loop/etc directory and further mojaloop configuration 
-instructions are available at https://github.com/mojaloop/helm. 
  
 This project automates the instructions for mojaloop deployment in the mojaloop.io documentation at https://docs.mojaloop.io/documentation/deployment-guide/local-setup-linux.html. 
 ## Deployment Instructions option #1 install and use Microk8s (Ubuntu only) 
-Assuming you have an x86_64 environment running Ubuntu release 16, 18 or 20 and are logged in as a non-root user (e.g. mluser)
+Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                                # i.e. login as an existing non-root user we use mluser just as an example
 cd $HOME                                                      
@@ -39,11 +38,11 @@ source $HOME/.bashrc                                                           #
 ./mini-loop/install/mini-loop/scripts/miniloop-local-install.sh -m install_ml  # deploy and configure the mojaloop helm chart from the local $HOME/helm repository that the script creates
 ```
 ## accessing Mojaloop from beyond "localhost" (e.g. from a linux or OSX laptop)
-The mini-loop scripts add the required host names to the 127.0.0.1 entry in the /etc/hosts of the "install system" i.e. the system where Mojaloop is deployed.  To access mojaloop from beyond this system it is necessary to:- 
+The mini-loop scripts add the required host names to the 127.0.0.1 entry in the /etc/hosts of the "install system" i.e. the system where Mojaloop is deployed.  To access Mojaloop from beyond this system it is necessary to:- 
 1. ensure that http / port 80 is accessible on the install system.  For instance if mini-loop has installed Mojaloop onto a VM in the cloud then it will be necessary to ensure that the cloud network security rules allow inbound traffic on port 80 to that VM.
 2. copy the hosts on 127.0.0.1 from the /etc/hosts of the "install system" and add these hosts to an entry for the external/public ip address of that install system in the /etc/hosts file of the laptop you are using. 
 
- For example if Mojaloop is installed on a cloud VM with a public IP of 192.168.56.100  The add an entry to your laptop's /etc/hosts similar to ...
+ For example if Mojaloop is installed on a cloud VM with a public IP of 192.168.56.100  Then add an entry to your laptop's /etc/hosts similar to ...
 ```
 192.168.56.100 ml-api-adapter.local central-ledger.local account-lookup-service.local account-lookup-service-admin.local quoting-service.local central-settlement-service.local transaction-request-service.local central-settlement.local bulk-api-adapter.local moja-simulator.local sim-payerfsp.local sim-payeefsp.local sim-testfsp1.local sim-testfsp2.local sim-testfsp3.local sim-testfsp4.local mojaloop-simulators.local finance-portal.local operator-settlement.local settlement-management.local testing-toolkit.local testing-toolkit-specapi.local
 ```
@@ -73,8 +72,14 @@ For a good overview of the Testing Toolkit functionality please see the video (h
 - broadband internet connection from the ubuntu OS (for downloading helm charts and container images )
 
 ## Notes:
-- You can use select to install Microk8s or k3s kubernetes engine but k3s is more frequently tested and quicker to install  
-- Mojaloop code is developed to be deployable in a robust, highly available and highly secure fashion *BUT* the mini-loop deployment focusses on simplicity and hence is not deploying Mojaloop in either a robust fashion nor a secure fashion.  So the mini-loop deployment of Mojaloop is *NOT* suitable for production purposes rather it is for trial, test , education and demonstration purposes only!
+- You can select to install Microk8s or k3s kubernetes engine but k3s is more frequently tested and quicker to install  
+- Mojaloop code is developed to be deployable in a robust, highly available and highly secure fashion *BUT* the mini-loop deployment focusses on simplicity and hence is not deploying Mojaloop in a highly secure, highly available fashion.  The mini-loop deployment of Mojaloop is *NOT* intended for production purposes rather it enables:
+  - trial: users new,expert and in-between to quickly run and access Mojaloop and its various features
+  - test : the Mojaloop community do realistic testing of Mojaloop across a broad range of settings 
+           From DFSPs working on integrating with Mojaloop to the Mojaloop core team wherte mini-loop is being used to enhance the quality of the Mojalop switch.
+  - education: a powerful education on-ramp when used in conjunction with the testing toolkit and the Mojaloop tutorial.
+  - demonstrations: an excellent platform for a range of Mojaloop demonstrations due to the cost-effect and light-weight yet realistic (e.g. uses kubernetes) nature of mini-loop to deploy Mojaloop it provides 
+  - simplicity: anyone can read the simple bash scripts and understand how kubernetes is being configured and Mojaloop is being configured and deployed
 - the mini-loop scripts output messages to help guide your deployment , please pay attention to these messages
 - .log and .err files are written to /tmp
 - each of the scripts has a -h flag to show parameters and give examples of how to use and customise
@@ -88,18 +93,19 @@ For a good overview of the Testing Toolkit functionality please see the video (h
 - please note that the installation adds the /etc/hosts entries for the endpoints configured in the $ETC_DIR/miniloop_values.yaml file if you 
   use different values you will likely have to adjust the /etc/hosts endpoints
 - the mini-loop/install/mini-loop/util directory contains a few scripts and debugging tools that I find useful , I am not really maintaining these but you might find some of them handy as I do. 
-- at release v4.0 of mini-loop clones the latest current release of Mojaloop is version 14.0 
-- mini-loop v4.0 clones the latest version of the Mojaloop helm charts to $HOME/mluser and then modifies the charts and values to facilitate deployment to kubernetes 1.22+ , the scripts then package and deploy these locally modified charts.  These local modifications by mini-loop scripts of the Mojaloop charts, is a short-term utility as the Mojaloop charts are currently being updated to deploy to the latest kubernetes releases and are expected to deploy to **current** releases in the future.
+- release v4.1 of mini-loop clones the 14.1.0 releaase of Mojaloop 
+- mini-loop v4.1 clones the  14.1.0 release of the Mojaloop helm charts to $HOME and then modifies the charts and values to facilitate deployment to kubernetes 1.24+ , the scripts then package and deploy these locally modified charts.  These local modifications by mini-loop scripts of the Mojaloop charts, is a short-term utility as the Mojaloop charts are currently being updated to deploy to the latest kubernetes releases and are expected to deploy to **current** releases when Mojaloop release 15 is available.
 
 ## known issues
 1. mini-loop v4.1 deployment of Mojaloop has only been tested properly with ubuntu 20 and 22 
 2. Not contradicting point 1. above BUT the k3s option should(?) work on linux distros other than Ubuntu. It has been tested on fedora36 where there are some unresolved issues around open files. [Note if you try mini-loop k3s on Linux other than Ubuntu please let me know (tdaly61@gmail.com) ]
 
 ## Notable changes in mini-loop v4.1
-- dropped support for out of date kubernetes versions. mini-loop version 4.1 only allows use of kubernetes 1.24,1.25 and 1.26
-- now deploys Mojaloop v14.1.0 (where Vijay's mobile emulator works nicely)
-- dont have time to test redhat so dropped support of it for v4.1
+- dropped support for out of date kubernetes versions. mini-loop version 4.1 only allows use of kubernetes 1.24
+- deploys Mojaloop v14.1.0 (where a fix in the TTK means Vijay's mobile emulator works)
+- I don't have time to test redhat so dropped support of it for v4.1
 - added a more current (short) apache 2.0 license to top level directory
+- updates to the latest helm release 
 
 ## Notable changes in mini-loop v4.0
 - dropped support for out of date kubernetes versions. mini-loop version 4.0 only allows use of kubernetes v1.22 - 1.24

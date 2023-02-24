@@ -293,12 +293,13 @@ function print_success_message {
   printf "\n** Notice and Caution ** \n"
   printf "        mini-loop install scripts have now deployed mojaloop switch to use for  :-\n"
   printf "            - trial \n"
-  printf "            - test \n"
+  printf "            - test and dfsp integration\n"
   printf "            - education and demonstration \n"
+  printf "            - development (including development of Mojaloop core )"
   printf "        This installation should *NOT* be treated as a *production* deployment as it is designed for simplicity \n"
   printf "        To be clear: Mojaloop itself is designed to be robust and secure and can be deployed securely \n"
-  printf "        This mini-loop install is neither secure nor robust. \n"
-  printf "        With this caution in mind , welcome to the full function of Mojaloop\n"
+  printf "        This mini-loop install is not implementing security nor high availablity  \n"
+  printf "        With this caution in mind , welcome to the full function of Mojaloop running ok Kubernetes \n"
   printf "        please see : https://mojaloop.io/ for more information, resources and online training\n"
 
   print_end_banner 
