@@ -130,12 +130,12 @@ function clone_helm_charts_repo {
   fi 
   if [ ! -d $HOME/helm ]; then 
     git clone https://github.com/mojaloop/helm.git --branch $MOJALOOP_BRANCH --single-branch $HOME/helm >> $LOGFILE 2>>$ERRFILE
+    NEED_TO_REPACKAGE="true"
     printf " [ done ] \n"
   else 
     printf "\n ** INFO: helm repo is not cloned as there is an existing $HOME/helm directory\n"
     printf "      to get a fresh clone of the repo , either delete $HOME/helm of use the -f flag **\n"
   fi
-  NEED_TO_REPACKAGE="true"
 }
 
 function modify_local_helm_charts {

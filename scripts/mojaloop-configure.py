@@ -2,7 +2,7 @@
 
 """
     This script is a part of the mini-loop project which aims to make installing the Mojaloop.io helm charts really easy
-    This script mod_local_miniloop_v15.py modifies a local copy of the mojaloop helm charts so that they will deploy to current
+    This script mojaloop-configure.py modifies a local copy of the mojaloop helm charts so that they will deploy to current
     versions of kubernetes 
             - updated so that they work with more complex passwords than "password" :-) 
 
