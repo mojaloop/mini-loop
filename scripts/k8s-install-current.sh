@@ -6,12 +6,16 @@
 #  -- Feb 2023 : updated for Mojaloop v15 and later kubernetes 
 
 # Updates for release notes 
-# - clean ups : remove support for fedora 
+# - clean ups : remove support for OS other than Ubuntu 
 # 
 
 # todo for update : 
 #   - check helm repo list : is this all active including for BizOps framework ? 
-#   - include 3ppi install as option (check the work I have in the branch for this)
+#   - add in the DNS , FQDN work as options too 
+#   - include 3ppi install as option or by default (check the work I have in the branch for this)
+#   - fix the prompt and make sure promt shows git version
+#   - test bulk
+#   - test BizOps framework 
 # 
 
 # TODO : add command line params to enable selection of which ML release etc 
@@ -36,19 +40,6 @@ function check_arch_ok {
     fi
 } 
 
-function print_ok_oses {
-    printf "      Fedora versions: " 
-    for i in "${FEDORA_OK_VERSIONS_LIST[@]}"; do
-        printf " [%s]" "$i"
-    done
-    printf "\n"
-    printf "      Ubuntu versions: " 
-    for i in "${UBUNTU_OK_VERSIONS_LIST[@]}"; do
-        printf " [%s]" "$i"
-    done
-    printf "\n"
-}
-
 function k8s_already_installed {  
     if [[ -f "/usr/local/bin/k3s" ]]; then 
         printf "** Error , k3s is already installed , please delete before reinstalling kubernetes  **\n"
@@ -67,12 +58,6 @@ function set_linux_os_distro {
     if [ -x "/usr/bin/lsb_release" ]; then
         LINUX_OS=`lsb_release --d | perl -ne 'print  if s/^.*Ubuntu.*(\d+).(\d+).*$/Ubuntu/' `
         LINUX_VERSION=`/usr/bin/lsb_release --d | perl -ne 'print $&  if m/(\d+)/' `
-    elif [ -f /etc/fedora-release ]; then    
-        LINUX_OS=`cat /etc/fedora-release | grep Fedora | cut -d " " -f1` 
-        LINUX_VERSION=`cat /etc/fedora-release | perl -ne 'print  if s/^.*edora.*(\d+)(\d+).*$/\1\2/' `
-    elif [ -f /etc/redhat-release ]; then
-        LINUX_OS=`cat /etc/redhat-release |  perl -ne 'print  if s/^Red Hat Enterprise.*$/Redhat/' `
-        LINUX_VERSION=`cat /etc/redhat-release |  perl -ne 'print  if s/^.*(\d+).(\d+).*$/\1.\2/' `
     else
         LINUX_OS="Untested"
     fi 
@@ -82,22 +67,11 @@ function set_linux_os_distro {
 function check_os_ok {
     printf "==> checking OS and kubernetes distro is tested with mini-loop scripts\n"
     set_linux_os_distro
-    if [[ $LINUX_OS == "Untested" ]] || [[ $LINUX_OS == "Fedora" ]];  then 
-        printf " ** Error: miniloop is untested with operating system [%s] \n" "$LINUX_OS"
-        printf "    currently mini-loop is only well tested on the following Linux OS  \n"
-        for i in "${LINUX_OS_LIST[@]}"; do
-            printf "    %s\n" "$i"
-        done
-    fi
 
-    #check for Ubuntu as this is ok for microk8s and k3s otherwise advise just k3s 
     if [[ ! $LINUX_OS == "Ubuntu" ]]; then
-        if [[ "$k8s_distro" == "microk8s" ]]; then 
-            printf "  ** Error: OS is not Ubuntu and microk8s has not been reliably tested with mini-loop except on Ubuntu OS \n"
-            printf "  ** please use -k k3s (or omit -k flag) to use k3s on this linux OS \n"
-            exit 1 
-        fi
-    fi
+        printf "** Error , mini-loop $MINILOOP_VERSION is only tested with Ubuntu OS at this time   **\n"
+        exit 1
+    fi 
 } 
 
 function install_prerequisites {
@@ -215,9 +189,9 @@ function do_microk8s_install {
 
     # ensure .kube/config points to this new cluster and KUBECONFIG is not set in .bashrc
     perl -p -i.bak -e 's/^.*KUBECONFIG.*$//g' $k8s_user_home/.bashrc
+    perl -p -i.bak -e 's/^.*KUBECONFIG.*$//g' $k8s_user_home/.bash_profile
     chown -f -R $k8s_user $k8s_user_home/.kube
     microk8s config > $k8s_user_home/.kube/config
-
 }
 
 function do_k3s_install {
@@ -231,10 +205,7 @@ function do_k3s_install {
     curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
                             INSTALL_K3S_CHANNEL="v$K8S_VERSION" \
                             INSTALL_K3S_EXEC=" --disable traefik " sh 
-    # curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
-    #                         INSTALL_K3S_CHANNEL="v$K8S_VERSION" \
-    #                         INSTALL_K3S_EXEC=" --no-deploy traefik " sh                             
-    
+                                
     export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
     cp /etc/rancher/k3s/k3s.yaml  $k8s_user_home/k3s.yaml
     chown $k8s_user  $k8s_user_home/k3s.yaml
@@ -406,7 +377,7 @@ Example 3 : k8s-install-current.sh -m install -k microk8s -u ubuntu -v 1.26 # in
 Options:
 -m mode ............... install|delete (-m is required)
 -k kubernetes distro... microk8s|k3s (default=k3s as it installs across multiple linux distros)
--v k8s version ........ 1.22|1.23|1.24 i.e. current k8s release
+-v k8s version ........ 1.24|1.25|1.26 i.e. current k8s releases at time if this mini-loop release
 -u user ............... (-u is required) non root user to run helm and k8s commands and to own mojaloop deployment
 -h|H .................. display this message
 "
@@ -423,9 +394,10 @@ SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 
 DEFAULT_K8S_DISTRO="k3s"   # default to microk8s as this is what is in the mojaloop linux deploy docs.
 K8S_VERSION="" 
+MINILOOP_VERSION="5.0"
 
 HELM_VERSION="3.11.1"
-OS_VERSIONS_LIST=(16 18 20 )
+OS_VERSIONS_LIST=( 20 22 ) 
 K8S_CURRENT_RELEASE_LIST=( "1.24" "1.25" "1.26" )
 CURRENT_RELEASE="false"
 k8s_user_home=""
@@ -433,8 +405,6 @@ k8s_arch=`uname -p`  # what arch
 
 LINUX_OS_LIST=( "Ubuntu" )
 UBUNTU_OK_VERSIONS_LIST=(20 22)
-# FEDORA_OK_VERSIONS_LIST=( 36 )
-# REDHAT_OK_VERSIONS_LIST=( 8 )
 
 # ensure we are running as root 
 if [ "$EUID" -ne 0 ]

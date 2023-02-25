@@ -9,6 +9,12 @@
 # Date July 2022
 # Updates : Feb 2023 for Mojaloop v15  
 #  - updated to pull helm repo version 15 git clone –single-branch –branch command
+#   - add in the DNS , FQDN work as options too 
+#   - include 3ppi install as option or by default (check the work I have in the branch for this)
+#   - fix the prompt and make sure promt shows git version
+#   - test bulk
+#   - test BizOps framework 
+# 
 
 function check_arch {
   ## check architecture Mojaloop deploys on x64 only today arm is coming  
