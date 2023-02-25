@@ -7,7 +7,9 @@
 
 # Updates for release notes 
 # - clean ups : remove support for OS other than Ubuntu 
-# 
+# - updated helm to 3.11.1 
+# - updated kubernetes to 1.24 -> 1.26
+# - 
 
 # todo for update : 
 #   - check helm repo list : is this all active including for BizOps framework ? 
@@ -396,7 +398,7 @@ DEFAULT_K8S_DISTRO="k3s"   # default to microk8s as this is what is in the mojal
 K8S_VERSION="" 
 MINILOOP_VERSION="5.0"
 
-HELM_VERSION="3.11.1"
+HELM_VERSION="3.11.1"  # Feb 2023 
 OS_VERSIONS_LIST=( 20 22 ) 
 K8S_CURRENT_RELEASE_LIST=( "1.24" "1.25" "1.26" )
 CURRENT_RELEASE="false"
