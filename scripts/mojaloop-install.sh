@@ -140,25 +140,46 @@ function clone_helm_charts_repo {
   fi
 }
 
+function configure_optional_modules {
+  printf "==> configuring option Mojaloop functions to install   \n"
+  if [ -z ${install_opt+x} ] ; then 
+    printf " ** Error: mini-loop requires information about which optional modules to configure when using -m config_ml   \n"
+    printf "           example: to configure mojaloop to enable thirdparty charts and bulk-api use:-  \n"
+    printf "           $0 -m config_ml -o thirdparty,bulk \n"
+    exit 1 
+  fi 
+  for mode in $(echo $install_opt | sed "s/,/ /g"); do
+    case $mode in
+      bulk)
+        MOJALOOP_CONFIGURE_FLAGS_STR+="--bulk "
+        ;;
+      thirdparty)
+        MOJALOOP_CONFIGURE_FLAGS_STR+="--thirdparty "
+        ;;
+      *)
+          printf " ** Error: specifying -o option   \n"
+          printf "    try $0 -h for help \n" 
+          exit 1 
+        ;;
+    esac
+  done 
+}
+
 function modify_local_helm_charts {
   printf "==> configuring the local mojaloop helm charts "
-  echo "$MOJALOOP_CONFIGURE_FLAGS_STR"
-  # note: this also updates $ETC_DIR/mysql_values.yaml with a new DB password
-  # this password is and needs to be the same in all the values files which access the DB
-  if [ -z ${domain_name+x} ]; then 
-    echo "no domain set"
-    #$SCRIPTS_DIR/mod_local_miniloop_v15.py -d $HOME/helm -k $k8s_distro >> $LOGFILE 2>>$ERRFILE
-  else 
-    echo "domain_name is $domain_name"
+  if [ ! -z ${domain_name+x} ]; then 
     printf "==> setting domain name to <%s> \n " $domain_name >> $LOGFILE 2>>$ERRFILE
     MOJALOOP_CONFIGURE_FLAGS_STR+="--domain_name $domain_name " 
-    #$SCRIPTS_DIR/mod_local_miniloop_v15.py -d $HOME/helm -k $k8s_distro --domain_name $domain_name  >> $LOGFILE 2>>$ERRFILE
+    #$SCRIPTS_DIR/mod_local_miniloop_v15.py -d $HOME/helm -k $k8s_distro >> $LOGFILE 2>>$ERRFILE
   fi
 
-  echo "flags are $MOJALOOP_CONFIGURE_FLAGS_STR"
-  printf "$SCRIPTS_DIR/mojaloop_configure.py %s \n" $MOJALOOP_CONFIGURE_FLAGS_STR 
+  printf "     executing $SCRIPTS_DIR/mojaloop_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR  \n" 
+  $SCRIPTS_DIR/mojaloop_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR
+  if [[ $? -ne 0  ]]; then 
+      printf " [ failed ] \n"
+      exit 1 
+  fi 
   NEED_TO_REPACKAGE="true"
-  printf " [ done ] \n"
   exit 
 }
 
@@ -207,6 +228,7 @@ function delete_be {
     exit 1
   fi
 }
+
 
 function install_be { 
   # delete  db cleanly if it is already deployed => so we can confifdently reinstall cleanly 
@@ -377,14 +399,11 @@ DEFAULT_NAMESPACE="default"
 k8s_distro=""
 k8s_version=""
 K8S_CURRENT_RELEASE_LIST=( "1.24" "1.25" "1.26" )
-echo "hello"
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
-echo "scripts dir is $SCRIPTS_DIR"
 ETC_DIR="$( cd $(dirname "$0")/../etc ; pwd )"
 NEED_TO_REPACKAGE="false"
 EXTERNAL_ENDPOINTS_LIST=(ml-api-adapter.local central-ledger.local quoting-service.local transaction-request-service.local moja-simulator.local ) 
-MOJALOOP_CONFIGURE_FLAGS_STR="tom " 
-
+export MOJALOOP_CONFIGURE_FLAGS_STR=" -d $HOME/helm " 
 
 # Process command line options as required
 while getopts "fd:t:n:m:o:l:hH" OPTION ; do
@@ -428,38 +447,11 @@ set_k8s_version
 set_mojaloop_timeout
 printf "\n"
 
-function configure_optional_modules {
-  echo "config modules"
-  if [ -z ${install_opt+x} ] ; then 
-    printf " ** Error: mini-loop requires information about which optional modules to configure when using -m config_ml   \n"
-    printf "           example: to configure mojaloop to enable thirdparty charts and bulk-api use:-  \n"
-    printf "           $0 -m config_ml -o thirdparty,bulk \n"
-    exit 1 
-  fi 
-  for mode in $(echo $install_opt | sed "s/,/ /g"); do
-    case $mode in
-      bulk)
-        echo "run mojaloop-configure with --bulk flag "
-        MOJALOOP_CONFIGURE_FLAGS_STR+="--bulk "
-        ;;
-      thirdparty)
-        echo "run mojaloop-configure with --thirdparty flag "
-        MOJALOOP_CONFIGURE_FLAGS_STR+="--thirdparty "
-        ;;
-      *)
-          printf " ** Error: specifying -o option   \n"
-          printf "   try $0 -h for help \n" 
-          exit 1 
-        ;;
-    esac
-  done 
-}
-
-if [[ "$mode" == "install_ml" ]]; then
-  configure_optional_modules
-  modify_local_helm_charts
-fi 
-exit 1
+# if [[ "$mode" == "install_ml" ]]; then
+#   configure_optional_modules
+#   modify_local_helm_charts
+# fi 
+# exit 1
 
 if [[ "$mode" == "install_be" ]]; then
   clone_helm_charts_repo
@@ -476,6 +468,8 @@ elif [[ "$mode" == "delete_ml" ]]; then
   print_end_banner
 elif [[ "$mode" == "install_ml" ]]; then
   clone_helm_charts_repo
+  configure_optional_modules
+  modify_local_helm_charts
   #modify_local_helm_charts
   # if [ -z ${skip_repackage+x} ]; then 
   #   repackage_charts

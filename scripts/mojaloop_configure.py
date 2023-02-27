@@ -63,7 +63,7 @@ def update_key(key, value, dictionary):
                             yield result
  
 def modify_values_for_thirdparty(p,yaml,verbose=False):
-    print(" ==> mojaloop-configure : Modify values to enable thirdparty")
+    print("     <mojaloop-configure.py>  : Modify values to enable thirdparty")
     vf = p / "mojaloop" / "values.yaml"
     with open(vf) as f:
         if (verbose): 
@@ -82,7 +82,7 @@ def modify_values_for_thirdparty(p,yaml,verbose=False):
         yaml.dump(data, f)
 
 def modify_values_for_bulk(p,yaml,verbose=False):
-    print(" ==> mojaloop-configure : Modify values to enable bulk")
+    print("     <mojaloop-configure.py>  : Modify values to enable bulk")
     vf = p / "mojaloop" / "values.yaml"
     with open(vf) as f:
         if (verbose): 
@@ -98,20 +98,19 @@ def modify_values_for_bulk(p,yaml,verbose=False):
     with open(vf, "w") as f:
         yaml.dump(data, f)
 
-def modify_values_for_dns_domain_name:
+def modify_values_for_dns_domain_name(p,domain_name,verbose=False):
     # modify ingress hostname in values file to use DNS name     
-    print(f" ==> mojaloop-configure : Modify values to use dns domain name {domain_name} )
+    print(f"      <mojaloop-configure.py> : Modify values to use dns domain name {domain_name}" )
     #DNSNAME="eastus.cloudapp.azure.com"
     #DNSNAME="fred1"
     for vf in p.glob('**/*values.yaml') :
         with FileInput(files=[str(vf)], inplace=True) as f:
             for line in f:
                 line = line.rstrip()
-                line = re.sub(r"(\s+)hostname: (\S+).local", f"\\1hostname: \\2.{args.domain_name}", line)
-                line = re.sub(r"(\s+)host: (\S+).local", f"\\1host: \\2.{args.domain_name}", line)
-                line = re.sub(r"testing-toolkit.local", f"testing-toolkit.{args.domain_name}", line)
+                line = re.sub(r"(\s+)hostname: (\S+).local", f"\\1hostname: \\2.{domain_name}", line)
+                line = re.sub(r"(\s+)host: (\S+).local", f"\\1host: \\2.{domain_name}", line)
+                line = re.sub(r"testing-toolkit.local", f"testing-toolkit.{domain_name}", line)
                 print(line)
-
 
 def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Automate modifications across mojaloop helm charts')
@@ -136,9 +135,9 @@ def main(argv) :
     
     #ingress_cn = set_ingressclassname(args.kubernetes)
     script_path = Path( __file__ ).absolute()
-
+    print(f"     <mojaloop-configure.py>  : start ")
     p = Path() / args.directory
-    print(f"Processing helm charts in directory: [{args.directory}]")
+    print(f"     <mojaloop-configure.py>  : Processing helm charts in directory: [{args.directory}]")
 
     yaml = YAML()
     yaml.allow_duplicate_keys = True
@@ -150,6 +149,8 @@ def main(argv) :
         modify_values_for_thirdparty(p,yaml,args.verbose)
     if args.bulk:
         modify_values_for_bulk(p,yaml,args.verbose)    
- 
+    if args.domain_name :
+         modify_values_for_dns_domain_name(p,args.domain_name,args.verbose)
+    print(f"     <mojaloop-configure.py>  : end ")
 if __name__ == "__main__":
     main(sys.argv[1:])
