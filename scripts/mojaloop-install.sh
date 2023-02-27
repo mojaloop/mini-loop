@@ -15,6 +15,8 @@
 #   - test bulk
 #   - test BizOps framework 
 # 
+# TODO : 
+# - check delete_be : dont delete be is the ML chart exists and is running 
 
 function check_arch {
   ## check architecture Mojaloop deploys on x64 only today arm is coming  
@@ -139,18 +141,25 @@ function clone_helm_charts_repo {
 }
 
 function modify_local_helm_charts {
-  printf "==> modifying the local mojaloop helm charts to run on kubernetes v1.22+  "
+  printf "==> configuring the local mojaloop helm charts "
+  echo "$MOJALOOP_CONFIGURE_FLAGS_STR"
   # note: this also updates $ETC_DIR/mysql_values.yaml with a new DB password
   # this password is and needs to be the same in all the values files which access the DB
   if [ -z ${domain_name+x} ]; then 
-    $SCRIPTS_DIR/mod_local_miniloop_v15.py -d $HOME/helm -k $k8s_distro >> $LOGFILE 2>>$ERRFILE
+    echo "no domain set"
+    #$SCRIPTS_DIR/mod_local_miniloop_v15.py -d $HOME/helm -k $k8s_distro >> $LOGFILE 2>>$ERRFILE
   else 
+    echo "domain_name is $domain_name"
     printf "==> setting domain name to <%s> \n " $domain_name >> $LOGFILE 2>>$ERRFILE
-    $SCRIPTS_DIR/mod_local_miniloop_v15.py -d $HOME/helm -k $k8s_distro --domain_name $domain_name  >> $LOGFILE 2>>$ERRFILE
+    MOJALOOP_CONFIGURE_FLAGS_STR+="--domain_name $domain_name " 
+    #$SCRIPTS_DIR/mod_local_miniloop_v15.py -d $HOME/helm -k $k8s_distro --domain_name $domain_name  >> $LOGFILE 2>>$ERRFILE
   fi
 
+  echo "flags are $MOJALOOP_CONFIGURE_FLAGS_STR"
+  printf "$SCRIPTS_DIR/mojaloop_configure.py %s \n" $MOJALOOP_CONFIGURE_FLAGS_STR 
   NEED_TO_REPACKAGE="true"
   printf " [ done ] \n"
+  exit 
 }
 
 function repackage_charts {
@@ -316,25 +325,34 @@ function print_success_message {
 # Arguments:		none
 # Return values:	none
 #
+# ./myscript.sh -d bulk             # Calls do_bulk
+# ./myscript.sh -d thirdparty       # Calls do_thirdparty
+# ./myscript.sh -d bof              # Calls do_bof
+# ./myscript.sh -d bulk,thirdparty  # Calls do_bulk and do_thirdparty
+# ./myscript.sh -d thirdparty,bof   # Calls do_thirdparty and do_bof
+# ./myscript.sh -d bulk,bof         # Calls do_bulk and do_bof
+# ./myscript.sh -d bulk,thirdparty,bof 
 function showUsage {
 	if [ $# -lt 0 ] ; then
 		echo "Incorrect number of arguments passed to function $0"
 		exit 1
 	else
-echo  "USAGE: $0 -m <mode> [-t secs] [-n namespace] [-f] [-h] [-s] [-l]
+echo  "USAGE: $0 -m <mode> [-t secs] [-n namespace] [-f] [-h] [-s] [-l] [-o thirdparty,bulk] 
 Example 1 : $0 -m install_ml -t 3000 # install mojaloop using a timeout of 3000 seconds 
 Example 2 : $0 -m install_ml -n moja # create namespace moja and deploy mojaloop into the moja namespace 
-Example 3 : $0 -m install_be         # install the mojaloop backend services, mysql, kafka etc  (no mojaloop install)
-Example 4 : $0 -m delete_be          # cleanly delete the mojaloop backend services, mysql, kafka etc
+Example 3 : $0 -m install_be         # install the mojaloop backend (be) services, mysql, kafka etc  
+Example 4 : $0 -m delete_be          # cleanly delete the mojaloop backend (be) services , mysql, kafka zookeepert etc
 Example 5 : $0 -m check_ml           # check the health of the ML endpoints
+Example 6 : $0 -m config_ml  -o thirdparty,bulk   # configure optional mojaloop functions thirdparty and or bulk-api
+
  
 Options:
--m mode ............ install_ml|check_ml|delete_ml|install_be|install_be|delete_be
+-m mode ............ install_ml|check_ml|delete_ml|install_be|delete_be
 -d domain name ..... domain name for ingress hosts e.g mydomain.com 
--s skip_repackage .. mainly for test/dev use (skips the repackage of the local charts)
 -t secs ............ number of seconds (timeout) to wait for pods to all be reach running state
 -n namespace ....... the namespace to deploy mojaloop into 
 -l logfilename ..... the name of the .log and .err files to create in /tmp
+-o module(s) ....... ml functions to toggle on
 -f force ........... force the cloning and updating of the helm charts (will destory existing $HOME/helm)
 -h|H ............... display this message
 "
@@ -359,13 +377,17 @@ DEFAULT_NAMESPACE="default"
 k8s_distro=""
 k8s_version=""
 K8S_CURRENT_RELEASE_LIST=( "1.24" "1.25" "1.26" )
+echo "hello"
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
+echo "scripts dir is $SCRIPTS_DIR"
 ETC_DIR="$( cd $(dirname "$0")/../etc ; pwd )"
 NEED_TO_REPACKAGE="false"
 EXTERNAL_ENDPOINTS_LIST=(ml-api-adapter.local central-ledger.local quoting-service.local transaction-request-service.local moja-simulator.local ) 
+MOJALOOP_CONFIGURE_FLAGS_STR="tom " 
+
 
 # Process command line options as required
-while getopts "fsd:t:n:m:l:hH" OPTION ; do
+while getopts "fd:t:n:m:o:l:hH" OPTION ; do
    case "${OPTION}" in
         f)  force="true"
         ;; 
@@ -377,10 +399,10 @@ while getopts "fsd:t:n:m:l:hH" OPTION ; do
         ;; 
         m)  mode="${OPTARG}"
         ;;
-        s)  skip_repackage="true"
-        ;;
         l)  logfiles="${OPTARG}"
         ;;
+        o)  install_opt="${OPTARG}"
+        ;; 
         h|H)	showUsage
                 exit 0
         ;;
@@ -406,11 +428,44 @@ set_k8s_version
 set_mojaloop_timeout
 printf "\n"
 
+function configure_optional_modules {
+  echo "config modules"
+  if [ -z ${install_opt+x} ] ; then 
+    printf " ** Error: mini-loop requires information about which optional modules to configure when using -m config_ml   \n"
+    printf "           example: to configure mojaloop to enable thirdparty charts and bulk-api use:-  \n"
+    printf "           $0 -m config_ml -o thirdparty,bulk \n"
+    exit 1 
+  fi 
+  for mode in $(echo $install_opt | sed "s/,/ /g"); do
+    case $mode in
+      bulk)
+        echo "run mojaloop-configure with --bulk flag "
+        MOJALOOP_CONFIGURE_FLAGS_STR+="--bulk "
+        ;;
+      thirdparty)
+        echo "run mojaloop-configure with --thirdparty flag "
+        MOJALOOP_CONFIGURE_FLAGS_STR+="--thirdparty "
+        ;;
+      *)
+          printf " ** Error: specifying -o option   \n"
+          printf "   try $0 -h for help \n" 
+          exit 1 
+        ;;
+    esac
+  done 
+}
+
+if [[ "$mode" == "install_ml" ]]; then
+  configure_optional_modules
+  modify_local_helm_charts
+fi 
+exit 1
+
 if [[ "$mode" == "install_be" ]]; then
   clone_helm_charts_repo
-  if [ -z ${skip_repackage+x} ]; then 
-    repackage_charts
-  fi
+  # if [ -z ${skip_repackage+x} ]; then 
+  #   repackage_charts
+  # fi
   install_be
   print_end_banner
 elif [[ "$mode" == "delete_be" ]]; then
@@ -422,9 +477,9 @@ elif [[ "$mode" == "delete_ml" ]]; then
 elif [[ "$mode" == "install_ml" ]]; then
   clone_helm_charts_repo
   #modify_local_helm_charts
-  if [ -z ${skip_repackage+x} ]; then 
-    repackage_charts
-  fi
+  # if [ -z ${skip_repackage+x} ]; then 
+  #   repackage_charts
+  # fi
   #set_mojaloop_values_file
   install_mojaloop_from_local
   check_mojaloop_health
