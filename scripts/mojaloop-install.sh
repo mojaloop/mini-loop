@@ -142,12 +142,12 @@ function clone_helm_charts_repo {
 
 function configure_optional_modules {
   printf "==> configuring option Mojaloop functions to install   \n"
-  if [ -z ${install_opt+x} ] ; then 
-    printf " ** Error: mini-loop requires information about which optional modules to configure when using -m config_ml   \n"
-    printf "           example: to configure mojaloop to enable thirdparty charts and bulk-api use:-  \n"
-    printf "           $0 -m config_ml -o thirdparty,bulk \n"
-    exit 1 
-  fi 
+  # if [ -z ${install_opt+x} ] ; then 
+  #   printf " ** Error: mini-loop requires information about which optional modules to configure when using -m config_ml   \n"
+  #   printf "           example: to configure mojaloop to enable thirdparty charts and bulk-api use:-  \n"
+  #   printf "           $0 -m config_ml -o thirdparty,bulk \n"
+  #   exit 1 
+  # fi 
   for mode in $(echo $install_opt | sed "s/,/ /g"); do
     case $mode in
       bulk)
@@ -180,7 +180,6 @@ function modify_local_helm_charts {
       exit 1 
   fi 
   NEED_TO_REPACKAGE="true"
-  exit 
 }
 
 function repackage_charts {
@@ -229,11 +228,10 @@ function delete_be {
   fi
 }
 
-
 function install_be { 
   # delete  db cleanly if it is already deployed => so we can confifdently reinstall cleanly 
   delete_be
-
+  repackage_charts
   # deploy the mojaloop example backend chart
   printf "==> deploying mojaloop example backend services helm chart , waiting upto 300s for it to be ready  \n"
   printf "helm install $BE_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/helm/example-mojaloop-backend\n"

@@ -9,26 +9,16 @@
 """
 
 import fileinput
-from operator import sub
 import sys
 import re
 import argparse
-import os 
 from pathlib import Path
 from shutil import copyfile 
-#import yaml
 from fileinput import FileInput
 import fileinput 
 from ruamel.yaml import YAML
-import secrets
 
 data = None
-
-def print_debug(x1, x2, c=0) :  
-    print("******************")
-    print(f" [{c}]: {x1} " )
-    print(f" [{c}]: {x2} " )
-    print("******************")
                 
 def lookup(sk, d, path=[]):
    # lookup the values for key(s) sk return as list the tuple (path to the value, value)
@@ -47,20 +37,17 @@ def lookup(sk, d, path=[]):
 update_key: recursively 
 """
 def update_key(key, value, dictionary):
-        for k, v in dictionary.items():
-            #print(f"printing k: {k} and printing key: {key} ")
-            if k == key:
-                #print("indeed k == key")
-                dictionary[key]=value
-                #print(f" the dictionary got updated in the previous line : {dictionary} ")
-            elif isinstance(v, dict):
-                for result in update_key(key, value, v):
-                    yield result
-            elif isinstance(v, list):
-                for d in v:
-                    if isinstance(d, dict):
-                        for result in update_key(key, value, d):
-                            yield result
+    for k, v in dictionary.items():
+        if k == key:
+            dictionary[key]=value
+        elif isinstance(v, dict):
+            for result in update_key(key, value, v):
+                yield result
+        elif isinstance(v, list):
+            for d in v:
+                if isinstance(d, dict):
+                    for result in update_key(key, value, d):
+                        yield result
  
 def modify_values_for_thirdparty(p,yaml,verbose=False):
     print("     <mojaloop-configure.py>  : Modify values to enable thirdparty")
@@ -101,8 +88,6 @@ def modify_values_for_bulk(p,yaml,verbose=False):
 def modify_values_for_dns_domain_name(p,domain_name,verbose=False):
     # modify ingress hostname in values file to use DNS name     
     print(f"      <mojaloop-configure.py> : Modify values to use dns domain name {domain_name}" )
-    #DNSNAME="eastus.cloudapp.azure.com"
-    #DNSNAME="fred1"
     for vf in p.glob('**/*values.yaml') :
         with FileInput(files=[str(vf)], inplace=True) as f:
             for line in f:
@@ -120,7 +105,6 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("-b", "--bulk", required=False, action="store_true", help="enable bulk-api charts and tests  ")
     parser.add_argument("--domain_name", type=str, required=False, default=None, help="e.g. mydomain.com   ")
 
-
     args = parser.parse_args(args)
     if len(sys.argv[1:])==0:
         parser.print_help()
@@ -133,7 +117,6 @@ def parse_args(args=sys.argv[1:]):
 def main(argv) :
     args=parse_args()
     
-    #ingress_cn = set_ingressclassname(args.kubernetes)
     script_path = Path( __file__ ).absolute()
     print(f"     <mojaloop-configure.py>  : start ")
     p = Path() / args.directory
@@ -152,5 +135,6 @@ def main(argv) :
     if args.domain_name :
          modify_values_for_dns_domain_name(p,args.domain_name,args.verbose)
     print(f"     <mojaloop-configure.py>  : end ")
+
 if __name__ == "__main__":
     main(sys.argv[1:])
