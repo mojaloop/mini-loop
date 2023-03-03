@@ -56,7 +56,7 @@ helm test ml --logs
 ```
 For more detailed instructions on running the helm tests see "Testing Deployments" section of : https://github.com/mojaloop/helm
 ## Running the Testing ToolkitFrom a remote browser 
-Assuming you have followed the instructions above for "accessing Mojaloop from beyond localhost" then from your linux or OSX laptop you should be able to browse to http://testing-toolkit.local:8080/ and you should see the main page for the Testing Toolkit.
+Assuming you have followed the instructions above for "accessing Mojaloop from beyond localhost" then from your linux or OSX laptop you should be able to browse to http://testing-toolkit.local and you should see the main page for the Testing Toolkit.
 
 For a good overview of the Testing Toolkit functionality please see the video (https://www.youtube.com/watch?v=xyC6Pd3zE9Y),
 - Full documentation for the Testing Toolkit (https://github.com/mojaloop/ml-testing-toolkit/blob/master/documents/User-Guide-Mojaloop-Testing-Toolkit.md) 
