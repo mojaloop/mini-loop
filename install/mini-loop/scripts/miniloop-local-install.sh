@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # miniloop-local-install.sh
-#               - install mojaloop for kubernetes releases >= v1.22
+#               - install mojaloop using kubernetes release 1.24
 #                 the install_ml option of this script will git clone the latest version of mojaloop helm charts from the master branch
 #                 and then make local modifications to these charts to enable Mojaloop to deploy and run 
-#                 in the latetest kubernetes versions.  This local deployment which is intended for demo purposes 
-#                 deploys a single database which uses a newly geneerated database password which this script  inserts 
+#                 in the latetest kubernetes versions.  This local deployment which is intended for demo , test and development purposes 
+#                 deploys a single database which uses a newly generated database password which this script  inserts 
 #                 into the local values file prior to local packaging and deployment. 
 #                      
 # Note:  once the mojaloop helm charts are updated for kubernbetes 1.22 much (but not all) of the mods here will become 
@@ -12,9 +12,13 @@
 #        testers and deployers a lot of simplicity and flexibility in the future in light of the rapidly evolving kubernetes releases
 # Author Tom Daly 
 # Date July 2022
+# updated Feb 2023 for later versions of Mojaloop and to further simplify
+#   - now installs Mojaloop v4.1.0 (see Mojaloop release notes : https://github.com/mojaloop/helm/tree/v14.1.0 ) 
+#   - restrict to kubernetes v1.24 (the soon to come mini-loop v5 release will move to k8s v1.25/1.26)
+#   - drop support for redhat and fedora for the moment 
 
 function check_arch {
-  ## check architecture Mojaloop deploys on x64 only today arm is coming  
+  ## check architecture Mojaloop deploys on x64 only today (it is anticipated ARM will work in the near future)
   arch=`uname -p`
   if [[ ! "$arch" == "x86_64" ]]; then 
     printf " ** Error: Mojaloop is only running on x86_64 today and not yet running on ARM cpus \n"
@@ -130,7 +134,7 @@ function clone_helm_charts_repo {
     rm -rf $HOME/helm >> $LOGFILE 2>>$ERRFILE
   fi 
   if [ ! -d $HOME/helm ]; then 
-    git clone https://github.com/mojaloop/helm.git --branch v14.0.0 --single-branch $HOME/helm >> $LOGFILE 2>>$ERRFILE
+    git clone https://github.com/mojaloop/helm.git --branch v14.1.0 --single-branch $HOME/helm >> $LOGFILE 2>>$ERRFILE
     printf " [ done ] \n"
   else 
     printf "\n ** INFO: helm repo is not cloned as there is an existing $HOME/helm directory\n"
@@ -140,7 +144,7 @@ function clone_helm_charts_repo {
 }
 
 function modify_local_helm_charts {
-  printf "==> modifying the local mojaloop helm charts to run on kubernetes v1.22+  "
+  printf "==> modifying the local mojaloop helm charts to run on kubernetes v1.24+  "
   # note: this also updates $ETC_DIR/mysql_values.yaml with a new DB password
   # this password is and needs to be the same in all the values files which access the DB
   $SCRIPTS_DIR/mod_local_miniloop.py -d $HOME/helm -k $k8s_distro >> $LOGFILE 2>>$ERRFILE
@@ -289,12 +293,13 @@ function print_success_message {
   printf "\n** Notice and Caution ** \n"
   printf "        mini-loop install scripts have now deployed mojaloop switch to use for  :-\n"
   printf "            - trial \n"
-  printf "            - test \n"
+  printf "            - test and dfsp integration\n"
   printf "            - education and demonstration \n"
+  printf "            - development (including development of Mojaloop core )"
   printf "        This installation should *NOT* be treated as a *production* deployment as it is designed for simplicity \n"
   printf "        To be clear: Mojaloop itself is designed to be robust and secure and can be deployed securely \n"
-  printf "        This mini-loop install is neither secure nor robust. \n"
-  printf "        With this caution in mind , welcome to the full function of Mojaloop\n"
+  printf "        This mini-loop install is not implementing security nor high availablity  \n"
+  printf "        With this caution in mind , welcome to the full function of Mojaloop running ok Kubernetes \n"
   printf "        please see : https://mojaloop.io/ for more information, resources and online training\n"
 
   print_end_banner 
@@ -348,7 +353,7 @@ TIMEOUT_SECS=0
 DEFAULT_NAMESPACE="default"
 k8s_distro=""
 k8s_version=""
-K8S_CURRENT_RELEASE_LIST=( "1.22" "1.23" "1.24" )
+K8S_CURRENT_RELEASE_LIST=( "1.24" )
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 ETC_DIR="$( cd $(dirname "$0")/../etc ; pwd )"
 NEED_TO_REPACKAGE="false"
@@ -384,7 +389,7 @@ done
 
 printf "\n\n****************************************************************************************\n"
 printf "            -- mini-loop Mojaloop local install utility -- \n"
-printf " utilities for deploying local Mojaloop helm chart for kubernetes 1.22+  \n"
+printf " utilities for deploying local Mojaloop helm chart for kubernetes 1.24  \n"
 printf "********************* << START  >> *****************************************************\n\n"
 check_arch
 check_user
