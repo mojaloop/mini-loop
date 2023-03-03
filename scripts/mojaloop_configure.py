@@ -56,15 +56,15 @@ def modify_values_for_thirdparty(p,yaml,verbose=False):
         if (verbose): 
             print(f"===> Processing file < {vf.parent}/{vf.name} > ")
         data = yaml.load(f)
-        data['account-lookup-service']['account-lookup-service']['config']['featureEnableExtendedPartyIdType'] = 'true'
-        data['account-lookup-service']['account-lookup-service-admin']['config']['featureEnableExtendedPartyIdType'] = 'true'
-        if 'thirdparty' in data : 
-            data['thirdparty']['enabled'] = 'true'
-        # turn on the ttk tests 
-        if 'ml-ttk-test-setup-tp' in data : 
-            data['ml-ttk-test-setup-tp']['tests']['enabled'] = 'true'
-        if 'ml-ttk-test-val-tp' in data : 
-            data['ml-ttk-test-val-tp']['tests']['enabled'] = 'true'
+    data['account-lookup-service']['account-lookup-service']['config']['featureEnableExtendedPartyIdType'] = True
+    data['account-lookup-service']['account-lookup-service-admin']['config']['featureEnableExtendedPartyIdType'] = True
+    if 'thirdparty' in data : 
+        data['thirdparty']['enabled'] = True
+    # turn on the ttk tests 
+    if 'ml-ttk-test-setup-tp' in data : 
+        data['ml-ttk-test-setup-tp']['tests']['enabled'] = True
+    if 'ml-ttk-test-val-tp' in data : 
+        data['ml-ttk-test-val-tp']['tests']['enabled'] = True
     with open(vf, "w") as f:
         yaml.dump(data, f)
 
@@ -75,13 +75,13 @@ def modify_values_for_bulk(p,yaml,verbose=False):
         if (verbose): 
             print(f"===> Processing file < {vf.parent}/{vf.name} > ")
         data = yaml.load(f)
-        data['mojaloop-bulk']['enabled'] = 'true-fred'
-        data['account-lookup-service']['account-lookup-service-admin']['config']['featureEnableExtendedPartyIdType'] = 'true'
-        if 'thirdparty' in data : 
-            data['thirdparty']['enabled'] = 'true'
-        # turn on the ttk tests 
-        if 'ml-ttk-test-val-bulk' in data : 
-            data['ml-ttk-test-val-bulk']['tests']['enabled'] = 'fred'
+    data['mojaloop-bulk']['enabled'] = True
+    data['account-lookup-service']['account-lookup-service-admin']['config']['featureEnableExtendedPartyIdType'] = True
+    if 'thirdparty' in data : 
+        data['thirdparty']['enabled'] = True
+    # turn on the ttk tests 
+    if 'ml-ttk-test-val-bulk' in data : 
+        data['ml-ttk-test-val-bulk']['tests']['enabled'] = True
     with open(vf, "w") as f:
         yaml.dump(data, f)
 
@@ -96,6 +96,15 @@ def modify_values_for_dns_domain_name(p,domain_name,verbose=False):
                 line = re.sub(r"(\s+)host: (\S+).local", f"\\1host: \\2.{domain_name}", line)
                 line = re.sub(r"testing-toolkit.local", f"testing-toolkit.{domain_name}", line)
                 print(line)
+
+def turn_ttk_off(p,yaml):
+    print("     <mojaloop-configure.py>  : WARNING turning TTK off for test/dev ")
+    vf = p / "mojaloop" / "values.yaml"
+    with open(vf) as f:
+        data = yaml.load(f)
+    data['ml-testing-toolkit']['enabled'] = False
+    with open(vf, "w") as f:
+        yaml.dump(data, f)
 
 def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Automate modifications across mojaloop helm charts')
@@ -128,6 +137,7 @@ def main(argv) :
     yaml.indent(mapping=2, sequence=6, offset=2)
     yaml.width = 4096
 
+    # turn_ttk_off(p,yaml)
     if args.thirdparty:
         modify_values_for_thirdparty(p,yaml,args.verbose)
     if args.bulk:

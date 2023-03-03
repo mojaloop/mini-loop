@@ -294,6 +294,32 @@ function delete_mojaloop_helm_chart {
   fi
 }
 
+function delete_bof { 
+  printf "==> deleting mojaloop biz ops framework helm release  [%s] " "$BOF_RELEASE_NAME"
+  #repackage_charts
+  bof_exists=`helm ls  --namespace $NAMESPACE | grep $BOF_RELEASE_NAME | cut -d " " -f1`
+  if [ ! -z $bof_exists ] && [ "$bof_exists" == "$BOF_RELEASE_NAME" ]; then 
+    helm delete $BOF_RELEASE_NAME  --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
+    sleep 2 
+  fi
+}
+
+function install_bof { 
+  delete_bof # make sure we start clean
+  printf "==> deploying mojaloop biz ops framework helm chart, waiting upto 300s for it to be ready  \n  "
+  # repackage_charts
+  # deploy the mojaloop example backend chart
+  printf "helm install $BOF_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/helm/example-mojaloop-backend\n"
+  helm install $BOF_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/helm/example-mojaloop-backend >> $LOGFILE 2>>$ERRFILE
+  if [[ `helm status $BOF_RELEASE_NAME --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
+    printf "==> [%s] deployed sucessfully \n" "$BOF_RELEASE_NAME"
+  else 
+      printf " ** Error backend services, mysql, kafka etc have *NOT* been deployed \n" 
+  fi 
+}
+
+
+
 function check_mojaloop_health {
   # verify the health of the deployment 
   for i in "${EXTERNAL_ENDPOINTS_LIST[@]}"; do
@@ -326,12 +352,13 @@ function print_success_message {
   printf "\n** Notice and Caution ** \n"
   printf "        mini-loop install scripts have now deployed mojaloop switch to use for  :-\n"
   printf "            - trial \n"
-  printf "            - test \n"
-  printf "            - education and demonstration \n"
-  printf "        This installation should *NOT* be treated as a *production* deployment as it is designed for simplicity \n"
+  printf "            - general testing of Mojaloop and its kubernetes environment\n"
+  printf "            - integration work and testing to assist DFSPs integrate with Mojaloop core services \n"
+  printf "            - education and demonstration by DFSPs, SIs and more\n"
+  printf "            - development (including development of Mojaloop core )\n"
   printf "        To be clear: Mojaloop itself is designed to be robust and secure and can be deployed securely \n"
-  printf "        This mini-loop install is neither secure nor robust. \n"
-  printf "        With this caution in mind , welcome to the full function of Mojaloop\n"
+  printf "        This mini-loop install is not implementing security nor high availablity it is about simplicty and cost savings  \n"
+  printf "        With this caution in mind , welcome to the full function of Mojaloop running on Kubernetes \n"
   printf "        please see : https://mojaloop.io/ for more information, resources and online training\n"
 
   print_end_banner 
@@ -367,7 +394,7 @@ Example 6 : $0 -m config_ml  -o thirdparty,bulk   # configure optional mojaloop 
 
  
 Options:
--m mode ............ install_ml|check_ml|delete_ml|install_be|delete_be
+-m mode ............ install_ml|check_ml|delete_ml|install_be|delete_be|install_bof|delete_bof
 -d domain name ..... domain name for ingress hosts e.g mydomain.com 
 -t secs ............ number of seconds (timeout) to wait for pods to all be reach running state
 -n namespace ....... the namespace to deploy mojaloop into 
@@ -388,6 +415,7 @@ Options:
 ##
 ML_RELEASE_NAME="ml"
 BE_RELEASE_NAME="be"
+BOF_RELEASE_NAME="bof"
 MOJALOOP_BRANCH="feat/#3082-utilise-externalised-secrets-for-user-password-management"
 LOGFILE="/tmp/miniloop-install.log"
 ERRFILE="/tmp/miniloop-install.err"
@@ -453,9 +481,6 @@ printf "\n"
 
 if [[ "$mode" == "install_be" ]]; then
   clone_helm_charts_repo
-  # if [ -z ${skip_repackage+x} ]; then 
-  #   repackage_charts
-  # fi
   install_be
   print_end_banner
 elif [[ "$mode" == "delete_be" ]]; then
@@ -466,16 +491,15 @@ elif [[ "$mode" == "delete_ml" ]]; then
   print_end_banner
 elif [[ "$mode" == "install_ml" ]]; then
   clone_helm_charts_repo
-  configure_optional_modules
-  modify_local_helm_charts
+  #configure_optional_modules
   #modify_local_helm_charts
-  # if [ -z ${skip_repackage+x} ]; then 
-  #   repackage_charts
-  # fi
-  #set_mojaloop_values_file
   install_mojaloop_from_local
   check_mojaloop_health
   print_success_message 
+elif [[ "$mode" == "install_bof" ]]; then
+  install_bof  
+elif [[ "$mode" == "delete_bof" ]]; then
+  delete_bof  
 elif [[ "$mode" == "check_ml" ]]; then
   check_mojaloop_health
 else 

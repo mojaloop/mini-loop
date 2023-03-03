@@ -329,7 +329,7 @@ function delete_k8s {
         fi
     else 
         printf "==> removing any existing k3s installation and helm binary"
-        rm /usr/local/bin/helm >> /dev/null 2>&1
+        rm -f /usr/local/bin/helm >> /dev/null 2>&1
         /usr/local/bin/k3s-uninstall.sh >> /dev/null 2>&1
         if [[ $? -eq 0  ]]; then 
             printf " [ ok ] \n"
