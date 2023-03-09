@@ -399,7 +399,7 @@ Options:
 -t secs ............ number of seconds (timeout) to wait for pods to all be reach running state
 -n namespace ....... the namespace to deploy mojaloop into 
 -l logfilename ..... the name of the .log and .err files to create in /tmp
--o module(s) ....... ml functions to toggle on
+-o module(s) ....... ml functions to toggle on (thirdparty | bulk)  
 -f force ........... force the cloning and updating of the helm charts (will destory existing $HOME/helm)
 -h|H ............... display this message
 "
@@ -416,7 +416,7 @@ Options:
 ML_RELEASE_NAME="ml"
 BE_RELEASE_NAME="be"
 BOF_RELEASE_NAME="bof"
-MOJALOOP_BRANCH="feat/#3082-utilise-externalised-secrets-for-user-password-management"
+MOJALOOP_BRANCH="release/v15.0.0-rc-1"
 LOGFILE="/tmp/miniloop-install.log"
 ERRFILE="/tmp/miniloop-install.err"
 DEFAULT_TIMEOUT_SECS="2400s"
@@ -491,8 +491,8 @@ elif [[ "$mode" == "delete_ml" ]]; then
   print_end_banner
 elif [[ "$mode" == "install_ml" ]]; then
   clone_helm_charts_repo
-  #configure_optional_modules
-  #modify_local_helm_charts
+  configure_optional_modules
+  modify_local_helm_charts
   install_mojaloop_from_local
   check_mojaloop_health
   print_success_message 
