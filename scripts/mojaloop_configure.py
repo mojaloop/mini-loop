@@ -125,11 +125,11 @@ def parse_args(args=sys.argv[1:]):
 ##################################################
 def main(argv) :
     args=parse_args()
-    
     script_path = Path( __file__ ).absolute()
-    print(f"     <mojaloop-configure.py>  : start ")
     p = Path() / args.directory
-    print(f"     <mojaloop-configure.py>  : Processing helm charts in directory: [{args.directory}]")
+    if args.verbose :
+        print(f"     <mojaloop-configure.py>  : start ")
+        print(f"     <mojaloop-configure.py>  : Processing helm charts in directory: [{args.directory}]")
 
     yaml = YAML()
     yaml.allow_duplicate_keys = True
@@ -144,7 +144,8 @@ def main(argv) :
         modify_values_for_bulk(p,yaml,args.verbose)    
     if args.domain_name :
          modify_values_for_dns_domain_name(p,args.domain_name,args.verbose)
-    print(f"     <mojaloop-configure.py>  : end ")
+    if args.verbose :
+        print(f"     <mojaloop-configure.py>  : end ")
 
 if __name__ == "__main__":
     main(sys.argv[1:])

@@ -17,6 +17,8 @@
 # 
 # TODO : 
 # - check delete_be : dont delete be is the ML chart exists and is running 
+# - tidy up logfile contents
+# - truncate logfiles to keep under say 500MB
 
 function check_arch {
   ## check architecture Mojaloop deploys on x64 only today arm is coming  
@@ -121,7 +123,7 @@ function set_logfiles {
   printf "start : mini-loop Mojaloop local install utility [%s]\n" "`date`" >> $ERRFILE
   printf "================================================================================\n" >> $ERRFILE
 
-  printf "==> logfiles can be found at %s and %s\n " "$LOGFILE" "$ERRFILE"
+  printf "==> logfiles can be found at %s and %s\n" "$LOGFILE" "$ERRFILE"
 }
 
 function clone_helm_charts_repo { 
@@ -131,12 +133,14 @@ function clone_helm_charts_repo {
     rm -rf $HOME/helm >> $LOGFILE 2>>$ERRFILE
   fi 
   if [ ! -d $HOME/helm ]; then 
+  set -x 
     git clone https://github.com/mojaloop/helm.git --branch $MOJALOOP_BRANCH --single-branch $HOME/helm >> $LOGFILE 2>>$ERRFILE
     NEED_TO_REPACKAGE="true"
     printf " [ done ] \n"
+  set +x 
   else 
-    printf "\n ** INFO: helm repo is not cloned as there is an existing $HOME/helm directory\n"
-    printf "      to get a fresh clone of the repo , either delete $HOME/helm of use the -f flag **\n"
+    printf "\n    ** INFO: helm repo is not cloned as there is an existing $HOME/helm directory\n"
+    printf "    to get a fresh clone of the repo , either delete $HOME/helm of use the -f flag **\n"
   fi
 }
 
@@ -172,9 +176,8 @@ function modify_local_helm_charts {
     MOJALOOP_CONFIGURE_FLAGS_STR+="--domain_name $domain_name " 
     #$SCRIPTS_DIR/mod_local_miniloop_v15.py -d $HOME/helm -k $k8s_distro >> $LOGFILE 2>>$ERRFILE
   fi
-
   printf "     executing $SCRIPTS_DIR/mojaloop_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR  \n" 
-  $SCRIPTS_DIR/mojaloop_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR
+  $SCRIPTS_DIR/mojaloop_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR >> $LOGFILE 2>>$ERRFILE
   if [[ $? -ne 0  ]]; then 
       printf " [ failed ] \n"
       exit 1 
@@ -205,7 +208,7 @@ function delete_be {
   #  delete any existing deployment and clean up any pv and pvc's that the bitnami mysql chart seems to leave behind
   printf "==> deleting mojaloop backend services in helm release  [%s] " "$BE_RELEASE_NAME"
   be_exists=`helm ls  --namespace $NAMESPACE | grep $BE_RELEASE_NAME | cut -d " " -f1`
-  helm ls  --namespace $NAMESPACE | grep $BE_RELEASE_NAME | cut -d " " -f1
+  #helm ls  --namespace $NAMESPACE | grep $BE_RELEASE_NAME | cut -d " " -f1
   if [ ! -z $be_exists ] && [ "$be_exists" == "$BE_RELEASE_NAME" ]; then 
     helm delete $BE_RELEASE_NAME  --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
     sleep 2 
@@ -232,29 +235,35 @@ function install_be {
   # delete  db cleanly if it is already deployed => so we can confifdently reinstall cleanly 
   delete_be
   repackage_charts
+  be_exists=`helm ls  --namespace $NAMESPACE | grep $BE_RELEASE_NAME | cut -d " " -f1`
   # deploy the mojaloop example backend chart
   printf "==> deploying mojaloop example backend services helm chart , waiting upto 300s for it to be ready  \n"
-  printf "helm install $BE_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/helm/example-mojaloop-backend\n"
+  printf "    helm install $BE_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/helm/example-mojaloop-backend\n"
   helm install $BE_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/helm/example-mojaloop-backend >> $LOGFILE 2>>$ERRFILE
   if [[ `helm status $BE_RELEASE_NAME --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
     printf "==> [%s] deployed sucessfully \n" "$BE_RELEASE_NAME"
   else 
       printf " ** Error backend services, mysql, kafka etc have *NOT* been deployed \n" 
+      exit 1 
   fi 
 }
 
 function install_mojaloop_from_local {
-  # delete the old chart if it exists
-  delete_mojaloop_helm_chart 
-  install_be
-
+  delete_mojaloop_helm_chart
+  # use any existing bakend chart but let user know 
+  be_exists=`helm ls  --namespace $NAMESPACE | grep $BE_RELEASE_NAME | cut -d " " -f1`
+  if [ ! -z $be_exists ] && [ "$be_exists" == "$BE_RELEASE_NAME" ]; then 
+    printf "    skipping install of new backend services as existing backend services are already deployed \n"
+  else
+    install_be
+  fi 
   # install the chart
-  printf  " ==> install %s helm chart and wait for upto %s  secs for it to be ready \n" "$ML_RELEASE_NAME" "$TIMEOUT_SECS"
-  printf  "     executing helm install $RELEASE_NAME --wait --timeout $TIMEOUT_SECS $HOME/helm/mojaloop  \n "
-  helm install $ML_RELEASE_NAME --wait --timeout $TIMEOUT_SECS  --namespace "$NAMESPACE" $HOME/helm/mojaloop  
+  printf  "==> deploy Mojaloop %s helm chart and wait for upto %s  secs for it to be ready \n" "$ML_RELEASE_NAME" "$TIMEOUT_SECS"
+  printf  "    executing helm install $ML_RELEASE_NAME --wait --timeout $TIMEOUT_SECS $HOME/helm/mojaloop  \n "
+  helm install $ML_RELEASE_NAME --wait --timeout $TIMEOUT_SECS  --namespace "$NAMESPACE" $HOME/helm/mojaloop  >> $LOGFILE 2>>$ERRFILE
 
   if [[ `helm status $ML_RELEASE_NAME  --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
-    printf " ==> [%s] deployed sucessfully \n" "$ML_RELEASE_NAME"
+    printf "   helm release [%s] deployed ok  \n" "$ML_RELEASE_NAME"
   else 
     printf "** Error: %s helm chart deployment failed \n" "$ML_RELEASE_NAME"
     printf "   Possible reasons include : - \n"
@@ -302,26 +311,36 @@ function delete_bof {
     helm delete $BOF_RELEASE_NAME  --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
     sleep 2 
   fi
+  bof_exists=`helm ls  --namespace $NAMESPACE | grep $BOF_RELEASE_NAME | cut -d " " -f1`
+  if [ -z $bof_exists ]; then
+    printf "[ ok ]\n"
+  fi
 }
 
 function install_bof { 
+  # Make sure Mojaloop chart has already been deployed 
+  ml_exists=`helm ls  --namespace $NAMESPACE | grep $ML_RELEASE_NAME | cut -d " " -f1`
+  if [ -z "$ml_exists" ] || [ "$ml_exists" != "$ML_RELEASE_NAME" ]; then 
+    printf " ** Error please install Mojaloop before trying to install biz ops framework \n" 
+    exit 1
+  fi
   delete_bof # make sure we start clean
   printf "==> deploying mojaloop biz ops framework helm chart, waiting upto 300s for it to be ready  \n  "
   # repackage_charts
   # deploy the mojaloop example backend chart
-  printf "helm install $BOF_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/helm/example-mojaloop-backend\n"
-  helm install $BOF_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/helm/example-mojaloop-backend >> $LOGFILE 2>>$ERRFILE
-  if [[ `helm status $BOF_RELEASE_NAME --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
+  printf "    helm install $BOF_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/charts/mojaloop/bof\n"
+  helm install $BOF_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/charts/mojaloop/bof >> $LOGFILE 2>>$ERRFILE
+  result=`helm status bof | grep "^STATUS:" | awk '{ print $2 }'`
+  if [[ "$status" == "deployed" ]] ; then 
     printf "==> [%s] deployed sucessfully \n" "$BOF_RELEASE_NAME"
   else 
-      printf " ** Error backend services, mysql, kafka etc have *NOT* been deployed \n" 
+      printf " ** Error $BOF_RELEASE_NAME has NOT been deployed sucessfully \n" 
   fi 
 }
 
-
-
 function check_mojaloop_health {
   # verify the health of the deployment 
+  printf "==> check enabled external endpoints are functioning \n" 
   for i in "${EXTERNAL_ENDPOINTS_LIST[@]}"; do
     #curl -s  http://$i/health
     if [[ `curl -s  http://$i/health | \
@@ -342,11 +361,9 @@ function print_end_banner {
 }
 
 function print_success_message { 
-  printf " ==> %s configuration of mojaloop deployed ok and passes endpoint health checks \n" "$RELEASE_NAME"
-  printf "     to execute the helm tests against this now running deployment please execute :  \n"
-  printf "     helm -n %s test ml --logs \n" "$NAMESPACE" 
-  printf "     \nto uninstall mojaloop please execute : \n"
-  printf "     helm delete -n %s ml\n"  "$NAMESPACE"
+  printf "==> Mojaloop branch/version[%s] deployed ok and passes endpoint health checks \n" "$MOJALOOP_BRANCH"
+  printf "    to execute the helm tests against this now running deployment please execute :  \n"
+  printf "    helm -n %s test ml --logs \n" "$NAMESPACE" 
 
 
   printf "\n** Notice and Caution ** \n"
@@ -416,7 +433,7 @@ Options:
 ML_RELEASE_NAME="ml"
 BE_RELEASE_NAME="be"
 BOF_RELEASE_NAME="bof"
-MOJALOOP_BRANCH="release/v15.0.0-rc-1"
+MOJALOOP_BRANCH="v15.0.0"
 LOGFILE="/tmp/miniloop-install.log"
 ERRFILE="/tmp/miniloop-install.err"
 DEFAULT_TIMEOUT_SECS="2400s"
@@ -479,9 +496,16 @@ printf "\n"
 # fi 
 # exit 1
 
+# Start timer
+start=$(date +%s.%N)
+
 if [[ "$mode" == "install_be" ]]; then
+  start_timer=$(date +%s.%N)
   clone_helm_charts_repo
   install_be
+  end_timer=$(date +%s.%N)
+  timer=$(echo "$end_timer - $start_timer" | bc)
+  printf "    elapsed time: [%s] seconds " "$timer" 
   print_end_banner
 elif [[ "$mode" == "delete_be" ]]; then
   delete_be
@@ -490,14 +514,22 @@ elif [[ "$mode" == "delete_ml" ]]; then
   delete_mojaloop_helm_chart
   print_end_banner
 elif [[ "$mode" == "install_ml" ]]; then
+  start_timer=$(date +%s.%N)
   clone_helm_charts_repo
   configure_optional_modules
   modify_local_helm_charts
   install_mojaloop_from_local
   check_mojaloop_health
+  end_timer=$(date +%s.%N)
+  timer=$(echo "$end_timer - $start_timer" | bc)
+  printf "    install_ml elapsed time: [%s] seconds \n" "$timer"
   print_success_message 
 elif [[ "$mode" == "install_bof" ]]; then
-  install_bof  
+  start_timer=$(date +%s.%N)
+  install_bof 
+  end_timer=$(date +%s.%N)
+  timer=$(echo "$end_timer - $start_timer" | bc)
+  printf "    install_bof elapsed time: [%s] seconds \n" "$timer"
 elif [[ "$mode" == "delete_bof" ]]; then
   delete_bof  
 elif [[ "$mode" == "check_ml" ]]; then
