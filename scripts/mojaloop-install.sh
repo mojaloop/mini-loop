@@ -135,11 +135,9 @@ function clone_mojaloop_helm_repo {
     rm -rf $HOME/helm >> $LOGFILE 2>>$ERRFILE
   fi 
   if [ ! -d $HOME/helm ]; then 
-  set -x 
     git clone https://github.com/mojaloop/helm.git --branch $MOJALOOP_BRANCH --single-branch $HOME/helm >> $LOGFILE 2>>$ERRFILE
     NEED_TO_REPACKAGE="true"
     printf " [ done ] \n"
-  set +x 
   else 
     printf "\n    ** INFO: helm repo is not cloned as there is an existing $HOME/helm directory\n"
     printf "    to get a fresh clone of the repo , either delete $HOME/helm of use the -f flag **\n"
@@ -207,7 +205,6 @@ function repackage_mojaloop_charts {
 }
 
 function delete_be {
-  set -x
   #  delete any existing deployment and clean up any pv and pvc's that the bitnami mysql chart seems to leave behind
   printf "==> deleting mojaloop backend services in helm release  [%s] " "$BE_RELEASE_NAME"
   be_exists=`helm ls  --namespace $NAMESPACE | grep $BE_RELEASE_NAME | cut -d " " -f1`

@@ -9,24 +9,20 @@
 # - clean ups : remove support for OS other than Ubuntu 
 # - updated helm to 3.11.1 
 # - updated kubernetes to 1.24 -> 1.26
-# - 
+# - added in bulk and 3ppi 
+# - added facility for choosing DNS name 
 
 # todo for update : 
-#   - check helm repo list : is this all active including for BizOps framework ? 
 #   - add in the DNS , FQDN work as options too 
-#   - include 3ppi install as option or by default (check the work I have in the branch for this)
 #   - fix the prompt and make sure promt shows git version
 #   - test bulk
-#   - test BizOps framework 
 #   - check if we need all the full lis of hosts in the /etc/hosts to ensure TTK works ok 
 # 
 
-# TODO : add command line params to enable selection of which ML release etc 
+# TODO in the future : add command line params to enable selection of which ML release etc 
+#       - improve logging so that this is easier to run from CI/CD 
 #       - put this into circle-ci and merge with k8s-versions-test.sh in charts repo so that little/no code is duplicated
-#       - change the ingress port 
-#           @see https://discuss.kubernetes.io/t/add-on-ingress-default-port-change-options/14428
-#       - Can I make this work for MacOS , other linux or windows ?  Is there any need demand ? 
-#   
+
 function check_pi {
     # this is to enable experimentation on raspberry PI which is WIP
     if [ -f "/proc/device-tree/model" ]; then
@@ -40,6 +36,26 @@ function check_pi {
 function check_arch_ok {
     if [[ ! "$k8s_arch" == "x86_64" ]]; then 
         printf " **** Warning : mini-loop only works properly with x86_64 today *****\n"
+    fi
+} 
+
+function check_resources_ok {
+    # Get the total amount of installed RAM in GB
+    total_ram=$(free -g | awk '/^Mem:/{print $2}')
+    # Get the current free space on the root filesystem in GB
+    free_space=$(df -BG /home/"$k8s_user" | awk '{print $4}' | tail -n 1 | sed 's/G//')
+
+    # Check RAM 
+    if [[ "$total_ram" -lt "$MIN_RAM" ]]; then
+        printf " ** Error : mini-loop currently requires $MIN_RAM GBs to run properly \n"
+        printf "    Please increase RAM available before trying to run mini-loop \n"
+        exit 1 
+    fi
+    # Check free space 
+        if [[  "$free_space" -lt "$MIN_FREE_SPACE" ]] ; then
+        printf " ** Warning : mini-loop currently requires %s GBs free storage in %s home directory  \n" "$k8s_user"
+        printf "    but only found %s GBs free storage \n"  "$free_space"
+        printf "    mini-loop installation will continue , but beware it might fail later due to insufficient storage \n"
     fi
 } 
 
@@ -408,6 +424,9 @@ K8S_CURRENT_RELEASE_LIST=( "1.24" "1.25" "1.26" )
 CURRENT_RELEASE="false"
 k8s_user_home=""
 k8s_arch=`uname -p`  # what arch
+# Set the minimum amount of RAM in GB
+MIN_RAM=8
+MIN_FREE_SPACE=80
 
 LINUX_OS_LIST=( "Ubuntu" )
 UBUNTU_OK_VERSIONS_LIST=(20 22)
@@ -454,6 +473,7 @@ printf "************************* << start >> **********************************
 check_arch_ok 
 if [[ "$mode" == "install" ]]  ; then
     verify_user
+    check_resources_ok
     set_k8s_distro
     set_k8s_version
     k8s_already_installed
