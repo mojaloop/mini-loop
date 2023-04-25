@@ -206,25 +206,6 @@ function repackage_mojaloop_charts {
   fi 
 }
 
-function repackage_bof_charts {
-  if [[ "$NEED_TO_REPACKAGE" == "true" ]]; then 
-    printf "==> running repackage of the Bof  charts to incorporate local configuration "
-    current_dir=`pwd`
-    cd $HOME/charts
-    ./scripts/package.sh >> $LOGFILE 2>>$ERRFILE
-    if [[ $? -eq 0  ]]; then 
-      printf " [ ok ] \n"
-      NEED_TO_REPACKAGE="false"
-    else
-      printf " [ failed ] \n"
-      printf "** please try running $HOME/charts/scripts/package.sh manually to determine the problem **  \n" 
-      cd $current_dir
-      exit 1
-    fi   
-    cd $current_dir
-  fi 
-}
-
 function delete_be {
   set -x
   #  delete any existing deployment and clean up any pv and pvc's that the bitnami mysql chart seems to leave behind
@@ -325,56 +306,6 @@ function delete_mojaloop_helm_chart {
   fi
 }
 
-function clone_bof_charts_repo { 
-  printf "==> cloning mojaloop bof charts repo  (where Bof charts are implemented) \n"
-  if [ ! -z "$force" ]; then 
-    rm -rf $HOME/charts >> $LOGFILE 2>>$ERRFILE
-  fi 
-  if [ ! -d $HOME/charts ]; then 
-    git clone https://github.com/mojaloop/charts.git --branch $BOF_BRANCH --single-branch $HOME/charts >> $LOGFILE 2>>$ERRFILE
-    NEED_TO_REPACKAGE="true"
-    printf " [ done ] \n"
-  else 
-    printf "\n    ** INFO: (bof) charts repo not cloned as there is an existing $HOME/charts directory\n"
-    printf "    to get a fresh clone of the repo , either delete $HOME/charts or use the -f flag **\n"
-  fi
-} 
-
-function delete_bof { 
-  printf "==> deleting mojaloop biz ops framework helm release  [%s] " "$BOF_RELEASE_NAME"
-  bof_exists=`helm ls  --namespace $NAMESPACE | grep $BOF_RELEASE_NAME | cut -d " " -f1`
-  if [ ! -z $bof_exists ] && [ "$bof_exists" == "$BOF_RELEASE_NAME" ]; then 
-    helm delete $BOF_RELEASE_NAME  --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
-    sleep 2 
-  fi
-  bof_exists=`helm ls  --namespace $NAMESPACE | grep $BOF_RELEASE_NAME | cut -d " " -f1`
-  if [ -z $bof_exists ]; then
-    printf "[ ok ]\n"
-  fi
-}
-
-function install_bof { 
-  # Make sure Mojaloop chart has already been deployed 
-  ml_exists=`helm ls  --namespace $NAMESPACE | grep $ML_RELEASE_NAME | cut -d " " -f1`
-  if [ -z "$ml_exists" ] || [ "$ml_exists" != "$ML_RELEASE_NAME" ]; then 
-    printf " ** Error please install Mojaloop before trying to install biz ops framework \n" 
-    exit 1
-  fi
-  # again for simplicity as as it will generlaly be quick we re-clone the (bof) charts repo
-  delete_bof 
-  printf "==> deploying mojaloop biz ops framework helm chart, waiting upto 300s for it to be ready  \n  "
-  repackage_bof_charts # if needed 
-  # deploy the Bof charts with values from mini-loop/etc that correspond to the example-mojaloop-backend services BE that should already be deployed 
-  printf "    helm install $BOF_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/charts/mojaloop/bof -f $ETC_DIR/bof-values.yaml \n"
-  helm install $BOF_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/charts/mojaloop/bof -f $ETC_DIR/bof-values.yaml >> $LOGFILE 2>>$ERRFILE
-  status=`helm status bof | grep "^STATUS:" | awk '{ print $2 }'`
-  if [[ "$status" == "deployed" ]] ; then 
-    printf "==> [%s] deployed sucessfully \n" "$BOF_RELEASE_NAME"
-  else 
-      printf " ** Error $BOF_RELEASE_NAME has NOT been deployed sucessfully \n" 
-  fi 
-}
-
 function check_mojaloop_health {
   # verify the health of the deployment 
   printf "==> check enabled external endpoints are functioning \n" 
@@ -439,7 +370,7 @@ Example 5 : $0 -m check_ml           # check the health of the ML endpoints
 Example 6 : $0 -m config_ml  -o thirdparty,bulk   # configure optional mojaloop functions thirdparty and or bulk-api
 
 Options:
--m mode ............ install_ml|check_ml|delete_ml|install_be|delete_be|install_bof|delete_bof
+-m mode ............ install_ml|check_ml|delete_ml|install_be|delete_be
 -d domain name ..... domain name for ingress hosts e.g mydomain.com 
 -t secs ............ number of seconds (timeout) to wait for pods to all be reach running state
 -n namespace ....... the namespace to deploy mojaloop into 
@@ -459,9 +390,7 @@ Options:
 ##
 ML_RELEASE_NAME="ml"
 BE_RELEASE_NAME="be"
-BOF_RELEASE_NAME="bof"
 MOJALOOP_BRANCH="v15.0.0"
-BOF_BRANCH="v2.4.5" 
 LOGFILE="/tmp/miniloop-install.log"
 ERRFILE="/tmp/miniloop-install.err"
 DEFAULT_TIMEOUT_SECS="2400s"
@@ -552,15 +481,6 @@ elif [[ "$mode" == "install_ml" ]]; then
   timer=$(echo "$end_timer - $start_timer" | bc)
   printf "    install_ml elapsed time: [%s] seconds \n" "$timer"
   print_success_message 
-elif [[ "$mode" == "install_bof" ]]; then
-  start_timer=$(date +%s.%N)
-  clone_bof_charts_repo
-  install_bof 
-  end_timer=$(date +%s.%N)
-  timer=$(echo "$end_timer - $start_timer" | bc)
-  printf "    install_bof elapsed time: [%s] seconds \n" "$timer"
-elif [[ "$mode" == "delete_bof" ]]; then
-  delete_bof  
 elif [[ "$mode" == "check_ml" ]]; then
   check_mojaloop_health
 else 
