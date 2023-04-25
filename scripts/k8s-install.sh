@@ -3,7 +3,7 @@
 # based on the older k8s-install.sh this script will only install current versions of kubernetes
 # Author:  Tom Daly 
 # Date : July 2022 
-#  -- Feb 2023 : updated for Mojaloop v15 and later kubernetes 
+#  -- April 2023 : updated for Mojaloop v15 and also kubernetes 1.24 and 1.25, 1.26
 
 # Updates for release notes 
 # - clean ups : remove support for OS other than Ubuntu 
@@ -18,6 +18,7 @@
 #   - fix the prompt and make sure promt shows git version
 #   - test bulk
 #   - test BizOps framework 
+#   - check if we need all the full lis of hosts in the /etc/hosts to ensure TTK works ok 
 # 
 
 # TODO : add command line params to enable selection of which ML release etc 
@@ -265,9 +266,12 @@ function install_k8s_tools {
 }
 
 function add_helm_repos { 
+    # see readme at https://github.com/mojaloop/helm for required helm libs 
     printf "==> add the helm repos required to install and run Mojaloop version 13.x \n" 
     su - $k8s_user -c "helm repo add kiwigrid https://kiwigrid.github.io" > /dev/null 2>&1
+    su - $k8s_user -c "helm repo add kokuwa https://kokuwaio.github.io/helm-charts" > /dev/null 2>&1  #fluentd 
     su - $k8s_user -c "helm repo add elastic https://helm.elastic.co" > /dev/null 2>&1
+    su - $k8s_user -c "helm repo add codecentric https://codecentric.github.io/helm-charts" > /dev/null 2>&1 # keycloak for TTK
     su - $k8s_user -c "helm repo add bitnami https://charts.bitnami.com/bitnami" > /dev/null 2>&1
     su - $k8s_user -c "helm repo add mojaloop http://mojaloop.io/helm/repo/" > /dev/null 2>&1
     su - $k8s_user -c "helm repo update" > /dev/null 2>&1

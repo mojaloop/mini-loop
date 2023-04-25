@@ -1,7 +1,8 @@
-# mini-loop v4.0 with Microk8s or k3s (versions 1.22 - 1.24) 
+# mini-loop v5.0 with Microk8s or k3s (versions 1.24 - 1.26) 
 
 ## Description 
 mini-loop is a simple, scripted/automated installer for Mojaloop (http://mojaloop.io) to enable demo, test, training and development of the Mojaloop switch
+mini-loop v5.0 installs Mojaloop version 15.0.0
 
 The goal is to make it easy, quick and scriptable to deploy Mojaloop in a variety of local or cloud environments. 
 - easy : you only need to run 2 simple shell scripts
@@ -17,16 +18,6 @@ mini-loop also demonstrates the configuration of the mojaloop helm charts, via e
 instructions are available at https://github.com/mojaloop/helm. 
  
 This project automates the instructions for mojaloop deployment in the mojaloop.io documentation at https://docs.mojaloop.io/documentation/deployment-guide/local-setup-linux.html. 
-## Deployment Instructions option #1 install and use Microk8s (Ubuntu only) 
-Assuming you have an x86_64 environment running Ubuntu release 16, 18 or 20 and are logged in as a non-root user (e.g. mluser)
-```bash
-login as mluser                                                                # i.e. login as an existing non-root user we use mluser just as an example
-cd $HOME                                                      
-git clone https://github.com/tdaly61/mini-loop.git                             # clone the mini-loop scripts into the mluser home directory
-sudo ./mini-loop/install/mini-loop/scripts/k8s-install-current.sh -m install -u mluser -k microk8s -v 1.24 # install and configure microk8s v1.24 & prepare for mojaloop deploy
-source $HOME/.bashrc                                                           # you may need to lougout and login again to ensure your kubernetes env is correctly established
-./mini-loop/install/mini-loop/scripts/miniloop-local-install.sh -m install_ml  # deploy and configure the mojaloop helm chart from the local $HOME/helm repository that the script creates
-```
 
 ## Deployment Instructions option #2 install and use Rancher k3s (Ubuntu or Redhat 8)
 Assuming you have an x86_64 environment running Ubuntu release 16, 18 or 20 **or Redhat 8** and are logged in as a non-root user (e.g. mluser)
@@ -38,6 +29,19 @@ sudo ./mini-loop/install/mini-loop/scripts/k8s-install-current.sh -m install -u 
 source $HOME/.bashrc                                                           # you may need to lougout and login again to ensure your kubernetes env is correctly established
 ./mini-loop/install/mini-loop/scripts/miniloop-local-install.sh -m install_ml  # deploy and configure the mojaloop helm chart from the local $HOME/helm repository that the script creates
 ```
+
+## Deployment Instructions option #1 install and use Microk8s (Ubuntu only) 
+Assuming you have an x86_64 environment running Ubuntu release 16, 18 or 20 and are logged in as a non-root user (e.g. mluser)
+```bash
+login as mluser                                                                # i.e. login as an existing non-root user we use mluser just as an example
+cd $HOME                                                      
+git clone https://github.com/tdaly61/mini-loop.git                             # clone the mini-loop scripts into the mluser home directory
+sudo ./mini-loop/install/mini-loop/scripts/k8s-install-current.sh -m install -u mluser -k microk8s -v 1.24 # install and configure microk8s v1.24 & prepare for mojaloop deploy
+source $HOME/.bashrc                                                           # you may need to lougout and login again to ensure your kubernetes env is correctly established
+./mini-loop/install/mini-loop/scripts/miniloop-local-install.sh -m install_ml  # deploy and configure the mojaloop helm chart from the local $HOME/helm repository that the script creates
+```
+
+
 ## accessing Mojaloop from beyond "localhost" (e.g. from a linux or OSX laptop)
 The mini-loop scripts add the required host names to the 127.0.0.1 entry in the /etc/hosts of the "install system" i.e. the system where Mojaloop is deployed.  To access mojaloop from beyond this system it is necessary to:- 
 1. ensure that http / port 80 is accessible on the install system.  For instance if mini-loop has installed Mojaloop onto a VM in the cloud then it will be necessary to ensure that the cloud network security rules allow inbound traffic on port 80 to that VM.

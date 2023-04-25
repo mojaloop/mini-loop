@@ -20,6 +20,8 @@
 # - tidy up logfile contents
 # - truncate logfiles to keep under say 500MB
 
+
+
 function check_arch {
   ## check architecture Mojaloop deploys on x64 only today arm is coming  
   arch=`uname -p`
@@ -126,7 +128,7 @@ function set_logfiles {
   printf "==> logfiles can be found at %s and %s\n" "$LOGFILE" "$ERRFILE"
 }
 
-function clone_helm_charts_repo { 
+function clone_mojaloop_helm_repo { 
   printf "==> cloning mojaloop helm charts repo  "
   if [ ! -z "$force" ]; then 
     #printf "==> removing existing helm directory\n"
@@ -169,7 +171,7 @@ function configure_optional_modules {
   done 
 }
 
-function modify_local_helm_charts {
+function modify_local_mojaloop_helm_charts {
   printf "==> configuring the local mojaloop helm charts "
   if [ ! -z ${domain_name+x} ]; then 
     printf "==> setting domain name to <%s> \n " $domain_name >> $LOGFILE 2>>$ERRFILE
@@ -185,9 +187,9 @@ function modify_local_helm_charts {
   NEED_TO_REPACKAGE="true"
 }
 
-function repackage_charts {
+function repackage_mojaloop_charts {
   if [[ "$NEED_TO_REPACKAGE" == "true" ]]; then 
-    printf "==> running repackage of the helm charts to incorporate local modifications "
+    printf "==> running repackage of the Mojaloop helm charts to incorporate local configuration "
     current_dir=`pwd`
     cd $HOME/helm
     ./package.sh >> $LOGFILE 2>>$ERRFILE
@@ -204,7 +206,27 @@ function repackage_charts {
   fi 
 }
 
+function repackage_bof_charts {
+  if [[ "$NEED_TO_REPACKAGE" == "true" ]]; then 
+    printf "==> running repackage of the Bof  charts to incorporate local configuration "
+    current_dir=`pwd`
+    cd $HOME/charts
+    ./scripts/package.sh >> $LOGFILE 2>>$ERRFILE
+    if [[ $? -eq 0  ]]; then 
+      printf " [ ok ] \n"
+      NEED_TO_REPACKAGE="false"
+    else
+      printf " [ failed ] \n"
+      printf "** please try running $HOME/charts/scripts/package.sh manually to determine the problem **  \n" 
+      cd $current_dir
+      exit 1
+    fi   
+    cd $current_dir
+  fi 
+}
+
 function delete_be {
+  set -x
   #  delete any existing deployment and clean up any pv and pvc's that the bitnami mysql chart seems to leave behind
   printf "==> deleting mojaloop backend services in helm release  [%s] " "$BE_RELEASE_NAME"
   be_exists=`helm ls  --namespace $NAMESPACE | grep $BE_RELEASE_NAME | cut -d " " -f1`
@@ -234,7 +256,7 @@ function delete_be {
 function install_be { 
   # delete  db cleanly if it is already deployed => so we can confifdently reinstall cleanly 
   delete_be
-  repackage_charts
+  #repackage_mojaloop_charts
   be_exists=`helm ls  --namespace $NAMESPACE | grep $BE_RELEASE_NAME | cut -d " " -f1`
   # deploy the mojaloop example backend chart
   printf "==> deploying mojaloop example backend services helm chart , waiting upto 300s for it to be ready  \n"
@@ -303,9 +325,23 @@ function delete_mojaloop_helm_chart {
   fi
 }
 
+function clone_bof_charts_repo { 
+  printf "==> cloning mojaloop bof charts repo  (where Bof charts are implemented) \n"
+  if [ ! -z "$force" ]; then 
+    rm -rf $HOME/charts >> $LOGFILE 2>>$ERRFILE
+  fi 
+  if [ ! -d $HOME/charts ]; then 
+    git clone https://github.com/mojaloop/charts.git --branch $BOF_BRANCH --single-branch $HOME/charts >> $LOGFILE 2>>$ERRFILE
+    NEED_TO_REPACKAGE="true"
+    printf " [ done ] \n"
+  else 
+    printf "\n    ** INFO: (bof) charts repo not cloned as there is an existing $HOME/charts directory\n"
+    printf "    to get a fresh clone of the repo , either delete $HOME/charts or use the -f flag **\n"
+  fi
+} 
+
 function delete_bof { 
   printf "==> deleting mojaloop biz ops framework helm release  [%s] " "$BOF_RELEASE_NAME"
-  #repackage_charts
   bof_exists=`helm ls  --namespace $NAMESPACE | grep $BOF_RELEASE_NAME | cut -d " " -f1`
   if [ ! -z $bof_exists ] && [ "$bof_exists" == "$BOF_RELEASE_NAME" ]; then 
     helm delete $BOF_RELEASE_NAME  --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
@@ -324,13 +360,14 @@ function install_bof {
     printf " ** Error please install Mojaloop before trying to install biz ops framework \n" 
     exit 1
   fi
-  delete_bof # make sure we start clean
+  # again for simplicity as as it will generlaly be quick we re-clone the (bof) charts repo
+  delete_bof 
   printf "==> deploying mojaloop biz ops framework helm chart, waiting upto 300s for it to be ready  \n  "
-  # repackage_charts
-  # deploy the mojaloop example backend chart
-  printf "    helm install $BOF_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/charts/mojaloop/bof\n"
-  helm install $BOF_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/charts/mojaloop/bof >> $LOGFILE 2>>$ERRFILE
-  result=`helm status bof | grep "^STATUS:" | awk '{ print $2 }'`
+  repackage_bof_charts # if needed 
+  # deploy the Bof charts with values from mini-loop/etc that correspond to the example-mojaloop-backend services BE that should already be deployed 
+  printf "    helm install $BOF_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/charts/mojaloop/bof -f $ETC_DIR/bof-values.yaml \n"
+  helm install $BOF_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/charts/mojaloop/bof -f $ETC_DIR/bof-values.yaml >> $LOGFILE 2>>$ERRFILE
+  status=`helm status bof | grep "^STATUS:" | awk '{ print $2 }'`
   if [[ "$status" == "deployed" ]] ; then 
     printf "==> [%s] deployed sucessfully \n" "$BOF_RELEASE_NAME"
   else 
@@ -388,14 +425,6 @@ function print_success_message {
 # Description:		Display usage message
 # Arguments:		none
 # Return values:	none
-#
-# ./myscript.sh -d bulk             # Calls do_bulk
-# ./myscript.sh -d thirdparty       # Calls do_thirdparty
-# ./myscript.sh -d bof              # Calls do_bof
-# ./myscript.sh -d bulk,thirdparty  # Calls do_bulk and do_thirdparty
-# ./myscript.sh -d thirdparty,bof   # Calls do_thirdparty and do_bof
-# ./myscript.sh -d bulk,bof         # Calls do_bulk and do_bof
-# ./myscript.sh -d bulk,thirdparty,bof 
 function showUsage {
 	if [ $# -lt 0 ] ; then
 		echo "Incorrect number of arguments passed to function $0"
@@ -405,11 +434,10 @@ echo  "USAGE: $0 -m <mode> [-t secs] [-n namespace] [-f] [-h] [-s] [-l] [-o thir
 Example 1 : $0 -m install_ml -t 3000 # install mojaloop using a timeout of 3000 seconds 
 Example 2 : $0 -m install_ml -n moja # create namespace moja and deploy mojaloop into the moja namespace 
 Example 3 : $0 -m install_be         # install the mojaloop backend (be) services, mysql, kafka etc  
-Example 4 : $0 -m delete_be          # cleanly delete the mojaloop backend (be) services , mysql, kafka zookeepert etc
+Example 4 : $0 -m delete_be          # cleanly delete the mojaloop backend (be) services , mysql, kafka zookeeper etc
 Example 5 : $0 -m check_ml           # check the health of the ML endpoints
 Example 6 : $0 -m config_ml  -o thirdparty,bulk   # configure optional mojaloop functions thirdparty and or bulk-api
 
- 
 Options:
 -m mode ............ install_ml|check_ml|delete_ml|install_be|delete_be|install_bof|delete_bof
 -d domain name ..... domain name for ingress hosts e.g mydomain.com 
@@ -426,7 +454,6 @@ Options:
 ################################################################################
 # MAIN
 ################################################################################
-
 ##
 # Environment Config & global vars 
 ##
@@ -434,6 +461,7 @@ ML_RELEASE_NAME="ml"
 BE_RELEASE_NAME="be"
 BOF_RELEASE_NAME="bof"
 MOJALOOP_BRANCH="v15.0.0"
+BOF_BRANCH="v2.4.5" 
 LOGFILE="/tmp/miniloop-install.log"
 ERRFILE="/tmp/miniloop-install.err"
 DEFAULT_TIMEOUT_SECS="2400s"
@@ -492,7 +520,7 @@ printf "\n"
 
 # if [[ "$mode" == "install_ml" ]]; then
 #   configure_optional_modules
-#   modify_local_helm_charts
+#   modify_local_mojaloop_helm_charts
 # fi 
 # exit 1
 
@@ -501,7 +529,7 @@ start=$(date +%s.%N)
 
 if [[ "$mode" == "install_be" ]]; then
   start_timer=$(date +%s.%N)
-  clone_helm_charts_repo
+  clone_mojaloop_helm_repo
   install_be
   end_timer=$(date +%s.%N)
   timer=$(echo "$end_timer - $start_timer" | bc)
@@ -515,9 +543,9 @@ elif [[ "$mode" == "delete_ml" ]]; then
   print_end_banner
 elif [[ "$mode" == "install_ml" ]]; then
   start_timer=$(date +%s.%N)
-  clone_helm_charts_repo
+  clone_mojaloop_helm_repo
   configure_optional_modules
-  modify_local_helm_charts
+  modify_local_mojaloop_helm_charts
   install_mojaloop_from_local
   check_mojaloop_health
   end_timer=$(date +%s.%N)
@@ -526,6 +554,7 @@ elif [[ "$mode" == "install_ml" ]]; then
   print_success_message 
 elif [[ "$mode" == "install_bof" ]]; then
   start_timer=$(date +%s.%N)
+  clone_bof_charts_repo
   install_bof 
   end_timer=$(date +%s.%N)
   timer=$(echo "$end_timer - $start_timer" | bc)
