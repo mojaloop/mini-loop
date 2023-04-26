@@ -1,24 +1,10 @@
 #!/usr/bin/env bash
-# miniloop-local-install.sh
-#               - install mojaloop in a fast and simple as possible manner for demos , test and education 
-#                 the install_ml option of this script will git clone the latest version of mojaloop helm charts from the master branch
-#                 and then make anmy needed local modifications to these charts to enable Mojaloop to deploy and run 
-#                 in the latetest kubernetes versions.  
+# mini-loop-install-all.sh
+#  - this script is an inflexible wrapper around the 2 main mini-loop scripts
+#    it must be run with sudo and it calls k8s-install.sh and then 
 #                      
 # Author Tom Daly 
-# Date July 2022
-# Updates : Feb 2023 for Mojaloop v15  
-#  - updated to pull helm repo version 15 git clone –single-branch –branch command
-#   - add in the DNS , FQDN work as options too 
-#   - include 3ppi install as option or by default (check the work I have in the branch for this)
-#   - fix the prompt and make sure promt shows git version
-#   - test bulk
-#   - test BizOps framework 
-# 
-# TODO : 
-# - check delete_be : dont delete be is the ML chart exists and is running 
-# - tidy up logfile contents
-# - truncate logfiles to keep under say 500MB
+# Date Apri 2023
 
 
 
@@ -136,7 +122,7 @@ function clone_mojaloop_helm_repo {
   fi 
   if [ ! -d $HOME/helm ]; then 
     git clone https://github.com/mojaloop/helm.git --branch $MOJALOOP_BRANCH --single-branch $HOME/helm >> $LOGFILE 2>>$ERRFILE
-    NEED_TO_REPACKAGE="all"
+    NEED_TO_REPACKAGE="true"
     printf " [ done ] \n"
   else 
     printf "\n    ** INFO: helm repo is not cloned as there is an existing $HOME/helm directory\n"
@@ -145,7 +131,7 @@ function clone_mojaloop_helm_repo {
 }
 
 function configure_optional_modules {
-  printf "==> configuring optional Mojaloop functions to install   \n"
+  printf "==> configuring option Mojaloop functions to install   \n"
   # if [ -z ${install_opt+x} ] ; then 
   #   printf " ** Error: mini-loop requires information about which optional modules to configure when using -m config_ml   \n"
   #   printf "           example: to configure mojaloop to enable thirdparty charts and bulk-api use:-  \n"
@@ -174,6 +160,7 @@ function modify_local_mojaloop_helm_charts {
   if [ ! -z ${domain_name+x} ]; then 
     printf "==> setting domain name to <%s> \n " $domain_name >> $LOGFILE 2>>$ERRFILE
     MOJALOOP_CONFIGURE_FLAGS_STR+="--domain_name $domain_name " 
+    #$SCRIPTS_DIR/mod_local_miniloop_v15.py -d $HOME/helm -k $k8s_distro >> $LOGFILE 2>>$ERRFILE
   fi
   printf "     executing $SCRIPTS_DIR/mojaloop_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR  \n" 
   $SCRIPTS_DIR/mojaloop_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR >> $LOGFILE 2>>$ERRFILE
@@ -181,38 +168,26 @@ function modify_local_mojaloop_helm_charts {
       printf " [ failed ] \n"
       exit 1 
   fi 
-
-  # set the repackage scope depending on what gets configured in the values files
-  if [[ $MOJALOOP_CONFIGURE_FLAGS_STR == *"--domain_name"* ]]; then
-    NEED_TO_REPACKAGE="all"
-  else
-    # Check if MOJALOOP_CONFIGURE_FLAGS_STR contains "thirdparty" or "bulk"
-    if [[ $MOJALOOP_CONFIGURE_FLAGS_STR == *"thirdparty"* || $MOJALOOP_CONFIGURE_FLAGS_STR == *"bulk"* ]]; then
-      NEED_TO_REPACKAGE="mojaloop_only"
-    fi
-  fi
+  NEED_TO_REPACKAGE="true"
 }
 
 function repackage_mojaloop_charts {
-  current_dir=`pwd`
-  cd $HOME/helm
-  if [[ "$NEED_TO_REPACKAGE" == "all" ]]; then 
-    printf "==> running repackage of the all the Mojaloop helm charts to incorporate local configuration "
-    status=`./package.sh >> $LOGFILE 2>>$ERRFILE`
-  elif [[ "$NEED_TO_REPACKAGE" == "mojaloop_only" ]]; then  
-    printf "==> running repackage of the top-level Mojaloop helm chart to incorporate local configuration "
-    status=`./package.sh mojaloop >> $LOGFILE 2>>$ERRFILE`
-  fi 
-  if [[ "$status" -eq 0  ]]; then 
-    printf " [ ok ] \n"
-    NEED_TO_REPACKAGE="none"
-  else
-    printf " [ failed ] \n"
-    printf "** please try running $HOME/helm/package.sh manually to determine the problem **  \n" 
+  if [[ "$NEED_TO_REPACKAGE" -eq "true" ]]; then 
+    printf "==> running repackage of the Mojaloop helm charts to incorporate local configuration "
+    current_dir=`pwd`
+    cd $HOME/helm
+    ./package.sh >> $LOGFILE 2>>$ERRFILE
+    if [[ $? -eq 0  ]]; then 
+      printf " [ ok ] \n"
+      NEED_TO_REPACKAGE="false"
+    else
+      printf " [ failed ] \n"
+      printf "** please try running $HOME/helm/package.sh manually to determine the problem **  \n" 
+      cd $current_dir
+      exit 1
+    fi   
     cd $current_dir
-    exit 1
-  fi   
-  cd $current_dir
+  fi 
 }
 
 function delete_be {
@@ -410,7 +385,7 @@ k8s_version=""
 K8S_CURRENT_RELEASE_LIST=( "1.24" "1.25" "1.26" )
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 ETC_DIR="$( cd $(dirname "$0")/../etc ; pwd )"
-NEED_TO_REPACKAGE="none"
+NEED_TO_REPACKAGE="false"
 EXTERNAL_ENDPOINTS_LIST=(ml-api-adapter.local central-ledger.local quoting-service.local transaction-request-service.local moja-simulator.local ) 
 export MOJALOOP_CONFIGURE_FLAGS_STR=" -d $HOME/helm " 
 

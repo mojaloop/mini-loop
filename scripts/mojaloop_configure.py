@@ -76,9 +76,10 @@ def modify_values_for_bulk(p,yaml,verbose=False):
             print(f"===> Processing file < {vf.parent}/{vf.name} > ")
         data = yaml.load(f)
     data['mojaloop-bulk']['enabled'] = True
-    data['account-lookup-service']['account-lookup-service-admin']['config']['featureEnableExtendedPartyIdType'] = True
-    if 'thirdparty' in data : 
-        data['thirdparty']['enabled'] = True
+    data['mojaloop-ttk-simulators']['enabled'] = True
+    # data['account-lookup-service']['account-lookup-service-admin']['config']['featureEnableExtendedPartyIdType'] = True
+    # if 'thirdparty' in data : 
+    #     data['thirdparty']['enabled'] = True
     # turn on the ttk tests 
     if 'ml-ttk-test-val-bulk' in data : 
         data['ml-ttk-test-val-bulk']['tests']['enabled'] = True
@@ -141,7 +142,7 @@ def main(argv) :
     if args.thirdparty:
         modify_values_for_thirdparty(p,yaml,args.verbose)
     if args.bulk:
-        modify_values_for_bulk(p,yaml,args.verbose)    
+        modify_values_for_bulk(p,yaml,args.verbose)  
     if args.domain_name :
          modify_values_for_dns_domain_name(p,args.domain_name,args.verbose)
     if args.verbose :
