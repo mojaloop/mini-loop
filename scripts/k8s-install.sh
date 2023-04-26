@@ -96,11 +96,11 @@ function check_os_ok {
 function install_prerequisites {
     printf "==> Install any OS prerequisites , tools &  updates  ...\n"
     if [[ $LINUX_OS == "Ubuntu" ]]; then  
-        printf "   apt update \n"
+        printf "    apt update \n"
         apt update > /dev/null 2>&1
         printf "    python and python libs ...\n"
-        apt install python3-pip -y 
-        pip3 install ruamel.yaml
+        apt install python3-pip -y > /dev/null 2>&1
+        pip3 install ruamel.yaml > /dev/null 
         if [[ $k8s_distro == "microk8s" ]]; then 
             printf "   install snapd\n"
             apt install snapd -y > /dev/null 2>&1
@@ -219,12 +219,23 @@ function do_k3s_install {
     printf "========================================================================================\n"
     # ensure k8s_user has clean .kube/config 
     rm -rf $k8s_user_home/.kube >> /dev/null 2>&1 
-    printf "=> installing k3s \n"
-    echo $K8S_VERSION
+    printf "=> installing k3s "
+    #echo $K8S_VERSION
     curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
                             INSTALL_K3S_CHANNEL="v$K8S_VERSION" \
-                            INSTALL_K3S_EXEC=" --disable traefik " sh 
-                                
+                            INSTALL_K3S_EXEC=" --disable traefik " sh > /dev/null 2>&1
+
+    # check k3s installed ok 
+    status=`k3s check-config 2> /dev/null | grep "^STATUS" | awk '{print $2}'  ` 
+    if [[ "$status" -eq "pass" ]]; then 
+        printf "[ok]\n"
+    else
+        printf "** Error : k3s check-config not reporting status of pass   ** \n"
+        printf "   run k3s check-config manually as user [%s] for more information   ** \n" "$k8s_user"
+        exit 1
+    fi
+
+    # configure user environment to communicate with k3s kubernetes
     export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
     cp /etc/rancher/k3s/k3s.yaml  $k8s_user_home/k3s.yaml
     chown $k8s_user  $k8s_user_home/k3s.yaml
@@ -232,11 +243,10 @@ function do_k3s_install {
 
     perl -p -i.bak -e 's/^.*KUBECONFIG.*$//g' $k8s_user_home/.bashrc
     echo "export KUBECONFIG=\$HOME/k3s.yaml" >>  $k8s_user_home/.bashrc
-
     perl -p -i.bak -e 's/^.*source .bashrc.*$//g' $k8s_user_home/.bash_profile 
-    perl -p  -e 's/^.*export KUBECONFIG.*$//g' $k8s_user_home/.bash_profile 
+    perl -p  -i.bak2 -e 's/^.*export KUBECONFIG.*$//g' $k8s_user_home/.bash_profile 
     echo "source .bashrc" >>   $k8s_user_home/.bash_profile 
-    echo "export KUBECONFIG=\$HOME/k3s.yaml" >>   $k8s_user_home/.bash_profile  
+    echo "export KUBECONFIG=\$HOME/k3s.yaml" >> $k8s_user_home/.bash_profile  
     
     # install helm
     printf "==> installing helm " 
@@ -264,9 +274,23 @@ function do_k3s_install {
     fi
     
     #install nginx
-    printf "==> installing ingress chart and wait for it to be ready\n" 
-    su - $k8s_user -c "helm install --wait --timeout 300s ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx" 
+    printf "==> installing nginx ingress chart and wait for it to be ready " 
+    su - $k8s_user -c "helm install --wait --timeout 300s ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx" > /dev/null 2>&1
     # TODO : check to ensure that the ingress is indeed running 
+    nginx_pod_name=$(kubectl get pods | grep nginx | awk '{print $1}')
+
+    if [ -z "$nginx_pod_name" ]; then
+        printf "** Error : helm install of nginx seems to have failed , no nginx pod found ** \n"
+        exit 1
+    fi
+    # Check if the Nginx pod is running
+    if kubectl get pods $nginx_pod_name | grep -q "Running"; then
+        printf "[ok]\n"
+    else
+        printf "** Error : helm install of nginx seems to have failed , nginx pod is not running  ** \n"
+        exit 1
+    fi
+
 }
 
 function install_k8s_tools { 
@@ -274,10 +298,10 @@ function install_k8s_tools {
     curl -s -L https://github.com/ahmetb/kubectx/releases/download/v0.9.4/kubens_v0.9.4_linux_x86_64.tar.gz| gzip -d -c | tar xf - 
     mv ./kubens /usr/local/bin > /dev/null 2>&1
     curl -s -L https://github.com/ahmetb/kubectx/releases/download/v0.9.4/kubectx_v0.9.4_linux_x86_64.tar.gz | gzip -d -c | tar xf -
-    mv ./kubectx /usr/local/bin > /dev/null
+    mv ./kubectx /usr/local/bin > /dev/null  2>&1
     
     # install kustomize
-    curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
+    curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash > /dev/null  2>&1
     mv ./kustomize /usr/local/bin > /dev/null 2>&1
 }
 
@@ -294,7 +318,7 @@ function add_helm_repos {
 }
 
 function configure_k8s_user_env { 
-    start_message="# start of config added by mini-loop #"
+    start_message="# ML_START start of config added by mini-loop #"
     grep "start of config added by mini-loop" $k8s_user_home/.bashrc >/dev/null 2>&1
     if [[ $? -ne 0  ]]; then 
         printf "==> Adding configuration for %s to %s .bashrc\n" "$k8s_distro" "$k8s_user"
@@ -305,7 +329,7 @@ function configure_k8s_user_env {
         echo "alias ksetns=\"kubectl config set-context --current --namespace\" " >>  $k8s_user_home/.bashrc
         echo "alias ksetuser=\"kubectl config set-context --current --user\" "  >>  $k8s_user_home/.bashrc 
         echo "alias cdml=\"cd $k8s_user_home/mini-loop\" " >>  $k8s_user_home/.bashrc 
-        printf "# end of config added by mini-loop #\n" >> $k8s_user_home/.bashrc 
+        printf "#ML_END end of config added by mini-loop #\n" >> $k8s_user_home/.bashrc 
     else 
         printf "==> Configuration for .bashrc for %s for user %s already exists ..skipping\n" "$k8s_distro" "$k8s_user"
     fi
@@ -358,7 +382,9 @@ function delete_k8s {
             printf "** was k3s installed ?? \n" 
             printf "   if so please try running \"/usr/local/bin/k3s-uninstall.sh\" manually ** \n"
         fi
-    fi     
+    fi    
+    # remove config from user .bashrc
+    perl -i -ne 'print unless /START_ML/ .. /END_ML/'  $k8s_user_home/.bashrc
 }
 
 function check_k8s_installed { 
@@ -426,8 +452,7 @@ k8s_user_home=""
 k8s_arch=`uname -p`  # what arch
 # Set the minimum amount of RAM in GB
 MIN_RAM=8
-MIN_FREE_SPACE=80
-
+MIN_FREE_SPACE=30
 LINUX_OS_LIST=( "Ubuntu" )
 UBUNTU_OK_VERSIONS_LIST=(20 22)
 
@@ -471,8 +496,8 @@ printf "  utilities for deploying kubernetes in preparation for Mojaloop deploym
 printf "************************* << start >> *******************************************\n\n"
 
 check_arch_ok 
+verify_user
 if [[ "$mode" == "install" ]]  ; then
-    verify_user
     check_resources_ok
     set_k8s_distro
     set_k8s_version
@@ -493,7 +518,7 @@ if [[ "$mode" == "install" ]]  ; then
     printf "==> kubernetes distro:[%s] version:[%s] is now configured for user [%s] and ready for mojaloop deployment \n" \
                 "$k8s_distro" "$K8S_VERSION" "$k8s_user"
     printf "    To deploy mojaloop, please su - %s from root or login as user [%s] and then \n"  "$k8s_user" "$k8s_user"
-    printf "    please execute %s/miniloop-local-install.sh\n" "$SCRIPTS_DIR"
+    printf "    please execute %s/mojaloop-install.sh\n" "$SCRIPTS_DIR"
     print_end_message 
 elif [[ "$mode" == "delete" ]]  ; then
     delete_k8s 
