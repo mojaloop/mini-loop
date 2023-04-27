@@ -29,7 +29,6 @@ function remove_existing_kubernetes_installations {
   $SCRIPTS_DIR/k8s-install.sh -m delete -k k3s 
 }
 
-
 ################################################################################
 # Function: showUsage
 ################################################################################
@@ -54,11 +53,11 @@ SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 
 get_user
 warn_user
-#remove_existing_kubernetes_installations
+remove_existing_kubernetes_installations
 # install k3s 
-#$SCRIPTS_DIR/k8s-install.sh -m install -k k3s -v 1.25
-# install Mojaloop with bulk and 3ppi
-su - $k8s_user -c "$SCRIPTS_DIR/mojaloop-install.sh -m install_ml -o thirdparty,bulk"
+$SCRIPTS_DIR/k8s-install.sh -m install -k k3s -v 1.25
+# install Mojaloop with 3ppi
+su - $k8s_user -c "$SCRIPTS_DIR/mojaloop-install.sh -m install_ml -o thirdparty -f "
 
 
 

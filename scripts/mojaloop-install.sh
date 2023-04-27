@@ -11,14 +11,20 @@
 #  - updated to pull helm repo version 15 git clone –single-branch –branch command
 #   - add in the DNS , FQDN work as options too 
 #   - include 3ppi install as option or by default (check the work I have in the branch for this)
-#   - fix the prompt and make sure promt shows git version
 #   - test bulk
-#   - test BizOps framework 
+
 # 
 # TODO : 
 # - check delete_be : dont delete be is the ML chart exists and is running 
 # - tidy up logfile contents
 # - truncate logfiles to keep under say 500MB
+# - add and test BizOps framework 
+# - fix the prompt and make sure prompt shows git version ??
+# - might be good to add an expected pod count and report this 
+#   after adding 3PPI and bulk we seem to have gone from 40 pods to > 80 and that is without Bof
+#   => need to test minimum memory for all this
+
+
 
 
 
@@ -200,7 +206,7 @@ function repackage_mojaloop_charts {
     status=`./package.sh >> $LOGFILE 2>>$ERRFILE`
   fi 
   if [[ "$status" -eq 0  ]]; then 
-    printf " [ ok ] \n"
+    printf " [ ok 4 ] \n"
     NEED_TO_REPACKAGE="false"
   else
     printf " [ failed ] \n"
@@ -229,7 +235,7 @@ function delete_be {
   pvc_exists=`kubectl get pvc --namespace "$NAMESPACE" 2>>$ERRFILE | grep $BE_RELEASE_NAME`
   if [ -z "$pvc_exists" ]; then
     #TODO check that the backend pods are actually gone along with the pv and pvc's 
-    printf " [ ok ] \n"
+    printf " [ ok 5] \n"
   else
     printf "** Error: the backend services such as database kafka etc  may not have been deleted cleanly  \n" 
     printf "   please try running the delete again or use helm and kubectl to remove manually  \n"
@@ -299,7 +305,7 @@ function delete_mojaloop_helm_chart {
   if [ ! -z $ml_exists ] && [ "$ml_exists" == "$ML_RELEASE_NAME" ]; then 
     helm delete $ML_RELEASE_NAME --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
     if [[ $? -eq 0  ]]; then 
-      printf " [ ok ] \n"
+      printf " [ ok 1 ] \n"
     else
       printf "\n** Error: helm delete possibly failed \n" "$ML_RELEASE_NAME"
       printf "   run helm delete %s manually   \n" $ML_RELEASE_NAME
