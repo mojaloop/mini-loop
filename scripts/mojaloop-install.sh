@@ -136,7 +136,7 @@ function clone_mojaloop_helm_repo {
   fi 
   if [ ! -d $HOME/helm ]; then 
     git clone https://github.com/mojaloop/helm.git --branch $MOJALOOP_BRANCH --single-branch $HOME/helm >> $LOGFILE 2>>$ERRFILE
-    NEED_TO_REPACKAGE="all"
+    NEED_TO_REPACKAGE="true"
     printf " [ done ] \n"
   else 
     printf "\n    ** INFO: helm repo is not cloned as there is an existing $HOME/helm directory\n"
@@ -181,14 +181,13 @@ function modify_local_mojaloop_helm_charts {
       printf " [ failed ] \n"
       exit 1 
   fi 
-
   # set the repackage scope depending on what gets configured in the values files
   if [[ $MOJALOOP_CONFIGURE_FLAGS_STR == *"--domain_name"* ]]; then
-    NEED_TO_REPACKAGE="all"
+    NEED_TO_REPACKAGE="true"
   else
     # Check if MOJALOOP_CONFIGURE_FLAGS_STR contains "thirdparty" or "bulk"
     if [[ $MOJALOOP_CONFIGURE_FLAGS_STR == *"thirdparty"* || $MOJALOOP_CONFIGURE_FLAGS_STR == *"bulk"* ]]; then
-      NEED_TO_REPACKAGE="mojaloop_only"
+      NEED_TO_REPACKAGE="true"
     fi
   fi
 }
@@ -196,16 +195,13 @@ function modify_local_mojaloop_helm_charts {
 function repackage_mojaloop_charts {
   current_dir=`pwd`
   cd $HOME/helm
-  if [[ "$NEED_TO_REPACKAGE" == "all" ]]; then 
+  if [[ "$NEED_TO_REPACKAGE" == "true" ]]; then 
     printf "==> running repackage of the all the Mojaloop helm charts to incorporate local configuration "
     status=`./package.sh >> $LOGFILE 2>>$ERRFILE`
-  elif [[ "$NEED_TO_REPACKAGE" == "mojaloop_only" ]]; then  
-    printf "==> running repackage of the top-level Mojaloop helm chart to incorporate local configuration "
-    status=`./package.sh mojaloop >> $LOGFILE 2>>$ERRFILE`
   fi 
   if [[ "$status" -eq 0  ]]; then 
     printf " [ ok ] \n"
-    NEED_TO_REPACKAGE="none"
+    NEED_TO_REPACKAGE="false"
   else
     printf " [ failed ] \n"
     printf "** please try running $HOME/helm/package.sh manually to determine the problem **  \n" 
@@ -410,7 +406,7 @@ k8s_version=""
 K8S_CURRENT_RELEASE_LIST=( "1.24" "1.25" "1.26" )
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 ETC_DIR="$( cd $(dirname "$0")/../etc ; pwd )"
-NEED_TO_REPACKAGE="none"
+NEED_TO_REPACKAGE="false"
 EXTERNAL_ENDPOINTS_LIST=(ml-api-adapter.local central-ledger.local quoting-service.local transaction-request-service.local moja-simulator.local ) 
 export MOJALOOP_CONFIGURE_FLAGS_STR=" -d $HOME/helm " 
 

@@ -9,7 +9,7 @@
 # Updates for release notes 
 # - clean ups : remove support for OS other than Ubuntu 
 # - updated helm to 3.11.1 
-# - updated kubernetes to 1.24 -> 1.26
+# - updated kubernetes to 1.25 -> 1.26
 # - added in bulk and 3ppi 
 # - added facility for choosing DNS name 
 
@@ -17,7 +17,7 @@
 #   - add in the DNS , FQDN work as options too 
 #   - fix the prompt and make sure promt shows git version
 #   - test bulk
-#   - check if we need all the full lis of hosts in the /etc/hosts to ensure TTK works ok 
+#   
 # 
 
 # TODO in the future : add command line params to enable selection of which ML release etc 
@@ -59,6 +59,11 @@ function check_resources_ok {
         printf "    mini-loop installation will continue , but beware it might fail later due to insufficient storage \n"
     fi
 } 
+
+function set_user {
+  # set the k8s_user 
+  k8s_user=`who am i | cut -d " " -f1`
+}
 
 function k8s_already_installed {  
     if [[ -f "/usr/local/bin/k3s" ]]; then 
@@ -419,15 +424,14 @@ function showUsage {
 		exit 1
 	else
 echo  "USAGE: $0 -m [mode] -u [user] -v [k8 version] -k [distro] [-f] 
-Example 1 : k8s-install-current.sh -m install -u ubuntu -v 1.24 # install k8s k3s version 1.24
-Example 2 : k8s-install-current.sh -m delete -u ubuntu -v 1.26 # delete  k8s microk8s version 1.26
-Example 3 : k8s-install-current.sh -m install -k microk8s -u ubuntu -v 1.26 # install k8s microk8s distro version 1.26
+Example 1 : k8s-install-current.sh -m install -v 1.25 # install k8s k3s version 1.24
+Example 2 : k8s-install-current.sh -m delete  -v 1.26 # delete  k8s microk8s version 1.26
+Example 3 : k8s-install-current.sh -m install -k microk8s -v 1.26 # install k8s microk8s distro version 1.26
 
 Options:
 -m mode ............... install|delete (-m is required)
 -k kubernetes distro... microk8s|k3s (default=k3s as it installs across multiple linux distros)
 -v k8s version ........ 1.24|1.25|1.26 i.e. current k8s releases at time if this mini-loop release
--u user ............... (-u is required) non root user to run helm and k8s commands and to own mojaloop deployment
 -h|H .................. display this message
 "
 	fi
@@ -447,7 +451,7 @@ MINILOOP_VERSION="5.0"
 
 HELM_VERSION="3.11.1"  # Feb 2023 
 OS_VERSIONS_LIST=( 20 22 ) 
-K8S_CURRENT_RELEASE_LIST=( "1.24" "1.25" "1.26" )
+K8S_CURRENT_RELEASE_LIST=( "1.25" "1.26" )
 CURRENT_RELEASE="false"
 k8s_user_home=""
 k8s_arch=`uname -p`  # what arch
@@ -478,8 +482,8 @@ while getopts "m:k:v:u:hH" OPTION ; do
         k)      k8s_distro="${OPTARG}"
         ;;
         v)	    k8s_user_version="${OPTARG}"
-        ;;
-        u)      k8s_user="${OPTARG}"
+        # ;;
+        # u)      k8s_user="${OPTARG}"
         ;;
         h|H)	showUsage
                 exit 0
@@ -497,7 +501,9 @@ printf "  utilities for deploying kubernetes in preparation for Mojaloop deploym
 printf "************************* << start >> *******************************************\n\n"
 
 check_arch_ok 
+set_user
 verify_user
+
 if [[ "$mode" == "install" ]]  ; then
     check_resources_ok
     set_k8s_distro
