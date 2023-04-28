@@ -23,10 +23,25 @@
 # - might be good to add an expected pod count and report this 
 #   after adding 3PPI and bulk we seem to have gone from 40 pods to > 80 and that is without Bof
 #   => need to test minimum memory for all this
+#  - tidy up the error exit of the script by creating an error_exit function that takes a string (msg) param
+#    this way the program exits always through the same point and I can print out stats etc 
+#  - Issue: if we deploy with -o and then come and redeploy without -f or -o then thirdparty and bulk will again be delpoyed 
+#           and this might not be intended <=== this needs checking and fixing
 
 
+timer() {
+  start=$1
+  stop=$2
+  elapsed=$((stop - start))
+  echo $elapsed
+}
+record_memory_use () { 
+  # record the memory use desribed by when the memory was measured 
+  mem_when=$1
+  total_mem=$(free -m | awk 'NR==2{printf "%.2fGB      | %.2fGB    | %.2f%%", $3/1024, $4/1024, $3*100/($3+$4)}')
+  memstats_array["$mem_when"]="$total_mem"
 
-
+}
 
 function check_arch {
   ## check architecture Mojaloop deploys on x64 only today arm is coming  
@@ -202,18 +217,23 @@ function repackage_mojaloop_charts {
   current_dir=`pwd`
   cd $HOME/helm
   if [[ "$NEED_TO_REPACKAGE" == "true" ]]; then 
+    tstart=$(date +%s)
     printf "==> running repackage of the all the Mojaloop helm charts to incorporate local configuration "
     status=`./package.sh >> $LOGFILE 2>>$ERRFILE`
+    tstop=$(date +%s)
+    telapsed=$(timer $tstart $tstop)
+    timer_array[repackage_ml]=$telapsed
+    if [[ "$status" -eq 0  ]]; then 
+      printf " [ ok 4 ] \n"
+      NEED_TO_REPACKAGE="false"
+    else
+      printf " [ failed ] \n"
+      printf "** please try running $HOME/helm/package.sh manually to determine the problem **  \n" 
+      cd $current_dir
+      exit 1
+    fi  
   fi 
-  if [[ "$status" -eq 0  ]]; then 
-    printf " [ ok 4 ] \n"
-    NEED_TO_REPACKAGE="false"
-  else
-    printf " [ failed ] \n"
-    printf "** please try running $HOME/helm/package.sh manually to determine the problem **  \n" 
-    cd $current_dir
-    exit 1
-  fi   
+ 
   cd $current_dir
 }
 
@@ -251,10 +271,14 @@ function install_be {
   be_exists=`helm ls  --namespace $NAMESPACE | grep $BE_RELEASE_NAME | cut -d " " -f1`
   # deploy the mojaloop example backend chart
   printf "==> deploying mojaloop example backend services helm chart , waiting upto 300s for it to be ready  \n"
+  tstart=$(date +%s)
   printf "    helm install $BE_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/helm/example-mojaloop-backend\n"
   helm install $BE_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/helm/example-mojaloop-backend >> $LOGFILE 2>>$ERRFILE
   if [[ `helm status $BE_RELEASE_NAME --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
     printf "==> [%s] deployed sucessfully \n" "$BE_RELEASE_NAME"
+    tstop=$(date +%s)
+    telapsed=$(timer $tstart $tstop)
+    timer_array[helm_install_be]=$telapsed
   else 
       printf " ** Error backend services, mysql, kafka etc have *NOT* been deployed \n" 
       exit 1 
@@ -274,10 +298,13 @@ function install_mojaloop_from_local {
   # install the chart
   printf  "==> deploy Mojaloop %s helm chart and wait for upto %s  secs for it to be ready \n" "$ML_RELEASE_NAME" "$TIMEOUT_SECS"
   printf  "    executing helm install $ML_RELEASE_NAME --wait --timeout $TIMEOUT_SECS $HOME/helm/mojaloop  \n "
+  tstart=$(date +%s)
   helm install $ML_RELEASE_NAME --wait --timeout $TIMEOUT_SECS  --namespace "$NAMESPACE" $HOME/helm/mojaloop  >> $LOGFILE 2>>$ERRFILE
-
+  tstop=$(date +%s)
+  telapsed=$(timer $tstart $tstop)
   if [[ `helm status $ML_RELEASE_NAME  --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
     printf "   helm release [%s] deployed ok  \n" "$ML_RELEASE_NAME"
+    timer_array[helm_install_ml]=$telapsed
   else 
     printf "** Error: %s helm chart deployment failed \n" "$ML_RELEASE_NAME"
     printf "   Possible reasons include : - \n"
@@ -332,6 +359,35 @@ function check_mojaloop_health {
     sleep 2 
   done 
 }
+
+function print_stats {
+  # print out all the elapsed times in the timer_array
+  printf "\n********* mini-loop stats *******************************\n"
+  pods_num=`kubectl get pods | grep -v "^NAME" | grep Running | wc -l`
+  printf "Number of pods running [%s] \n" "$pods_num"
+  #helm list --filter $RELEASE_NAME -q | xargs -I {} kubectl get pods -l "app.kubernetes.io/instance={}" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+  echo "major processing times :"
+  for key in "${!timer_array[@]}"; do
+    echo "    $key: ${timer_array[$key]} seconds"
+  done
+  total_system_mem=$(grep MemTotal /proc/meminfo | awk '{print $2/1024/1024 " GB"}')
+  echo 
+  echo "Total system memory: $total_system_mem"
+  echo "When          | RAM used    | RAM free  | RAM used % "
+  echo "-----------------------------------------------------"
+  #date=$(date '+%Y-%m-%d %H:%M:%S')
+  # Get system memory 
+  total_mem=$(free -m | awk 'NR==2{printf "%.2fGB      | %.2fGB    | %.2f%%", $3/1024, $4/1024, $3*100/($3+$4)}')
+  #printf "\n%-14s| %s\n" "$date" "$total_mem"
+
+  record_memory_use "at_end"
+  for key in "${!memstats_array[@]}"; do
+    #echo "$key ${memstats_array[$key]} "
+    printf "%-14s| %s\n" "$key" "${memstats_array[$key]}"
+  done
+  printf "\n************ mini-loop stats ******************************\n"
+}
+
 
 function print_end_banner {
   printf "\n\n****************************************************************************************\n"
@@ -415,6 +471,10 @@ ETC_DIR="$( cd $(dirname "$0")/../etc ; pwd )"
 NEED_TO_REPACKAGE="false"
 EXTERNAL_ENDPOINTS_LIST=(ml-api-adapter.local central-ledger.local quoting-service.local transaction-request-service.local moja-simulator.local ) 
 export MOJALOOP_CONFIGURE_FLAGS_STR=" -d $HOME/helm " 
+declare -A timer_array
+declare -A memstats_array
+record_memory_use "at_start"
+
 
 # Process command line options as required
 while getopts "fd:t:n:m:o:l:hH" OPTION ; do
@@ -458,22 +518,14 @@ set_k8s_version
 set_mojaloop_timeout
 printf "\n"
 
-# if [[ "$mode" == "install_ml" ]]; then
-#   configure_optional_modules
-#   modify_local_mojaloop_helm_charts
-# fi 
-# exit 1
-
-# Start timer
-start=$(date +%s.%N)
-
 if [[ "$mode" == "install_be" ]]; then
-  start_timer=$(date +%s.%N)
+  tstart=$(date +%s)
   clone_mojaloop_helm_repo
   install_be
-  end_timer=$(date +%s.%N)
-  timer=$(echo "$end_timer - $start_timer" | bc)
-  printf "    elapsed time: [%s] seconds " "$timer" 
+  tstop=$(date +%s)
+  telapsed=$(timer $tstart $tstop)
+  timer_array[install_be]=$telapsed
+  print_stats
   print_end_banner
 elif [[ "$mode" == "delete_be" ]]; then
   delete_be
@@ -482,18 +534,20 @@ elif [[ "$mode" == "delete_ml" ]]; then
   delete_mojaloop_helm_chart
   print_end_banner
 elif [[ "$mode" == "install_ml" ]]; then
-  start_timer=$(date +%s.%N)
+  tstart=$(date +%s)
   clone_mojaloop_helm_repo
   configure_optional_modules
   modify_local_mojaloop_helm_charts
   install_mojaloop_from_local
   check_mojaloop_health
-  end_timer=$(date +%s.%N)
-  timer=$(echo "$end_timer - $start_timer" | bc)
-  printf "    install_ml elapsed time: [%s] seconds \n" "$timer"
+  tstop=$(date +%s)
+  telapsed=$(timer $tstart $tstop)
+  timer_array[install_ml]=$telapsed
+  print_stats
   print_success_message 
 elif [[ "$mode" == "check_ml" ]]; then
   check_mojaloop_health
+  print_end_banner
 else 
   printf "** Error : wrong value for -m ** \n\n"
   showUsage
