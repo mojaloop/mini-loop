@@ -231,7 +231,7 @@ function repackage_mojaloop_charts {
     telapsed=$(timer $tstart $tstop)
     timer_array[repackage_ml]=$telapsed
     if [[ "$status" -eq 0  ]]; then 
-      printf " [ ok 4 ] \n"
+      printf " [ ok ] \n"
       NEED_TO_REPACKAGE="false"
     else
       printf " [ failed ] \n"
@@ -476,7 +476,7 @@ TIMEOUT_SECS=0
 DEFAULT_NAMESPACE="default"
 k8s_distro=""
 k8s_version=""
-K8S_CURRENT_RELEASE_LIST=( "1.25" "1.26" )
+K8S_CURRENT_RELEASE_LIST=( "1.26" "1.27" )
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 ETC_DIR="$( cd $(dirname "$0")/../etc ; pwd )"
 NEED_TO_REPACKAGE="false"
@@ -559,7 +559,6 @@ elif [[ "$mode" == "install_ml" ]]; then
   print_success_message 
 elif [[ "$mode" == "check_ml" ]]; then
   check_mojaloop_health
-  print_stats
   print_end_banner
 else 
   printf "** Error : wrong value for -m ** \n\n"

@@ -66,7 +66,7 @@ get_user
 warn_user
 remove_existing_kubernetes_installations
 # install k3s 
-$SCRIPTS_DIR/k8s-install.sh -m install -k k3s -v 1.25
+$SCRIPTS_DIR/k8s-install.sh -m install -k k3s -v 1.27
 # install Mojaloop with 3ppi
 su - $k8s_user -c "$SCRIPTS_DIR/mojaloop-install.sh -m install_ml -o thirdparty -f "
 

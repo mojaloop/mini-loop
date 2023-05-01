@@ -451,7 +451,7 @@ MINILOOP_VERSION="5.0"
 
 HELM_VERSION="3.11.1"  # Feb 2023 
 OS_VERSIONS_LIST=( 20 22 ) 
-K8S_CURRENT_RELEASE_LIST=( "1.25" "1.26" )
+K8S_CURRENT_RELEASE_LIST=( "1.26" "1.27" )
 CURRENT_RELEASE="false"
 k8s_user_home=""
 k8s_arch=`uname -p`  # what arch

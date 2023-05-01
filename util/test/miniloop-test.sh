@@ -107,7 +107,7 @@ Options:
 ##
 SCRIPTS_DIR="$( cd $(dirname "$0")/../../scripts ; pwd )"
 K8S_VERSION="" 
-K8S_CURRENT_RELEASE_LIST=( "1.25" "1.26" )
+K8S_CURRENT_RELEASE_LIST=( "1.26" "1.27" )
 LOGFILE_BASE_NAME="ml_test"
 k8s_user=""
 
