@@ -15,7 +15,18 @@ function get_user {
 }
 
 function warn_user {
-  echo "WARNING: This script will remove any existing kubernetes k3s or Microk8s installation."
+  echo " **********************  WARNING:  ***********************************"
+  echo " This script will remove any existing kubernetes k3s or Microk8s installation."
+  printf "\n** Notice and Caution ** \n"
+  printf "        mini-loop will deploy mojaloop switch to use for  :-\n"
+  printf "            - trial \n"
+  printf "            - general testing of Mojaloop and its kubernetes environment\n"
+  printf "            - integration work and testing to assist DFSPs integrate with Mojaloop core services \n"
+  printf "            - education and demonstration by DFSPs, SIs and more\n"
+  printf "            - development (including development of Mojaloop core )\n"
+  printf "        To be clear: Mojaloop itself is designed to be robust and secure and can be deployed securely \n"
+  printf "        This mini-loop install is not implementing security nor high availablity it is about simplicty and cost savings  \n"
+  printf "        please see : https://mojaloop.io/ for more information, resources and online training\n"
   echo "Are you sure you want to continue? [y/N]"
   read response
   if [[ ! "$response" =~ ^[Yy]$ ]]; then

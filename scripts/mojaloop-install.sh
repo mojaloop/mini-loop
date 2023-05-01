@@ -10,7 +10,7 @@
 # Updates : Feb 2023 for Mojaloop v15  
 #  - updated to pull helm repo version 15 git clone –single-branch –branch command
 #   - add in the DNS , FQDN work as options too 
-#   - include 3ppi install as option or by default (check the work I have in the branch for this)
+#   - include 3ppi and bulk install as option
 #   - test bulk
 
 # 
@@ -25,7 +25,7 @@
 #   => need to test minimum memory for all this
 #  - tidy up the error exit of the script by creating an error_exit function that takes a string (msg) param
 #    this way the program exits always through the same point and I can print out stats etc 
-#  - Issue: if we deploy with -o and then come and redeploy without -f or -o then thirdparty and bulk will again be delpoyed 
+#  - Issue: if we deploy with -o and then come and redeploy without -f or -o then thirdparty and bulk will again be deployed 
 #           and this might not be intended <=== this needs checking and fixing
 
 
@@ -173,13 +173,16 @@ function configure_optional_modules {
   #   printf "           $0 -m config_ml -o thirdparty,bulk \n"
   #   exit 1 
   # fi 
+  ram_warning="false"
   for mode in $(echo $install_opt | sed "s/,/ /g"); do
     case $mode in
       bulk)
         MOJALOOP_CONFIGURE_FLAGS_STR+="--bulk "
+        ram_warning="true"
         ;;
       thirdparty)
         MOJALOOP_CONFIGURE_FLAGS_STR+="--thirdparty "
+        ram_warning="true"
         ;;
       *)
           printf " ** Error: specifying -o option   \n"
@@ -188,6 +191,10 @@ function configure_optional_modules {
         ;;
     esac
   done 
+  if [[ "$ram_warning" == "true" ]]; then 
+    printf "    ** WARNING: enabling thirdpary and or bulk seems to require considerable additional ram \n"
+    printf "    currently it looks like 16GB is ok for either one but > 16GB for both   **\n"
+  fi 
 }
 
 function modify_local_mojaloop_helm_charts {
@@ -255,7 +262,7 @@ function delete_be {
   pvc_exists=`kubectl get pvc --namespace "$NAMESPACE" 2>>$ERRFILE | grep $BE_RELEASE_NAME`
   if [ -z "$pvc_exists" ]; then
     #TODO check that the backend pods are actually gone along with the pv and pvc's 
-    printf " [ ok 5] \n"
+    printf " [ ok ] \n"
   else
     printf "** Error: the backend services such as database kafka etc  may not have been deleted cleanly  \n" 
     printf "   please try running the delete again or use helm and kubectl to remove manually  \n"
@@ -332,7 +339,7 @@ function delete_mojaloop_helm_chart {
   if [ ! -z $ml_exists ] && [ "$ml_exists" == "$ML_RELEASE_NAME" ]; then 
     helm delete $ML_RELEASE_NAME --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
     if [[ $? -eq 0  ]]; then 
-      printf " [ ok 1 ] \n"
+      printf " [ ok ] \n"
     else
       printf "\n** Error: helm delete possibly failed \n" "$ML_RELEASE_NAME"
       printf "   run helm delete %s manually   \n" $ML_RELEASE_NAME
@@ -363,6 +370,9 @@ function check_mojaloop_health {
 function print_stats {
   # print out all the elapsed times in the timer_array
   printf "\n********* mini-loop stats *******************************\n"
+  printf "kubernetes distro:version  [%s]:[%s] \n" "$k8s_distro" "$k8s_version"
+
+  printf "installation options [%s] \n" "$install_opt"
   pods_num=`kubectl get pods | grep -v "^NAME" | grep Running | wc -l`
   printf "Number of pods running [%s] \n" "$pods_num"
   #helm list --filter $RELEASE_NAME -q | xargs -I {} kubectl get pods -l "app.kubernetes.io/instance={}" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
@@ -390,9 +400,10 @@ function print_stats {
 
 
 function print_end_banner {
-  printf "\n\n****************************************************************************************\n"
+  date=$(date +"%d-%B-%Y %H:%M")
+  printf "\n\n********************* [%s] *********************************************\n" "$date"
   printf "            -- mini-loop Mojaloop local install utility -- \n"
-  printf "********************* << END >> ********************************************************\n\n"
+  printf "*********************  << END >> ********************************************************\n\n" 
 }
 
 function print_success_message { 
@@ -465,7 +476,7 @@ TIMEOUT_SECS=0
 DEFAULT_NAMESPACE="default"
 k8s_distro=""
 k8s_version=""
-K8S_CURRENT_RELEASE_LIST=( "1.24" "1.25" "1.26" )
+K8S_CURRENT_RELEASE_LIST=( "1.25" "1.26" )
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 ETC_DIR="$( cd $(dirname "$0")/../etc ; pwd )"
 NEED_TO_REPACKAGE="false"
@@ -503,9 +514,10 @@ while getopts "fd:t:n:m:o:l:hH" OPTION ; do
     esac
 done
 
-printf "\n\n****************************************************************************************\n"
+date=$(date +"%d-%B-%Y %H:%M")
+printf "\n\n******************* [%s] **********************************************\n"  "$date"
 printf "            -- mini-loop Mojaloop local install utility -- \n"
-printf " utilities for deploying local Mojaloop helm chart for kubernetes 1.22+  \n"
+printf "   utilities for deploying local Mojaloop helm chart(s) for kubernetes   \n"
 printf "********************* << START  >> *****************************************************\n\n"
 check_arch
 check_user
@@ -547,6 +559,7 @@ elif [[ "$mode" == "install_ml" ]]; then
   print_success_message 
 elif [[ "$mode" == "check_ml" ]]; then
   check_mojaloop_health
+  print_stats
   print_end_banner
 else 
   printf "** Error : wrong value for -m ** \n\n"

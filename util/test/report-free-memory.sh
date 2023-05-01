@@ -20,7 +20,7 @@
 
 #=======================
 
-sleep_time=30
+sleep_time=3
 
 
 
@@ -37,14 +37,14 @@ while true; do
     # Print the total memory usage
     printf "%-14s| %s\n" "$date" "$total_mem"
 
-    # Get top 5 memory-consuming processes
-    top_processes=$(ps -eo pid,pmem,comm --sort=-pmem | awk -v meminfo="$meminfo" 'BEGIN{OFS=":"}{if(NR<=6) {memory_used=$2/100*meminfo; printf "%-12s| %-22s| %.2fGB\n",$1,$3,memory_used}}')
+    # # Get top 5 memory-consuming processes
+    # top_processes=$(ps -eo pid,pmem,comm --sort=-pmem | awk -v meminfo="$meminfo" 'BEGIN{OFS=":"}{if(NR<=6) {memory_used=$2/100*meminfo; printf "%-12s| %-22s| %.2fGB\n",$1,$3,memory_used}}')
 
-    # Print the top 5 memory-consuming processes
-    echo " "
-    echo "Process ID  | Process Name          | Memory Used"
-    echo "-------------------------------------------------"
-    echo "$top_processes"
+    # # Print the top 5 memory-consuming processes
+    # echo " "
+    # echo "Process ID  | Process Name          | Memory Used"
+    # echo "-------------------------------------------------"
+    # echo "$top_processes"
 
     sleep $sleep_time
 done
