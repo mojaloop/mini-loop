@@ -45,8 +45,9 @@ function test_k8s_releases {
 
   # test k8s releases 
   for i in "${K8S_CURRENT_RELEASE_LIST[@]}"; do
-    logfile="$log_base$log_numb"
-    printf "miniloop-test>> processing kubernetes distro [%s] version [v%s] and using logfile [%s]\n" \
+    logfile="$log_base"_"$k8s"_"$log_numb"
+    printf "###################################################################################################\n"
+    printf "start_miniloop-test>>  processing kubernetes distro [%s] version [v%s] and using logfile [%s]\n" \
              "$k8s" "$i" "$logfile"
 
     $SCRIPTS_DIR/k8s-install.sh -m delete -k $k8s
@@ -67,6 +68,9 @@ function test_k8s_releases {
         su - $k8s_user -c "helm test ml --logs" >> $logfile 2>&1
     fi 
     ((log_numb=log_numb+1))
+    printf "end_miniloop-test>> processing kubernetes distro [%s] version [v%s] and using logfile [%s]\n" \
+             "$k8s" "$i" "$logfile"
+    printf "###################################################################################################\n"
   done
   
 }
@@ -143,12 +147,12 @@ set_k8s_distro
 if [[ "$mode" == "test_ml" ]]; then 
   if [[ $k8s_distro == "k3s" ]] || [[ $k8s_distro == "both" ]]; then 
     # delete any installed microk8s before we start 
-    $SCRIPTS_DIR/k8s-install.sh -m delete -k microk8s 
+    $SCRIPTS_DIR/k8s-install.sh -m delete -k microk8s > /dev/null 2>&1
     test_k8s_releases "$k8s_user" "$LOGFILE_BASE_NAME" "k3s"
   fi 
   if [[ $k8s_distro == "microk8s" ]] || [[ $k8s_distro == "both" ]]; then
     # delete any installed k3s before we start  
-    $SCRIPTS_DIR/k8s-install.sh -m delete -k k3s 
+    $SCRIPTS_DIR/k8s-install.sh -m delete -k k3s  > /dev/null 2>&1
     test_k8s_releases "$k8s_user" "$LOGFILE_BASE_NAME" "microk8s"
   fi 
 

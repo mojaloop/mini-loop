@@ -279,7 +279,7 @@ function install_be {
   # deploy the mojaloop example backend chart
   printf "==> deploying mojaloop example backend services helm chart , waiting upto 300s for it to be ready  \n"
   tstart=$(date +%s)
-  printf "    helm install $BE_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/helm/example-mojaloop-backend\n"
+  printf "    helm install $BE_RELEASE_NAME --wait --timeout 600s --namespace "$NAMESPACE" $HOME/helm/example-mojaloop-backend\n"
   helm install $BE_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/helm/example-mojaloop-backend >> $LOGFILE 2>>$ERRFILE
   if [[ `helm status $BE_RELEASE_NAME --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
     printf "==> [%s] deployed sucessfully \n" "$BE_RELEASE_NAME"
