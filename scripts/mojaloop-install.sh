@@ -15,14 +15,10 @@
 
 # 
 # TODO : 
-# - check delete_be : dont delete be is the ML chart exists and is running 
 # - tidy up logfile contents
 # - truncate logfiles to keep under say 500MB
 # - add and test BizOps framework 
 # - fix the prompt and make sure prompt shows git version ??
-# - might be good to add an expected pod count and report this 
-#   after adding 3PPI and bulk we seem to have gone from 40 pods to > 80 and that is without Bof
-#   => need to test minimum memory for all this
 #  - tidy up the error exit of the script by creating an error_exit function that takes a string (msg) param
 #    this way the program exits always through the same point and I can print out stats etc 
 #  - Issue: if we deploy with -o and then come and redeploy without -f or -o then thirdparty and bulk will again be deployed 
