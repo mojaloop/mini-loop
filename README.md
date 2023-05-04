@@ -75,7 +75,7 @@ For a good overview of the Testing Toolkit functionality please see the video (h
 - root user or sudo access
 - non-root user (with bash shell)
 - git installed (usually installed by default on Ubuntu 20 or 22) 
-- min 8GB ram available  (current testing suggests 16 GB if deploying 3PPI and Bulk options) 
+- min 8GB ram available  (current testing suggests 16 GB is needed if deploying 3PPI and Bulk options 8 is fine otherwise ) 
 - min 64GB storage available
 - broadband internet connection from the ubuntu OS (for downloading helm charts and container images )
 
@@ -112,7 +112,7 @@ For a good overview of the Testing Toolkit functionality please see the video (h
 4. added the -o option to allowed the deployment and configuration of 3PPI and Bulk Mojaloop charts
 5. added a statics section for the deployment, reporting memory usage, deployment times and a few other basic stats.
 6. updated the utils/test/miniloop-test.sh script to run mini-loop in a "loop". This is the start of CI/CD tools that are aimed at reducing cloud costs for Mojaloop operators and developers.
-7. added memory and dick checks to make sure that there is enough memory and disk available for Mojaloop it is currently set at 8GB Ram , this is a case of trying to "fail fast" , the alternative is confusion 
+7. added memory and disk space checks to make sure that there is enough memory and disk available for Mojaloop,  it is currently set at 8GB Ram , this is a case of trying to "fail fast" , the alternative is confusion as kubernetes tries and fails to fit all pods into insufficient memory. 
 
 ## Notable changes in mini-loop v4.1
 - dropped support for out of date kubernetes versions. mini-loop version 4.1 only allows use of kubernetes 1.24
