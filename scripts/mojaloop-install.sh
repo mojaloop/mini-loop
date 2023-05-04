@@ -134,8 +134,8 @@ function set_and_create_namespace {
 function set_logfiles {
   # set the logfiles
   if [ ! -z ${logfiles+x} ]; then 
-    LOGFILE="/tmp/$logfiles.log"
-    ERRFILE="/tmp/$logfiles.err"
+    LOGFILE="$logfiles.log"
+    ERRFILE="$logfiles.err"
     echo $LOGFILE
     echo $ERRFILE
   fi 

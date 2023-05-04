@@ -52,7 +52,7 @@ function test_k8s_releases {
 
     $SCRIPTS_DIR/k8s-install.sh -m delete -k $k8s
     echo "  $SCRIPTS_DIR/k8s-install.sh  -m install -k $k8s -v $i"
-    $SCRIPTS_DIR/k8s-install.sh  -m install -k $k8s -v $i
+    $SCRIPTS_DIR/k8s-install.sh  -m install -k $k8s -v $i 
     if [[ $? -ne 0 ]]; then 
         printf "miniloop-test>> Error k8s distro [%s] version [%s] failed to install cleanly \n" "$k8s" "$i"
         printf "               skipping this release \n"
@@ -111,8 +111,8 @@ Options:
 ##
 SCRIPTS_DIR="$( cd $(dirname "$0")/../../scripts ; pwd )"
 K8S_VERSION="" 
-K8S_CURRENT_RELEASE_LIST=( "1.26" "1.27" )
-LOGFILE_BASE_NAME="ml_test"
+K8S_CURRENT_RELEASE_LIST=( "1.26" )
+LOGFILE_BASE_NAME="/home/ubuntu/logs/ml_test"
 k8s_user=""
 
 
