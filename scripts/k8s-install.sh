@@ -7,16 +7,11 @@
 
 
 # Updates for release notes 
-# - clean ups : remove support for OS other than Ubuntu 
-# - updated helm to 3.11.1 
-# - updated kubernetes to 1.25 -> 1.26
-# - added in bulk and 3ppi 
-# - added facility for choosing DNS name 
+# - updated helm to 3.12.0 
+# - updated kubernetes to 1.26 and 1.27 
 
-# todo for update : 
-#   - add in the DNS , FQDN work as options too 
-#   - fix the prompt and make sure promt shows git version
-#   - test bulk
+# todo for vNext: 
+#
 #   
 # 
 
@@ -36,7 +31,7 @@ function check_pi {
 
 function check_arch_ok {
     if [[ ! "$k8s_arch" == "x86_64" ]]; then 
-        printf " **** Warning : mini-loop only works properly with x86_64 today *****\n"
+        printf " **** Warning : mini-loop only works properly with x86_64 today but vNext should be ok *****\n"
     fi
 } 
 
@@ -260,7 +255,7 @@ function do_k3s_install {
     if [[ "$k8s_arch" == "x86_64" ]]; then 
         helm_arch_str="amd64"
     elif [[ "$k8s_arch" == "aarch64" ]]; then 
-        helm_arch_str="arm"
+        helm_arch_str="arm64"
     else 
         printf "** Error:  architecture not recognised as x86_64 or arm64  ** \n"
         exit 1
@@ -269,7 +264,7 @@ function do_k3s_install {
     curl -L -s -o /tmp/helm.tar.gz https://get.helm.sh/helm-v$HELM_VERSION-linux-$helm_arch_str.tar.gz
     gzip -d /tmp/helm.tar.gz 
     tar xf  /tmp/helm.tar -C /tmp
-    mv /tmp/linux-amd64/helm /usr/local/bin  
+    mv /tmp/linux-$helm_arch_str/helm /usr/local/bin  
     rm -rf /tmp/linux-$helm_arch_str
     /usr/local/bin/helm version > /dev/null 2>&1
     if [[ $? -eq 0 ]]; then 
@@ -447,9 +442,9 @@ SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 
 DEFAULT_K8S_DISTRO="k3s"   # default to microk8s as this is what is in the mojaloop linux deploy docs.
 K8S_VERSION="" 
-MINILOOP_VERSION="5.0"
+MINILOOP_VERSION="vNext"
 
-HELM_VERSION="3.11.1"  # Feb 2023 
+HELM_VERSION="3.12.0"  # Feb 2023 
 OS_VERSIONS_LIST=( 20 22 ) 
 K8S_CURRENT_RELEASE_LIST=( "1.26" "1.27" )
 CURRENT_RELEASE="false"
