@@ -54,8 +54,8 @@ function check_resources_ok {
     fi
     # Check free space 
         if [[  "$free_space" -lt "$MIN_FREE_SPACE" ]] ; then
-        printf " ** Warning : mini-loop currently requires %s GBs free storage in %s home directory  \n" "$k8s_user"
-        printf "    but only found %s GBs free storage \n"  "$free_space"
+        printf " ** Warning : mini-loop currently requires %sGBs free storage in %s home directory  \n"  "$MIN_FREE_SPACE" "$k8s_user"
+        printf "    but only found %sGBs free storage \n"  "$free_space"
         printf "    mini-loop installation will continue , but beware it might fail later due to insufficient storage \n"
     fi
 } 
@@ -456,7 +456,7 @@ CURRENT_RELEASE="false"
 k8s_user_home=""
 k8s_arch=`uname -p`  # what arch
 # Set the minimum amount of RAM in GB
-MIN_RAM=8
+MIN_RAM=4
 MIN_FREE_SPACE=30
 LINUX_OS_LIST=( "Ubuntu" )
 UBUNTU_OK_VERSIONS_LIST=(20 22)
