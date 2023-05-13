@@ -25,12 +25,11 @@ record_memory_use () {
 
 function check_arch {
   ## check architecture Mojaloop deploys on x64 only today arm is coming  
-  arch=`uname -p`
-  if [[ ! "$arch" == "x86_64" ]]; then 
-    printf " ** Error: Mojaloop is only running on x86_64 today and not yet running on ARM cpus \n"
-    printf "    please see https://github.com/mojaloop/project/issues/2317 for ARM status \n"
+  ARCH=$(uname -m)
+  if [[ "$ARCH" != *86* ]] && [ "$ARCH" != "x86_64" ] && [ "$ARCH" != "aarch64" ]; then
+    printf " ** Error: Mojaloop is only running on x86_64 or arm64 today and not yet running on [%s]] cpus \n" $ARCH
     printf " ** \n"
-    exit 1
+    exit 1 
   fi
 }
 
@@ -132,16 +131,15 @@ function set_logfiles {
 function clone_vnext_repo { 
   printf "==> cloning mojaloop helm charts repo  "
   if [ ! -z "$force" ]; then 
-    #printf "==> removing existing helm directory\n"
-    rm -rf $HOME/helm >> $LOGFILE 2>>$ERRFILE
+    rm -rf $HOME/$VNEXT_REPO >> $LOGFILE 2>>$ERRFILE
   fi 
-  if [ ! -d $HOME/helm ]; then 
-    git clone https://github.com/mojaloop/helm.git --branch $MOJALOOP_BRANCH --single-branch $HOME/helm >> $LOGFILE 2>>$ERRFILE
+  if [ ! -d $HOME/$VNEXT_REPO ]; then 
+    git clone https://github.com/mojaloop/$VNEXT_REPO.git $HOME/$VNEXT_REPO 
     NEED_TO_REPACKAGE="true"
     printf " [ done ] \n"
   else 
-    printf "\n    ** INFO: helm repo is not cloned as there is an existing $HOME/helm directory\n"
-    printf "    to get a fresh clone of the repo , either delete $HOME/helm of use the -f flag **\n"
+    printf "\n    ** INFO: vNext repo %s is not cloned as there is an existing $HOME/helm directory\n" "$VNEXT_REPO"
+    printf "    to get a fresh clone of the repo , either delete $HOME/$VNEXT_REPO  of use the -f flag **\n"
   fi
 }
 
@@ -226,25 +224,25 @@ function repackage_mojaloop_charts {
 
 function delete_infra {
   #  delete any existing deployment and clean up any pv and pvc's that the bitnami mysql chart seems to leave behind
-  printf "==> deleting mojaloop backend services in helm release  [%s] " "$BE_RELEASE_NAME"
-  be_exists=`helm ls  --namespace $NAMESPACE | grep $BE_RELEASE_NAME | cut -d " " -f1`
-  #helm ls  --namespace $NAMESPACE | grep $BE_RELEASE_NAME | cut -d " " -f1
-  if [ ! -z $be_exists ] && [ "$be_exists" == "$BE_RELEASE_NAME" ]; then 
-    helm delete $BE_RELEASE_NAME  --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
+  printf "==> deleting mojaloop vNext infra services in helm release  [%s] " "$INFRA_RELEASE_NAME"
+  infra_exists=`helm ls  --namespace $NAMESPACE | grep $INFRA_RELEASE_NAME | cut -d " " -f1`
+  #helm ls  --namespace $NAMESPACE | grep $INFRA_RELEASE_NAME | cut -d " " -f1
+  if [ ! -z $infra_exists ] && [ "$infra_exists" == "$INFRA_RELEASE_NAME" ]; then 
+    helm delete $INFRA_RELEASE_NAME  --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
     sleep 2 
   fi
-  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE"  2>>$ERRFILE | grep $BE_RELEASE_NAME` >> $LOGFILE 2>>$ERRFILE
+  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE"  2>>$ERRFILE | grep $INFRA_RELEASE_NAME` >> $LOGFILE 2>>$ERRFILE
   if [ ! -z "$pvc_exists" ]; then 
     kubectl get pvc --namespace "$NAMESPACE" | cut -d " " -f1 | xargs kubectl delete pvc >> $LOGFILE 2>>$ERRFILE
     kubectl get pv  --namespace "$NAMESPACE" | cut -d " " -f1 | xargs kubectl delete pv >> $LOGFILE 2>>$ERRFILE
   fi 
   # now check it is all clean
-  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE" 2>>$ERRFILE | grep $BE_RELEASE_NAME`
+  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE" 2>>$ERRFILE | grep $INFRA_RELEASE_NAME`
   if [ -z "$pvc_exists" ]; then
-    #TODO check that the backend pods are actually gone along with the pv and pvc's 
+    #TODO check that the infra pods are actually gone along with the pv and pvc's 
     printf " [ ok ] \n"
   else
-    printf "** Error: the backend services such as database kafka etc  may not have been deleted cleanly  \n" 
+    printf "** Error: the infra services such as database kafka etc  may not have been deleted cleanly  \n" 
     printf "   please try running the delete again or use helm and kubectl to remove manually  \n"
     printf "   ensure no pv or pvc resources remain defore trying to re-install ** \n"
     exit 1
@@ -255,19 +253,19 @@ function install_infra {
   # delete  db cleanly if it is already deployed => so we can confifdently reinstall cleanly 
   delete_infra
   #repackage_mojaloop_charts
-  be_exists=`helm ls  --namespace $NAMESPACE | grep $BE_RELEASE_NAME | cut -d " " -f1`
-  # deploy the mojaloop example backend chart
-  printf "==> deploying mojaloop example backend services helm chart , waiting upto 300s for it to be ready  \n"
+  infra_exists=`helm ls  --namespace $NAMESPACE | grep $INFRA_RELEASE_NAME | cut -d " " -f1`
+  # deploy the mojaloop example infra chart
+  printf "==> deploying mojaloop vNext infra(structure) services helm chart , waiting upto 300s for it to be ready  \n"
   tstart=$(date +%s)
-  printf "    helm install $BE_RELEASE_NAME --wait --timeout 600s --namespace "$NAMESPACE" $HOME/helm/example-mojaloop-backend\n"
-  helm install $BE_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/helm/example-mojaloop-backend >> $LOGFILE 2>>$ERRFILE
-  if [[ `helm status $BE_RELEASE_NAME --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
-    printf "==> [%s] deployed sucessfully \n" "$BE_RELEASE_NAME"
+  printf "    helm install $INFRA_RELEASE_NAME --wait --timeout 600s --namespace "$NAMESPACE" $HOME/$VNEXT_REPO"
+  helm install $INFRA_RELEASE_NAME --wait --timeout 300s --namespace "$NAMESPACE" $HOME/$VNEXT_REPO >> $LOGFILE 2>>$ERRFILE
+  if [[ `helm status $INFRA_RELEASE_NAME --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
+    printf "==> [%s] deployed sucessfully \n" "$INFRA_RELEASE_NAME"
     tstop=$(date +%s)
     telapsed=$(timer $tstart $tstop)
     timer_array[helm_install_infra]=$telapsed
   else 
-      printf " ** Error backend services, mysql, kafka etc have *NOT* been deployed \n" 
+      printf " ** Error infra services, mongo, elastic search , kafka etc have *NOT* been deployed \n" 
       exit 1 
   fi 
 }
@@ -276,9 +274,9 @@ function install_mojaloop_from_local {
   delete_mojaloop_helm_chart
   repackage_mojaloop_charts
   # use any existing bakend chart but let user know 
-  be_exists=`helm ls  --namespace $NAMESPACE | grep $BE_RELEASE_NAME | cut -d " " -f1`
-  if [ ! -z $be_exists ] && [ "$be_exists" == "$BE_RELEASE_NAME" ]; then 
-    printf "    skipping install of new backend services as existing backend services are already deployed \n"
+  infra_exists=`helm ls  --namespace $NAMESPACE | grep $INFRA_RELEASE_NAME | cut -d " " -f1`
+  if [ ! -z $infra_exists ] && [ "$infra_exists" == "$INFRA_RELEASE_NAME" ]; then 
+    printf "    skipping install of new infra services as existing infra services are already deployed \n"
   else
     install_infra
   fi 
@@ -422,8 +420,8 @@ function showUsage {
 echo  "USAGE: $0 -m <mode> [-t secs] [-n namespace] [-f] [-h] [-s] [-l]
 Example 1 : $0 -m install_ml -t 3000 # install mojaloop using a timeout of 3000 seconds 
 Example 2 : $0 -m install_ml -n moja # create namespace moja and deploy mojaloop into the moja namespace 
-Example 3 : $0 -m install_infra      # install the mojaloop vNext backend (infra)structure services, mongodb, kafka etc  
-Example 4 : $0 -m delete_infra       # cleanly delete the mojaloop vNext backend (infra)structure services, mongodb, kafka etc 
+Example 3 : $0 -m install_infra      # install the mojaloop vNext (infra)structure services, mongodb, kafka etc  
+Example 4 : $0 -m delete_infra       # cleanly delete the mojaloop vNext (infra)structure services, mongodb, kafka etc 
 Example 5 : $0 -m check_ml           # check the health of the ML endpoints
 
 Options:
@@ -444,8 +442,9 @@ Options:
 ##
 # Environment Config & global vars 
 ##
+VNEXT_REPO="platform-shared-tools"
 ML_RELEASE_NAME="ml"
-BE_RELEASE_NAME="be"
+INFRA_RELEASE_NAME="infra"
 MOJALOOP_BRANCH="v15.0.0"
 LOGFILE="/tmp/miniloop-install.log"
 ERRFILE="/tmp/miniloop-install.err"
