@@ -71,12 +71,12 @@ For a good overview of the Testing Toolkit functionality please see the video (h
 - Full documentation for the Testing Toolkit (https://github.com/mojaloop/ml-testing-toolkit/blob/master/documents/User-Guide-Mojaloop-Testing-Toolkit.md) 
 
 ## Prerequisites 
-- a running x86_64 ubuntu 20 or 22 environment.
-- root user or sudo access
+- a running  Ubuntu 22 OS on x86_64.
+- sudo access
 - non-root user (with bash shell)
 - git installed (usually installed by default on Ubuntu 20 or 22) 
-- min 8GB ram available  (current testing suggests 16 GB is needed if deploying 3PPI and Bulk options 8 is fine otherwise ) 
-- min 64GB storage available
+- min 16GB ram available  (current testing suggests 16 GB is needed if deploying 3PPI and Bulk options  ) 
+- min 50GB storage available
 - broadband internet connection from the ubuntu OS (for downloading helm charts and container images )
 
 ## Notes:
