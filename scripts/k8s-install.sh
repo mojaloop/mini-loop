@@ -223,8 +223,9 @@ function do_k3s_install {
     printf "========================================================================================\n"
     printf "Mojaloop k3s install : Installing Kubernetes k3s engine and tools (helm/ingress etc) \n"
     printf "========================================================================================\n"
-    # ensure k8s_user has clean .kube/config 
+    # ensure k8s_user has clean .kube/config and clean Mojaloop helm charts starting point 
     rm -rf $k8s_user_home/.kube >> /dev/null 2>&1 
+    rm -rf $k8s_user_home/helm >> /dev/null 2>&1 
     printf "=> installing k3s "
     #echo $K8S_VERSION
     curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
