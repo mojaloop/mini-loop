@@ -20,7 +20,7 @@ This project automates the instructions for mojaloop deployment in the mojaloop.
 Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                          # login as an existing non-root user e.g. mluser                                                  
-git clone https://github.com/tdaly61/mini-loop.git       # clone the mini-loop scripts
+git clone --branch v5.0rc https://github.com/tdaly61/mini-loop.git  # clone the mini-loop scripts
 sudo ./mini-loop/scripts/mini-loop-simple-install.sh     # install kubernetes and Mojaloop 
 source $HOME/.bashrc                                     # or logout/log back in again to set kubernetes env
 ```
@@ -31,7 +31,7 @@ source $HOME/.bashrc                                     # or logout/log back in
 Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                       # login as an existing non-root user e.g. mluser
-git clone https://github.com/tdaly61/mini-loop.git                    # clone the mini-loop scripts
+git clone --branch v5.0rc https://github.com/tdaly61/mini-loop.git    # clone the mini-loop scripts
 sudo ./mini-loop/scripts/k8s-install.sh -m install -k k3s -v 1.26     # install and configure microk8s 
 source $HOME/.bashrc                                                  # or logout/log back in again to set kubernetes env
 ./mini-loop/scripts/mojaloop-install.sh -m install_ml -o thirdparty   # deploy and configure the mojaloop helm chart -o deploys 3PPI too
@@ -41,7 +41,7 @@ source $HOME/.bashrc                                                  # or logou
 Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                             # login as an existing non-root user e.g. mluser
-git clone https://github.com/tdaly61/mini-loop.git                          # clone the mini-loop scripts
+git clone --branch v5.0rc https://github.com/tdaly61/mini-loop.git          # clone the mini-loop scripts
 sudo ./mini-loop/scripts/k8s-install.sh -m install -k microk8s -v 1.27      # install and configure microk8s v1.25
 source $HOME/.bashrc                                                        # or logout/log back in again to set kubernetes env
 ./mini-loop/scripts/mojaloop-install.sh -m install_ml  -o thirdparty,bulk   # deploy and configure the mojaloop helm chart 
@@ -64,7 +64,7 @@ For more detailed instructions on running the helm tests see "Testing Deployment
 ```
 You should now be able to browse or curl to Mojaloop url's e.g. http://central-ledger.local/health
 
-Note: see below for intructions on updating the /etc/hosts file on your windows 10 laptop 
+Note: see [below](#modify-hosts-file-on-windows-10) for intructions on updating the hosts file on your windows 10 laptop 
 
 ## Running the Testing Toolkit From your laptop 
 Assuming you have followed the instructions above for "accessing Mojaloop from a laptop" then from your laptop you should be able to browse to http://testing-toolkit.local and you should see the main page for the Testing Toolkit.
@@ -106,6 +106,40 @@ For a good overview of the Testing Toolkit functionality please see the video (h
   use different values you will likely have to adjust the /etc/hosts endpoints and if you configure a domain name then /etc/hosts entries are not needed instead you need your domain name to resolve. 
 - the mini-loop/install/mini-loop/util directory contains a few scripts and debugging tools that I find useful , I am not really maintaining these but you might find some of them handy as I do. 
 - mini-loop v5.0 clones the 15.0.0 release of the Mojaloop helm charts to $HOME and then modifies the charts and values to facilitate deployment to kubernetes 1.25+ , the scripts then package and deploy these locally modified charts.  These local modifications are now negligable given the updates ion Mojaloop v15.0.0 , specifically the separation of the backend services to a seperate helm chart.
+
+## modify hosts file on windows 10
+1. open Notepad
+2. Right click on Notepad and then Run as Administrator.
+3. allow this app to make changes to your device? type Yes.
+4. In Notepad, choose File then Open C:\Windows\System32\drivers\etc\hosts or click the address bar at the top and paste in the path and choose Enter.  If you don’t see the host file in the /etc directory then select All files from the File name: drop-down list, then click on the hosts file.
+5. Add the IP from your VM or system and then add a host from the list of required hosts (see example below)
+6. flush your DNS cache. Click the Windows button and search command prompt, in the cpmmand prompt:-
+    ipconfig /flushdns
+```
+Note you can only have one host per line so on windows 10 your hosts file should look something like: 
+192.168.56.10  ml-api-adapter.local 
+192.168.56.10  central-ledger.local 
+192.168.56.10  account-lookup-service.local 
+192.168.56.10  account-lookup-service-admin.local 
+192.168.56.10  quoting-service.local 
+192.168.56.10  central-settlement-service.local 
+192.168.56.10  transaction-request-service.local 
+192.168.56.10  central-settlement.local 
+192.168.56.10  bulk-api-adapter.local 
+192.168.56.10  moja-simulator.local 
+192.168.56.10  sim-payerfsp.local 
+192.168.56.10  sim-payeefsp.local 
+192.168.56.10  sim-testfsp1.local 
+192.168.56.10  sim-testfsp2.local 
+192.168.56.10  sim-testfsp3.local 
+192.168.56.10  sim-testfsp4.local 
+192.168.56.10  mojaloop-simulators.local 
+192.168.56.10  finance-portal.local 
+192.168.56.10  operator-settlement.local 
+192.168.56.10  settlement-management.local 
+192.168.56.10  testing-toolkit.local 
+192.168.56.10  testing-toolkit-specapi.local
+```
 
 ## known issues
 1. mini-loop v5.0 deployment of Mojaloop has only been tested properly with ubuntu 20 and 22 
@@ -150,39 +184,7 @@ For a good overview of the Testing Toolkit functionality please see the video (h
   improved by making this change
 - removed the script to run the testing toolkit, currently `helm test` is utilised and the user guided as how to run helm test from the mini-loop scripts
 
-## modify your /etc/hosts file on windows 10
-1. open Notepad
-2. Right click on Notepad and then Run as Administrator.
-3. allow this app to make changes to your device?” i.e. tyoe Yes.
-4. In Notepad, choose File then Open C:\Windows\System32\drivers\etc\hosts or click the address bar at the top and paste in the path and choose Enter.  If you don’t see the host file in the /etc directory then select All files from the File name: drop-down list, then click on the hosts file.
-5. Add the IP from your VM or system and then add a host from the list of required hosts (see example below)
-6. flush your DNS cache. Click the Windows button and search command prompt, in the cpmmand prompt:-
-    ipconfig /flushdns
-```
-Note you can only have one host per line so on windows 10 your hosts file should look something like: 
-192.168.56.10  ml-api-adapter.local 
-192.168.56.10  central-ledger.local 
-192.168.56.10  account-lookup-service.local 
-192.168.56.10  account-lookup-service-admin.local 
-192.168.56.10  quoting-service.local 
-192.168.56.10  central-settlement-service.local 
-192.168.56.10  transaction-request-service.local 
-192.168.56.10  central-settlement.local 
-192.168.56.10  bulk-api-adapter.local 
-192.168.56.10  moja-simulator.local 
-192.168.56.10  sim-payerfsp.local 
-192.168.56.10  sim-payeefsp.local 
-192.168.56.10  sim-testfsp1.local 
-192.168.56.10  sim-testfsp2.local 
-192.168.56.10  sim-testfsp3.local 
-192.168.56.10  sim-testfsp4.local 
-192.168.56.10  mojaloop-simulators.local 
-192.168.56.10  finance-portal.local 
-192.168.56.10  operator-settlement.local 
-192.168.56.10  settlement-management.local 
-192.168.56.10  testing-toolkit.local 
-192.168.56.10  testing-toolkit-specapi.local
-```
+
 
 ## FAQ
 1. I think it installed correctly, but how do I verify that everything is working?
