@@ -46,17 +46,6 @@ sudo ./mini-loop/scripts/k8s-install.sh -m install -k microk8s -v 1.27      # in
 source $HOME/.bashrc                                                        # or logout/log back in again to set kubernetes env
 ./mini-loop/scripts/mojaloop-install.sh -m install_ml  -o thirdparty,bulk   # deploy and configure the mojaloop helm chart 
 ```
-# Accessing Mojaloop from beyond "localhost" (e.g. from a linux or OSX laptop)
-The mini-loop scripts add the required host names to the 127.0.0.1 entry in the /etc/hosts of the "install system" i.e. the system where Mojaloop is deployed.  To access Mojaloop from beyond this system it is necessary to:- 
-1. ensure that http / port 80 is accessible on the install system.  For instance if mini-loop has installed Mojaloop onto a VM in the cloud then it will be necessary to ensure that the cloud network security rules allow inbound traffic on port 80 to that VM.
-2. copy the hosts on 127.0.0.1 from the /etc/hosts of the "install system" and add these hosts to an entry for the external/public ip address of that install system in the /etc/hosts file of the laptop you are using. 
-
- For example if Mojaloop is installed on a cloud VM with a public IP of 192.168.56.100  Then add an entry to your laptop's /etc/hosts similar to ...
-```
-192.168.56.100 ml-api-adapter.local central-ledger.local account-lookup-service.local account-lookup-service-admin.local quoting-service.local central-settlement-service.local transaction-request-service.local central-settlement.local bulk-api-adapter.local moja-simulator.local sim-payerfsp.local sim-payeefsp.local sim-testfsp1.local sim-testfsp2.local sim-testfsp3.local sim-testfsp4.local mojaloop-simulators.local finance-portal.local operator-settlement.local settlement-management.local testing-toolkit.local testing-toolkit-specapi.local
-```
-You should now be able to browse or curl to Mojaloop url's e.g. http://central-ledger.local/health
-
 ## Running the Testing Toolkit via ```helm test```
 To ensure that your deployment is all up and running and Mojaloop functioning correctly you can run the testing Toolkit.
 login to the system or VM where you install Mojaloop and as the non-root user (e.g. mluser)... 
@@ -64,13 +53,34 @@ login to the system or VM where you install Mojaloop and as the non-root user (e
 helm test ml --logs 
 ```
 For more detailed instructions on running the helm tests see "Testing Deployments" section of : https://github.com/mojaloop/helm
-## Running the Testing Toolkit From a remote browser 
-Assuming you have followed the instructions above for "accessing Mojaloop from beyond localhost" then from your linux or OSX laptop you should be able to browse to http://testing-toolkit.local and you should see the main page for the Testing Toolkit.
+
+# Accessing Mojaloop from a laptop 
+1. ensure that http / port 80 is accessible on the install system.  For instance if mini-loop has installed Mojaloop onto a VM in the cloud then it will be necessary to ensure that the cloud network security rules allow inbound traffic on port 80 to that VM (this is normally a default)
+2. Add the following hosts to an entry for the external/public ip address of the install system or VM  in the **/etc/hosts file of the laptop** you are using. 
+
+ For example if Mojaloop is installed on a cloud VM with a public IP of 192.168.56.10  Then add an entry to your **laptop's /etc/hosts** similar to ...
+```
+192.168.56.10 ml-api-adapter.local central-ledger.local account-lookup-service.local account-lookup-service-admin.local quoting-service.local central-settlement-service.local transaction-request-service.local central-settlement.local bulk-api-adapter.local moja-simulator.local sim-payerfsp.local sim-payeefsp.local sim-testfsp1.local sim-testfsp2.local sim-testfsp3.local sim-testfsp4.local mojaloop-simulators.local finance-portal.local operator-settlement.local settlement-management.local testing-toolkit.local testing-toolkit-specapi.local
+```
+You should now be able to browse or curl to Mojaloop url's e.g. http://central-ledger.local/health
+
+Note: see below for intructions on updating the /etc/hosts file on your windows 10 laptop 
+
+## Running the Testing Toolkit From your laptop 
+Assuming you have followed the instructions above for "accessing Mojaloop from a laptop" then from your laptop you should be able to browse to http://testing-toolkit.local and you should see the main page for the Testing Toolkit.
+
+## simple example instructions for running testing toolkit for 3PPI on your laptop
+To run testing toolkit against Mojaloop including 3PPI
+- again with the hosts above added to your hosts file on your laptop you should be able to browse to http://testing-toolkit.local. 
+- download the latest Mojaloop test collection to your laptop via curl -LO https://github.com/mojaloop/testing-toolkit-test-cases/archive/refs/tags/v15.0.0.zip, then unzip this and you will find a folder called **testing-toolkit-test-cases-15.0.0**
+- import the **testing-toolkit-test-cases-15.0.0** into the testing toolkit web application by selecting test runner ->  collections manager -> import folder 
+- still under collections manager select the boxes for testing-toolkit-test-cases.15.0.0->collections->hub->provisioning_thirdparty and also thirdparty
+- close the collections manager and hit the run button to run the tests and examine the conversation 
 
 For a good overview of the Testing Toolkit functionality please see the video (https://www.youtube.com/watch?v=xyC6Pd3zE9Y),
 - Full documentation for the Testing Toolkit (https://github.com/mojaloop/ml-testing-toolkit/blob/master/documents/User-Guide-Mojaloop-Testing-Toolkit.md) 
 
-## Prerequisites 
+## Prerequisites for running Mojaloop with mini-loop 
 - a running  Ubuntu 22 OS on x86_64.
 - sudo access
 - non-root user (with bash shell)
@@ -140,6 +150,39 @@ For a good overview of the Testing Toolkit functionality please see the video (h
   improved by making this change
 - removed the script to run the testing toolkit, currently `helm test` is utilised and the user guided as how to run helm test from the mini-loop scripts
 
+## modify your /etc/hosts file on windows 10
+1. open Notepad
+2. Right click on Notepad and then Run as Administrator.
+3. allow this app to make changes to your device?” i.e. tyoe Yes.
+4. In Notepad, choose File then Open C:\Windows\System32\drivers\etc\hosts or click the address bar at the top and paste in the path and choose Enter.  If you don’t see the host file in the /etc directory then select All files from the File name: drop-down list, then click on the hosts file.
+5. Add the IP from your VM or system and then add a host from the list of required hosts (see example below)
+6. flush your DNS cache. Click the Windows button and search command prompt, in the cpmmand prompt:-
+    ipconfig /flushdns
+```
+Note you can only have one host per line so on windows 10 your hosts file should look something like: 
+192.168.56.10  ml-api-adapter.local 
+192.168.56.10  central-ledger.local 
+192.168.56.10  account-lookup-service.local 
+192.168.56.10  account-lookup-service-admin.local 
+192.168.56.10  quoting-service.local 
+192.168.56.10  central-settlement-service.local 
+192.168.56.10  transaction-request-service.local 
+192.168.56.10  central-settlement.local 
+192.168.56.10  bulk-api-adapter.local 
+192.168.56.10  moja-simulator.local 
+192.168.56.10  sim-payerfsp.local 
+192.168.56.10  sim-payeefsp.local 
+192.168.56.10  sim-testfsp1.local 
+192.168.56.10  sim-testfsp2.local 
+192.168.56.10  sim-testfsp3.local 
+192.168.56.10  sim-testfsp4.local 
+192.168.56.10  mojaloop-simulators.local 
+192.168.56.10  finance-portal.local 
+192.168.56.10  operator-settlement.local 
+192.168.56.10  settlement-management.local 
+192.168.56.10  testing-toolkit.local 
+192.168.56.10  testing-toolkit-specapi.local
+```
 
 ## FAQ
 1. I think it installed correctly, but how do I verify that everything is working?
