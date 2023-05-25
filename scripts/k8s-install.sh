@@ -215,6 +215,7 @@ function do_microk8s_install {
     # ensure .kube/config points to this new cluster and KUBECONFIG is not set in .bashrc
     perl -p -i.bak -e 's/^.*KUBECONFIG.*$//g' $k8s_user_home/.bashrc
     perl -p -i.bak -e 's/^.*KUBECONFIG.*$//g' $k8s_user_home/.bash_profile
+    mkdir -p $k8s_user_home/.kube
     chown -f -R $k8s_user $k8s_user_home/.kube
     microk8s config > $k8s_user_home/.kube/config
 }
@@ -495,6 +496,8 @@ while getopts "m:k:v:u:hH" OPTION ; do
         ;;
     esac
 done
+
+
 
 printf "\n\n*********************************************************************************\n"
 printf "            -- mini-loop kubernetes install utility -- \n"
