@@ -1,35 +1,12 @@
 #!/usr/bin/env bash
-# miniloop-vnext-install.sh
+# vnext-install.sh
 #    - install mojaloop vnext version in a light-weight , simple and quick fashion 
 #      for demo's testing and development 
 #
 # refer : @#see @https://github.com/mojaloop/platform-shared-tools            
 # Author Tom Daly 
-# Date Feb 2023
-# TODO/Notes
-# - sysctl -w vm.max_map_count=262144 => no -w flag for sysctl on macos 
-# - make this sctipt far more robust and trap errors / maybe retry startup if appropriate 
-# docker ps | grep -v ^CON | cut -d " " -f1 | xargs docker kill
-# docker install on ubuntu 
-# - curl -fsSL https://get.docker.com -o get-docker.sh
-# - sudo sh ./get-docker.sh --dry-run
-# - might need to uninstall snapd versions of docker due to paramiko errors with snapd version of docker i.e. /snap/docker/2281/lib/python3.6/site-packages/paramiko/transport.py:33: CryptographyDeprecationWarning: Python 3.6 is no longer supported by the Python core team
-# Open Following cloud ports for consoles (terraform)
-# - elastic search 9200
-# - kibana 5601 
-# - kafka broker 9092
-# - zookeeper 2181
-# - redpanda 8080
-# - mongo 27017
-# - mongo express console 8081
-# Now for some reason on Ubuntu 22.04 on oci free tier as well as opening ports need to set iptables 
-# @see https://stackoverflow.com/questions/62326988/cant-access-oracle-cloud-always-free-compute-http-port
-# also @see https://stackoverflow.com/questions/62326988/cant-access-oracle-cloud-always-free-compute-http-port
-# - $ sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport $MY_PORT -j ACCEPT
-# - $ sudo netfilter-persistent save
-# cleanup 
-# @see https://stackoverflow.com/questions/45357771/stop-and-remove-all-docker-containers
-# - docker system prune -f ; docker volume prune -f ;docker rm -f -v $(docker ps -q -a)
+# Date May 2023
+
 
 
 function check_arch {
@@ -89,7 +66,6 @@ function iptables_setup {
 }
 
 function mojaloop_infra_setup  {
-  # @see https://github.com/mojaloop/platform-shared-tools/blob/main/packages/deployment/docker-compose-infra/README.md
   printf "start : mini-loop Mojaloop-vnext install base infrastructure services [%s]\n" "`date`"  
   # setup the directory structure and .env file 
   if [[ -d "$INFRA_DIR_EXEC" ]]; then
@@ -251,20 +227,10 @@ LOGFILE="/tmp/miniloop-install.log"
 ERRFILE="/tmp/miniloop-install.err"
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 REPO_DIR=$HOME/platform-shared-tools
-DEPLOYMENT_DIR=$REPO_DIR/packages/deployment
-export INFRA_DIR=$HOME/platform-shared-tools/packages/deployment/docker-compose-infra
-export INFRA_DIR_EXEC=$HOME/platform-shared-tools/packages/deployment/docker-compose-infra/exec
-export CROSS_CUT_DIR=$HOME/platform-shared-tools/packages/deployment/docker-compose-cross-cutting
-export CROSS_CUT_DIR_EXEC=$HOME/platform-shared-tools/packages/deployment/docker-compose-cross-cutting/exec
-
-DOCKER_COMPOSE=""
-docker-compose > /dev/null 2>&1
-if [[ $? -eq 0 ]]; then
-      DOCKER_COMPOSE=docker-compose 
-else
-      DOCKER_COMPOSE="docker compose" 
-fi
-echo $DOCKER_COMPOSE
+DEPLOYMENT_DIR=$REPO_DIR/packages/deployment/k8s
+export INFRA_DIR=$DEPLOYMENT_DIR/infra
+export CROSSCUT_DIR=$DEPLOYMENT_DIR/crosscut
+export APPS_DIR=$DEPLOYMENT_DIR/apps
 
 # Process command line options as required
 while getopts "m:l:hH" OPTION ; do
@@ -284,7 +250,7 @@ while getopts "m:l:hH" OPTION ; do
 done
 
 printf "\n\n****************************************************************************************\n"
-printf "            -- mini-loop Mojaloop (vnext) install utility -- \n"
+printf "            -- mini-loop Mojaloop (vNext) install utility -- \n"
 printf "********************* << START  >> *****************************************************\n\n"
 #check_arch
 check_user
@@ -298,16 +264,10 @@ if [[ "$mode" == "delete_ml" ]]; then
   # #delete_mojaloop
   # print_end_banner
 elif [[ "$mode" == "install_ml" ]]; then
-  printf "start : mini-loop Mojaloop local install utility [%s]\n" "`date`" >> $LOGFILE
+  printf "start : mini-loop Mojaloop (vNext) local install utility [%s]\n" "`date`" >> $LOGFILE
 #  check_clone_repo 
   mojaloop_infra_setup
-#   mojaloop_infra_svcs_startup
-#   mojaloop_cross_cutting_setup
-#   mojaloop_cross_cutting_svcs_startup
-  #check_mojaloop_health
-  #print_success_message 
-# elif [[ "$mode" == "check_ml" ]]; then
-#   check_mojaloop_health
+
 else 
   printf "** Error : wrong value for -m ** \n\n"
   showUsage
