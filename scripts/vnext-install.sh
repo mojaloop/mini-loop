@@ -203,62 +203,71 @@ function install_infra_from_local_chart  {
   fi 
 } 
 
-function delete_crosscut { 
+function check_pods_are_running() { 
+  local app_layer="$1"
+  local wait_secs=120
+  local seconds=0 
+  local end_time=$((seconds + $wait_secs )) 
+  iterations=0
+  steady_count=3
+  printf "    waiting for all pods in [%s] layer to come to running state ... " $app_layer
+  while [ $seconds -lt $end_time ]; do
+      local pods_not_running=$(kubectl get pods --selector="mojaloop.layer=$app_layer" | grep -v NAME | grep -v Running | wc -l)
+      local containers_not_ready=$(kubectl get pods --selector="mojaloop.layer=$app_layer" --no-headers | awk '{split($2,a,"/"); if (a[1]!=a[2]) print}' | wc -l)
+
+      if [ "$pods_not_running" -eq 0 ] && [ "$containers_not_ready" -eq 0 ]; then
+        iterations=$((iterations+1))
+        #echo "iterations are $iterations" 
+        if [[ $iterations -ge $steady_count ]]; then # ensure pods are running and are stable 
+          #printf "    All pods and containers in mojaloop layer [%s] are in running and ready state\n" "$app_layer"
+          printf " [ ok ] \n"
+          return 0
+        fi 
+      else 
+        iterations=0
+      fi 
+      sleep 5 
+      ((seconds+=5))
+  done
+  printf "    ** WARNING: Not all pods in application layer=%s are in running state within timeout of %s secs \n" "$app_layer" $wait_secs
+} 
+
+function delete_mojaloop_layer() { 
+  local app_layer="$1"
+  local layer_yaml_dir="$2"
+  if [[ "$mode" == "delete_ml" ]]; then
+    printf "==> delete components in the mojaloop [ %s ] application layer  \n" $app_layer
+  fi 
   current_dir=`pwd`
-  cd $CROSSCUT_DIR  
-  yaml_non_dataresource_files=$(ls *.yml *.yaml | grep -v '^docker-' | grep -v "\-data\-" )
-  yaml_dataresource_files=$(ls *.yml *.yaml | grep -v '^docker-' | grep -i "\-data\-" )
+  cd $layer_yaml_dir
+  yaml_non_dataresource_files=$(ls *.yaml | grep -v '^docker-' | grep -v "\-data\-" )
+  yaml_dataresource_files=$(ls *.yaml | grep -v '^docker-' | grep -i "\-data\-" )
   for file in $yaml_non_dataresource_files; do
-      kubectl delete -f $file
+      kubectl delete -f $file > /dev/null 2>&1 
   done
   for file in $yaml_dataresource_files; do
-      kubectl delete -f $file
+      kubectl delete -f $file > /dev/null 2>&1 
   done
   cd $current_dir
 }
 
-function install_crosscut { 
-  delete_crosscut
+function install_mojaloop_layer() { 
+  local app_layer="$1"
+  local layer_yaml_dir="$2"
+  printf "==> installing components in the mojaloop [ %s ] application layer  \n" $app_layer
+  delete_mojaloop_layer $app_layer $layer_yaml_dir
   current_dir=`pwd`
-  cd $CROSSCUT_DIR
-  yaml_non_dataresource_files=$(ls *.yml *.yaml | grep -v '^docker-' | grep -v "\-data\-" )
-  yaml_dataresource_files=$(ls *.yml *.yaml | grep -v '^docker-' | grep -i "\-data\-" )
+  cd $layer_yaml_dir
+  yaml_non_dataresource_files=$(ls *.yaml | grep -v '^docker-' | grep -v "\-data\-" )
+  yaml_dataresource_files=$(ls *.yaml | grep -v '^docker-' | grep -i "\-data\-" )
   for file in $yaml_dataresource_files; do
-      kubectl apply -f $file
+      kubectl apply -f $file > /dev/null 2>&1
   done
   for file in $yaml_non_dataresource_files; do
-      kubectl apply -f $file
+      kubectl apply -f $file > /dev/null 2>&1
   done
   cd $current_dir
-}
-
-function delete_apps { 
-  current_dir=`pwd`
-  cd $APPS_DIR
-  yaml_non_dataresource_files=$(ls *.yml *.yaml | grep -v '^docker-' | grep -v "\-data\-" )
-  yaml_dataresource_files=$(ls *.yml *.yaml | grep -v '^docker-' | grep -i "\-data\-" )
-  for file in $yaml_non_dataresource_files; do
-      kubectl delete -f $file
-  done
-  for file in $yaml_dataresource_files; do
-      kubectl delete -f $file
-  done
-  cd $current_dir
-}
-
-function install_apps { 
-  delete_apps
-  current_dir=`pwd`
-  cd $APPS_DIR  
-  yaml_non_dataresource_files=$(ls *.yml *.yaml | grep -v '^docker-' | grep -v "\-data\-" )
-  yaml_dataresource_files=$(ls *.yml *.yaml | grep -v '^docker-' | grep -i "\-data\-" )
-  for file in $yaml_dataresource_files; do
-      kubectl apply -f $file
-  done
-  for file in $yaml_non_dataresource_files; do
-      kubectl apply -f $file
-  done
-  cd $current_dir
+  check_pods_are_running "$app_layer"
 }
 
 function check_mojaloop_health {
@@ -278,7 +287,7 @@ function check_mojaloop_health {
 
 function print_end_banner {
   printf "\n\n****************************************************************************************\n"
-  printf "            -- mini-loop Mojaloop local install utility -- \n"
+  printf "            -- mini-loop Mojaloop vNext install utility -- \n"
   printf "********************* << END >> ********************************************************\n\n"
 }
 
@@ -399,24 +408,26 @@ printf "            -- mini-loop Mojaloop (vNext) install utility -- \n"
 printf "********************* << START  >> *****************************************************\n\n"
 check_arch
 check_user
+set_k8s_distro
 set_k8s_version
 check_k8s_version_is_current 
-#set_logfiles 
+set_logfiles 
 set_and_create_namespace
 set_mojaloop_timeout
 printf "\n"
 
 if [[ "$mode" == "delete_ml" ]]; then
-  delete_mojaloop_infra_release
-  delete_crosscut
+  #delete_mojaloop_infra_release
+  delete_mojaloop_layer "crosscut" $CROSSCUT_DIR
+  delete_mojaloop_layer "apps" $APPS_DIR
   print_end_banner
 elif [[ "$mode" == "install_ml" ]]; then
   tstart=$(date +%s)
   printf "start : mini-loop Mojaloop (vNext) install utility [%s]\n" "`date`" >> $LOGFILE
-  clone_mojaloop_repo 
-  install_infra_from_local_chart
-  install_crosscut
-  install_apps 
+  #clone_mojaloop_repo 
+  #install_infra_from_local_chart
+  install_mojaloop_layer "crosscut" $CROSSCUT_DIR 
+  #install_apps 
 
 
   tstop=$(date +%s)
