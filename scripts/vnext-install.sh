@@ -218,6 +218,7 @@ function delete_crosscut {
 }
 
 function install_crosscut { 
+  delete_crosscut
   current_dir=`pwd`
   cd $CROSSCUT_DIR
   yaml_non_dataresource_files=$(ls *.yml *.yaml | grep -v '^docker-' | grep -v "\-data\-" )
@@ -246,6 +247,7 @@ function delete_apps {
 }
 
 function install_apps { 
+  delete_apps
   current_dir=`pwd`
   cd $APPS_DIR  
   yaml_non_dataresource_files=$(ls *.yml *.yaml | grep -v '^docker-' | grep -v "\-data\-" )
@@ -258,7 +260,6 @@ function install_apps {
   done
   cd $current_dir
 }
-
 
 function check_mojaloop_health {
   # verify the health of the deployment 
@@ -415,6 +416,7 @@ elif [[ "$mode" == "install_ml" ]]; then
   clone_mojaloop_repo 
   install_infra_from_local_chart
   install_crosscut
+  install_apps 
 
 
   tstop=$(date +%s)

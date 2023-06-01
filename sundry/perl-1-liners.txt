@@ -1,0 +1,7 @@
+perl -n -i.bak -e 'print unless m/kompose.version/' *yaml
+perl -p -i.bak -e 's/io.kompose.service/mojaloop.service/g' *yaml
+
+# insert the layer of vnext i.e. crosscut or apps so we can select on this label
+# note the indentation of this substitution is not always correct
+perl -i -pe 's/(?<=mojaloop\.service:)\K(.*)\n/$1\n    vnext.layer: crosscut\n/' x.yaml
+
