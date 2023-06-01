@@ -312,7 +312,7 @@ function install_mojaloop_from_local {
     printf "** Error: %s helm chart deployment failed \n" "$ML_RELEASE_NAME"
     printf "   Possible reasons include : - \n"
     printf "     very slow internet connection /  issues downloading container images (e.g. docker rate limiting) \n"
-    printf "     slow machine/vm instance / insufficient memory to start all pods (6GB = min  , 8GB = preferred ) \n"
+    printf "     slow machine/vm instance / insufficient memory to start all pods \n"
     printf "**\n\n"
 
     printf "The current timeout for all pods to be ready is %s \n" "$TIMEOUT_SECS"

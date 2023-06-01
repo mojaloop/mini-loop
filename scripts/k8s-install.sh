@@ -111,6 +111,7 @@ function install_prerequisites {
             printf "   install snapd\n"
             apt install snapd -y > /dev/null 2>&1
         fi
+        apt install jq -y > /dev/null 2>&1
     fi 
 }
 
@@ -339,15 +340,15 @@ function configure_k8s_user_env {
         echo "alias cdml=\"cd $k8s_user_home/mini-loop\" " >>  $k8s_user_home/.bashrc 
         printf "#ML_END end of config added by mini-loop #\n" >> $k8s_user_home/.bashrc 
     else 
-        printf "==> Configuration for .bashrc for %s for user %s already exists ..skipping\n" "$k8s_distro" "$k8s_user"
+        printf "==> K8s configuration in .bashrc for %s for user %s already exists ..skipping\n" "$k8s_distro" "$k8s_user"
     fi
 }
 
 function verify_user {
 # ensure that the user for k8s exists
         if [ -z ${k8s_user+x} ]; then 
-            printf "** Error: The operating system user has not been specified with the -u flag \n" 
-            printf "          the user specified with the -u flag must exist and not be the root user \n" 
+            printf "** Error: The operating system can't be identified \n" 
+            printf "          you must use sudo from a non-rot user and not the root user directly \n" 
             printf "** \n"
             exit 1
         fi
