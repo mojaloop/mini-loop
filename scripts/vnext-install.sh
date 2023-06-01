@@ -30,6 +30,22 @@ function check_user {
   fi
 }
 
+function set_k8s_distro { 
+  # various settings can differ between kubernetes releases and distributions 
+  # so we need to figure out what kubernetes distribution is installed and running
+  if [[ -f "/snap/bin/microk8s" ]]; then 
+    k8s_distro="microk8s"
+  elif [[ -f "/usr/local/bin/k3s" ]]; then 
+    k8s_distro="k3s"
+  else
+    printf " ** Error: can't find either microk8s or k3s kubernetes distributions  \n"
+    printf "    have you run k8s-install.sh to install one of these ? \n"
+    printf " ** \n"
+    exit 1      
+  fi 
+  printf "==> the installed kubernetes distribution appears to be [%s] \n" "$k8s_distro"
+}
+
 function set_k8s_version { 
   k8s_version=`kubectl version --short 2>/dev/null | grep "^Server" | perl -ne 'print if s/^.*v1.(\d+).*$/v1.\1/'`
 }
@@ -99,7 +115,7 @@ function set_logfiles {
   printf "================================================================================\n" >> $LOGFILE
   printf "start : mini-loop Mojaloop local install utility [%s]\n" "`date`" >> $ERRFILE
   printf "================================================================================\n" >> $ERRFILE
-  printf "==> logfiles can be found at %s and %s\n " "$LOGFILE" "$ERRFILE"
+  printf "==> logfiles can be found at %s and %s \n" "$LOGFILE" "$ERRFILE"
 }
 
 function set_and_create_namespace { 
@@ -232,11 +248,35 @@ function check_pods_are_running() {
   printf "    ** WARNING: Not all pods in application layer=%s are in running state within timeout of %s secs \n" "$app_layer" $wait_secs
 } 
 
+check_pods_status() {
+  local layer_value="$1"
+  local selector="mojaloop.layer=$layer_value"
+  local wait_secs=30
+  local seconds=0 
+  local end_time=$((seconds + $wait_secs )) 
+
+  while [ $seconds -lt $end_time ]; do
+    local pods_not_terminating=$(kubectl get pods --selector="$selector" --no-headers | awk '{if ($3!="Terminating") print $1}') > /dev/null 2>&1
+    if [ -z "$pods_not_terminating" ]; then
+      #echo "All pods with mojaloop.layer=$layer_value are terminating or already gone."
+      return 0
+    fi
+    sleep 5  # Wait for 5 seconds before the next check
+    ((seconds+=5))
+  done
+
+  printf  "    \n** Warning: Not all pods in application layer [ %s ] are terminating or gone\n" $app_layer
+  return 1
+}
+
+
 function delete_mojaloop_layer() { 
   local app_layer="$1"
   local layer_yaml_dir="$2"
   if [[ "$mode" == "delete_ml" ]]; then
     printf "==> delete components in the mojaloop [ %s ] application layer  \n" $app_layer
+  else 
+    printf "    delete components in the mojaloop [ %s ] application layer " $app_layer
   fi 
   current_dir=`pwd`
   cd $layer_yaml_dir
@@ -249,6 +289,10 @@ function delete_mojaloop_layer() {
       kubectl delete -f $file > /dev/null 2>&1 
   done
   cd $current_dir
+  check_pods_status $app_layer > /dev/null 2>&1 
+  if [[ $? -eq 0  ]]; then 
+    printf " [ ok ] \n"
+  fi 
 }
 
 function install_mojaloop_layer() { 
@@ -403,6 +447,11 @@ while getopts "fm:l:hH" OPTION ; do
     esac
 done
 
+# set_k8s_distro
+# print_stats
+# print_success_message 
+# exit 1
+
 printf "\n\n****************************************************************************************\n"
 printf "            -- mini-loop Mojaloop (vNext) install utility -- \n"
 printf "********************* << START  >> *****************************************************\n\n"
@@ -419,7 +468,7 @@ printf "\n"
 if [[ "$mode" == "delete_ml" ]]; then
   #delete_mojaloop_infra_release
   delete_mojaloop_layer "crosscut" $CROSSCUT_DIR
-  delete_mojaloop_layer "apps" $APPS_DIR
+  #delete_mojaloop_layer "apps" $APPS_DIR
   print_end_banner
 elif [[ "$mode" == "install_ml" ]]; then
   tstart=$(date +%s)
@@ -427,8 +476,7 @@ elif [[ "$mode" == "install_ml" ]]; then
   #clone_mojaloop_repo 
   #install_infra_from_local_chart
   install_mojaloop_layer "crosscut" $CROSSCUT_DIR 
-  #install_apps 
-
+  install_mojaloop_layer "apps" $APPS_DIR
 
   tstop=$(date +%s)
   telapsed=$(timer $tstart $tstop)
