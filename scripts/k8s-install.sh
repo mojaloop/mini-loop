@@ -7,18 +7,13 @@
 
 
 # Updates for release notes 
-# - clean ups : remove support for OS other than Ubuntu 
-# - updated helm to 3.11.1 
-# - updated kubernetes to 1.25 -> 1.26
-# - added in bulk and 3ppi 
 # - added facility for choosing DNS name 
 
 # todo for update : 
 #   - add in the DNS , FQDN work as options too 
 #   - fix the prompt and make sure promt shows git version
-#   - test bulk
-#   
-# 
+#   - test bulk a bit further 
+
 
 # TODO in the future : add command line params to enable selection of which ML release etc 
 #       - improve logging so that this is easier to run from CI/CD 
@@ -427,14 +422,14 @@ function showUsage {
 		exit 1
 	else
 echo  "USAGE: $0 -m [mode] -u [user] -v [k8 version] -k [distro] [-f] 
-Example 1 : k8s-install-current.sh -m install -v 1.25 # install k8s k3s version 1.24
-Example 2 : k8s-install-current.sh -m delete  -v 1.26 # delete  k8s microk8s version 1.26
+Example 1 : k8s-install-current.sh -m install -v 1.26 # install k8s k3s version 1.26
+Example 2 : k8s-install-current.sh -m delete  -v 1.27 # delete  k8s microk8s version 1.27
 Example 3 : k8s-install-current.sh -m install -k microk8s -v 1.26 # install k8s microk8s distro version 1.26
 
 Options:
 -m mode ............... install|delete (-m is required)
 -k kubernetes distro... microk8s|k3s (default=k3s as it installs across multiple linux distros)
--v k8s version ........ 1.24|1.25|1.26 i.e. current k8s releases at time if this mini-loop release
+-v k8s version ........ 1.26|1.27 i.e. current k8s releases at time if this mini-loop release
 -h|H .................. display this message
 "
 	fi
