@@ -1,37 +1,30 @@
-# mini-loop v5.0 - install Mojaloop v15.0.0 (using kubernetes v1.25 - 1.27 with k3s or microk8s) 
-## Description 
-mini-loop is a simple, scripted/automated installer for Mojaloop (http://mojaloop.io) to enable demo, test, training and development of the Mojaloop switch and its associated environment. 
+# mini-loop vnext3 branch - install Mojaloop vNext (using kubernetes v1.26 - 1.27 with k3s or microk8s) 
 
-The goal is to make it realistic, easy, quick ,scriptable and cost effective to deploy Mojaloop in a variety of local or cloud environments. 
+# ** WIP ** 
+
+## Description 
+mini-loop is a simple, scripted/automated installer for Mojaloop vNext refer to the Mojaloop reference architecture available from (http://mojaloop.io). mini-loop vNext is designed to enable demo, test, training and development of the Mojaloop vNext switch and its associated environment. 
+
+The goal is to make it realistic, easy, quick ,scriptable and cost effective to deploy Mojaloop vNext in a variety of local or cloud environments. 
 - realistic: running a full kubernetes stack , so you can do real-world tests
 - easy : you only need to run 2 simple shell scripts
 - quick : With a sufficiently configured linux instance and internet connection it should be possible to deploy and configure Mojaloop in approx 30 mins or less.
 - scriptable: the scripts are easily callable from other scripts or from CI/CD tools
-- cost effective : uses minimal resources, everything you need to test Mojaloop and nothing you don't need
+- cost effective : uses minimal resources, everything you need to test Mojaloop vNext and nothing you don't need
 
 Example environments include:-
 - an x86_64 laptop or server running ubuntu 20 or 22 
 - an x86_64 laptop or server running ubuntu 20 or 22 as a guest VM (say using virtualbox , prarallels, qemu or similar) 
 - an appropriately sized x86_64 ubuntu 20 or 22 cloud instance running in any of the major cloud vendors
  
-This project automates the instructions for mojaloop deployment in the mojaloop.io documentation at https://docs.mojaloop.io/documentation/deployment-guide/local-setup-linux.html. 
 
-# Simplest install
-Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
-```bash
-login as mluser                                          # login as an existing non-root user e.g. mluser                                                  
-git clone https://github.com/tdaly61/mini-loop.git       # clone the mini-loop scripts
-sudo ./mini-loop/scripts/mini-loop-simple-install.sh     # install kubernetes and Mojaloop 
-source $HOME/.bashrc                                     # or logout/log back in again to set kubernetes env
-```
-
-# Examples of other ways to install with more flexibility over kubernetes release, Mojaloop options etc
+# Installation instructions 
 
 ## Example #1 K3s, kubernetes 1.26 and Mojaloop 3PPI
 Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                       # login as an existing non-root user e.g. mluser
-git clone https://github.com/tdaly61/mini-loop.git                    # clone the mini-loop scripts
+git clone --branch vnext3 https://github.com/tdaly61/mini-loop.git                    # clone the mini-loop scripts
 sudo ./mini-loop/scripts/k8s-install.sh -m install -k k3s -v 1.26     # install and configure microk8s 
 source $HOME/.bashrc                                                  # or logout/log back in again to set kubernetes env
 ./mini-loop/scripts/mojaloop-install.sh -m install_ml -o thirdparty   # deploy and configure the mojaloop helm chart -o deploys 3PPI too
@@ -41,45 +34,33 @@ source $HOME/.bashrc                                                  # or logou
 Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                             # login as an existing non-root user e.g. mluser
-git clone https://github.com/tdaly61/mini-loop.git                          # clone the mini-loop scripts
+git clone --branch vnext3 https://github.com/tdaly61/mini-loop.git                          # clone the mini-loop scripts
 sudo ./mini-loop/scripts/k8s-install.sh -m install -k microk8s -v 1.27      # install and configure microk8s v1.25
 source $HOME/.bashrc                                                        # or logout/log back in again to set kubernetes env
 ./mini-loop/scripts/mojaloop-install.sh -m install_ml  -o thirdparty,bulk   # deploy and configure the mojaloop helm chart 
 ```
-# Accessing Mojaloop from beyond "localhost" (e.g. from a linux or OSX laptop)
+# Accessing Mojaloop from a laptop 
 The mini-loop scripts add the required host names to the 127.0.0.1 entry in the /etc/hosts of the "install system" i.e. the system where Mojaloop is deployed.  To access Mojaloop from beyond this system it is necessary to:- 
 1. ensure that http / port 80 is accessible on the install system.  For instance if mini-loop has installed Mojaloop onto a VM in the cloud then it will be necessary to ensure that the cloud network security rules allow inbound traffic on port 80 to that VM.
-2. copy the hosts on 127.0.0.1 from the /etc/hosts of the "install system" and add these hosts to an entry for the external/public ip address of that install system in the /etc/hosts file of the laptop you are using. 
+2. add the hosts listed below to an entry for the external/public ip address of that install system in the /etc/hosts file of the laptop you are using. **todo add in the instructions for wondows 10**
 
- For example if Mojaloop is installed on a cloud VM with a public IP of 192.168.56.100  Then add an entry to your laptop's /etc/hosts similar to ...
+ For example if Mojaloop vNext is installed on a cloud VM with a public IP of 192.168.56.100  Then add an entry to your laptop's /etc/hosts similar to ...
 ```
-192.168.56.100 ml-api-adapter.local central-ledger.local account-lookup-service.local account-lookup-service-admin.local quoting-service.local central-settlement-service.local transaction-request-service.local central-settlement.local bulk-api-adapter.local moja-simulator.local sim-payerfsp.local sim-payeefsp.local sim-testfsp1.local sim-testfsp2.local sim-testfsp3.local sim-testfsp4.local mojaloop-simulators.local finance-portal.local operator-settlement.local settlement-management.local testing-toolkit.local testing-toolkit-specapi.local
+192.168.56.100 vnexthost
 ```
-You should now be able to browse or curl to Mojaloop url's e.g. http://central-ledger.local/health
+You should now be able to browse or curl to Mojaloop vNext admin url using  http://vnexthost
 
-## Running the Testing Toolkit via ```helm test```
-To ensure that your deployment is all up and running and Mojaloop functioning correctly you can run the testing Toolkit.
-login to the system or VM where you install Mojaloop and as the non-root user (e.g. mluser)... 
-```
-helm test ml --logs 
-```
-For more detailed instructions on running the helm tests see "Testing Deployments" section of : https://github.com/mojaloop/helm
-## Running the Testing Toolkit From a remote browser 
-Assuming you have followed the instructions above for "accessing Mojaloop from beyond localhost" then from your linux or OSX laptop you should be able to browse to http://testing-toolkit.local and you should see the main page for the Testing Toolkit.
-
-For a good overview of the Testing Toolkit functionality please see the video (https://www.youtube.com/watch?v=xyC6Pd3zE9Y),
-- Full documentation for the Testing Toolkit (https://github.com/mojaloop/ml-testing-toolkit/blob/master/documents/User-Guide-Mojaloop-Testing-Toolkit.md) 
 
 ## Prerequisites 
 - a running x86_64 ubuntu 20 or 22 environment.
 - root user or sudo access
 - non-root user (with bash shell)
 - git installed (usually installed by default on Ubuntu 20 or 22) 
-- min 8GB ram available  (current testing suggests 16 GB is needed if deploying 3PPI and Bulk options 8 is fine otherwise ) 
-- min 64GB storage available
+- min 8GB ram available  **?**
+- min 50GB storage available
 - broadband internet connection from the ubuntu OS (for downloading helm charts and container images )
 
-## Notes:
+## Notes: <== May not be as relevant to vNext , again WIP
 - Mojaloop code is developed to be deployable in a robust, highly available and highly secure fashion *BUT* the mini-loop deployment focusses on simplicity and hence is not deploying Mojaloop in a highly secure, highly available fashion.  The mini-loop deployment of Mojaloop is *NOT* intended for production purposes rather it enables:
   - trial: users new,expert and in-between to quickly run and access Mojaloop and its various features
   - test : the Mojaloop community do realistic testing of Mojaloop across a broad range of settings 
