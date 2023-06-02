@@ -221,7 +221,7 @@ function install_infra_from_local_chart  {
 
 function check_pods_are_running() { 
   local app_layer="$1"
-  local wait_secs=120
+  local wait_secs=90
   local seconds=0 
   local end_time=$((seconds + $wait_secs )) 
   iterations=0
@@ -365,7 +365,9 @@ function print_stats {
 }
 
 function print_success_message { 
-  printf " ==> %s configuration of mojaloop deployed ok and passes endpoint health checks \n" "$RELEASE_NAME"
+  #printf " ==> %s configuration of mojaloop deployed ok and passes endpoint health checks \n" "$RELEASE_NAME"
+  printf " ==>  mojaloop vNext deployed \n" 
+  printf "      no endpoint tests configured yet this is still WIP \n" 
   print_end_banner 
   
 }
@@ -391,6 +393,7 @@ Options:
 -m mode ............ install_ml|delete_ml
 -n namespace ....... the kubernetes namespace to deploy mojaloop into 
 -f force ........... force the cloning and updating of the Mojaloop vNext repo
+-t secs ............ number of seconds (timeout) to wait for pods to all be reach running state
 -h|H ............... display this message
 "
 	fi
@@ -425,7 +428,7 @@ declare -A memstats_array
 record_memory_use "at_start"
 
 # Process command line options as required
-while getopts "fm:l:hH" OPTION ; do
+while getopts "fm:t:l:hH" OPTION ; do
    case "${OPTION}" in
         n)  nspace="${OPTARG}"
         ;;
@@ -466,15 +469,15 @@ set_mojaloop_timeout
 printf "\n"
 
 if [[ "$mode" == "delete_ml" ]]; then
-  #delete_mojaloop_infra_release
+  delete_mojaloop_layer "apps" $APPS_DIR
   delete_mojaloop_layer "crosscut" $CROSSCUT_DIR
-  #delete_mojaloop_layer "apps" $APPS_DIR
+  delete_mojaloop_infra_release  
   print_end_banner
 elif [[ "$mode" == "install_ml" ]]; then
   tstart=$(date +%s)
   printf "start : mini-loop Mojaloop (vNext) install utility [%s]\n" "`date`" >> $LOGFILE
-  #clone_mojaloop_repo 
-  #install_infra_from_local_chart
+  clone_mojaloop_repo 
+  install_infra_from_local_chart
   install_mojaloop_layer "crosscut" $CROSSCUT_DIR 
   install_mojaloop_layer "apps" $APPS_DIR
 
