@@ -274,7 +274,7 @@ function delete_mojaloop_layer() {
   local app_layer="$1"
   local layer_yaml_dir="$2"
   if [[ "$mode" == "delete_ml" ]]; then
-    printf "==> delete components in the mojaloop [ %s ] application layer  \n" $app_layer
+    printf "==> delete components in the mojaloop [ %s ] application layer " $app_layer
   else 
     printf "    delete components in the mojaloop [ %s ] application layer " $app_layer
   fi 
@@ -422,6 +422,7 @@ DEPLOYMENT_DIR=$REPO_DIR/packages/deployment/k8s
 export INFRA_DIR=$DEPLOYMENT_DIR/infra
 export CROSSCUT_DIR=$DEPLOYMENT_DIR/crosscut
 export APPS_DIR=$DEPLOYMENT_DIR/apps
+export TTK_DIR=$DEPLOYMENT_DIR/ttk
 NEED_TO_REPACKAGE="false"
 declare -A timer_array
 declare -A memstats_array
@@ -469,6 +470,7 @@ set_mojaloop_timeout
 printf "\n"
 
 if [[ "$mode" == "delete_ml" ]]; then
+  delete_mojaloop_layer "ttk" $TTK_DIR
   delete_mojaloop_layer "apps" $APPS_DIR
   delete_mojaloop_layer "crosscut" $CROSSCUT_DIR
   delete_mojaloop_infra_release  
@@ -480,6 +482,7 @@ elif [[ "$mode" == "install_ml" ]]; then
   install_infra_from_local_chart
   install_mojaloop_layer "crosscut" $CROSSCUT_DIR 
   install_mojaloop_layer "apps" $APPS_DIR
+  install_mojaloop_layer "ttk" $TTK_DIR
 
   tstop=$(date +%s)
   telapsed=$(timer $tstart $tstop)

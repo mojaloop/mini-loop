@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    meta.helm.sh/release-name: infra
+    meta.helm.sh/release-namespace: default
+  labels:
+    app.kubernetes.io/component: elasticsearch
+    app.kubernetes.io/instance: infra
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: elasticsearch
+    helm.sh/chart: elasticsearch-19.9.2
+  name: elastic
+  namespace: default
+spec:
+  ingressClassName: public
+  rules:
+  - host: elasticsearch.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: infra-es01
+            port:
+              name: tcp-rest-api
+        path: /
+        pathType: ImplementationSpecific
+status:
+  loadBalancer:
+    ingress:
+    - ip: 127.0.0.1
