@@ -478,10 +478,10 @@ if [[ "$mode" == "delete_ml" ]]; then
 elif [[ "$mode" == "install_ml" ]]; then
   tstart=$(date +%s)
   printf "start : mini-loop Mojaloop (vNext) install utility [%s]\n" "`date`" >> $LOGFILE
-  clone_mojaloop_repo 
-  install_infra_from_local_chart
-  install_mojaloop_layer "crosscut" $CROSSCUT_DIR 
-  install_mojaloop_layer "apps" $APPS_DIR
+  # clone_mojaloop_repo 
+  # install_infra_from_local_chart
+  # install_mojaloop_layer "crosscut" $CROSSCUT_DIR 
+  # install_mojaloop_layer "apps" $APPS_DIR
   install_mojaloop_layer "ttk" $TTK_DIR
 
   tstop=$(date +%s)

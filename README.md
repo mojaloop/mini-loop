@@ -1,4 +1,4 @@
-# mini-loop vnext3 branch - install Mojaloop vNext (using kubernetes v1.26 - 1.27 with k3s or microk8s) 
+# mini-loop vnext3 branch - install Mojaloop vNext dev or alpha release (using kubernetes v1.26 - 1.27 with rancher k3s or microk8s) 
 
 # ** WIP ** 
 
@@ -8,56 +8,57 @@ mini-loop is a simple, scripted/automated installer for Mojaloop vNext refer to 
 The goal is to make it realistic, easy, quick ,scriptable and cost effective to deploy Mojaloop vNext in a variety of local or cloud environments. 
 - realistic: running a full kubernetes stack , so you can do real-world tests
 - easy : you only need to run 2 simple shell scripts
-- quick : With a sufficiently configured linux instance and internet connection it should be possible to deploy and configure Mojaloop in approx 30 mins or less.
+- quick : With a sufficiently configured linux instance and internet connection it should be possible to deploy and configure Mojaloop vNext in approx 10 mins or less.
 - scriptable: the scripts are easily callable from other scripts or from CI/CD tools
 - cost effective : uses minimal resources, everything you need to test Mojaloop vNext and nothing you don't need
 
 Example environments include:-
 - an x86_64 laptop or server running ubuntu 20 or 22 
 - an x86_64 laptop or server running ubuntu 20 or 22 as a guest VM (say using virtualbox , prarallels, qemu or similar) 
-- an appropriately sized x86_64 ubuntu 20 or 22 cloud instance running in any of the major cloud vendors
+- an appropriately sized x86_64 ubuntu 20 or 22 cloud instance running in any of the major cloud vendors (hint about 6GB without logging and elastic search turned on and 8GB otherwise )
  
 
 # Installation instructions 
 
-## Example #1 K3s, kubernetes 1.26 and Mojaloop 3PPI
-Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
+## Example #1 K3s, kubernetes 1.26 
+Assuming you have an x86_64 environment running Ubuntu release 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                       # login as an existing non-root user e.g. mluser
-git clone --branch vnext3 https://github.com/tdaly61/mini-loop.git                    # clone the mini-loop scripts
-sudo ./mini-loop/scripts/k8s-install.sh -m install -k k3s -v 1.26     # install and configure microk8s 
-source $HOME/.bashrc                                                  # or logout/log back in again to set kubernetes env
-./mini-loop/scripts/mojaloop-install.sh -m install_ml -o thirdparty   # deploy and configure the mojaloop helm chart -o deploys 3PPI too
+git clone --branch vnext3 https://github.com/tdaly61/mini-loop.git    # clone the mini-loop scripts
+sudo ./mini-loop/scripts/k8s-install.sh -m install -k k3s -v 1.26     # install and configure k3s 
+source $HOME/.bashrc                                                  # or logout/log in again to set env
+./mini-loop/scripts/vnext-install.sh -m install_ml                    # configure and deploy vNext
 ```
 
-## Example #2 Microk8s, kubernetes 1.27, Mojaloop 3PPI and bulk 
+## Example #2 Microk8s, kubernetes 1.27
 Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
-login as mluser                                                             # login as an existing non-root user e.g. mluser
-git clone --branch vnext3 https://github.com/tdaly61/mini-loop.git                          # clone the mini-loop scripts
-sudo ./mini-loop/scripts/k8s-install.sh -m install -k microk8s -v 1.27      # install and configure microk8s v1.25
-source $HOME/.bashrc                                                        # or logout/log back in again to set kubernetes env
-./mini-loop/scripts/mojaloop-install.sh -m install_ml  -o thirdparty,bulk   # deploy and configure the mojaloop helm chart 
+login as mluser                                                         # login as an existing non-root user e.g. mluser
+git clone --branch vnext3 https://github.com/tdaly61/mini-loop.git      # clone the mini-loop scripts
+sudo ./mini-loop/scripts/k8s-install.sh -m install -k microk8s -v 1.27  # install and configure microk8s 
+source $HOME/.bashrc                                                    # or logout/log in again to set env
+./mini-loop/scripts/vnext-install.sh -m install_ml                      # configure and deploy vNext
 ```
+
 # Accessing Mojaloop from a laptop 
 The mini-loop scripts add the required host names to the 127.0.0.1 entry in the /etc/hosts of the "install system" i.e. the system where Mojaloop is deployed.  To access Mojaloop from beyond this system it is necessary to:- 
 1. ensure that http / port 80 is accessible on the install system.  For instance if mini-loop has installed Mojaloop onto a VM in the cloud then it will be necessary to ensure that the cloud network security rules allow inbound traffic on port 80 to that VM.
-2. add the hosts listed below to an entry for the external/public ip address of that install system in the /etc/hosts file of the laptop you are using. **todo add in the instructions for wondows 10**
+2. add the hosts listed below to an entry for the external/public ip address of that install system in the /etc/hosts file of the laptop you are using. **todo add in the instructions for windows 10**
 
  For example if Mojaloop vNext is installed on a cloud VM with a public IP of 192.168.56.100  Then add an entry to your laptop's /etc/hosts similar to ...
 ```
-192.168.56.100 vnexthost
+192.168.56.100 vnextadmin elasticsearch.local fspiop.local bluebank.local greenbank.local bluebank-specapi.local greenbank-specapi.local
 ```
-You should now be able to browse or curl to Mojaloop vNext admin url using  http://vnexthost
+You should now be able to browse or curl to Mojaloop vNext admin url using  http://vnextadmin you can also access the deloyed instances of the Mojaloop testing toolkit at http://bluebank.local and http://greenbank.local
 
 
 ## Prerequisites 
-- a running x86_64 ubuntu 20 or 22 environment.
+- a running x86_64 ubuntu 22 environment.
 - root user or sudo access
 - non-root user (with bash shell)
-- git installed (usually installed by default on Ubuntu 20 or 22) 
-- min 8GB ram available  **?**
-- min 50GB storage available
+- git installed (usually installed by default on Ubuntu 22) 
+- min 6GB ram available  (8GB if you turn on elastic search and logging )
+- approx 50GB storage available
 - broadband internet connection from the ubuntu OS (for downloading helm charts and container images )
 
 ## Notes: <== May not be as relevant to vNext , again WIP
