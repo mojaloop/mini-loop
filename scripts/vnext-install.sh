@@ -7,6 +7,15 @@
 # Author Tom Daly 
 # Date May 2023
 
+# todo list :
+# - add the vNext hosts to the hosts list in the k8s-install.sh 
+# - starting adding the curl tests for the endpoints that should come up
+# - add option for not installing elasticsearch/kibana 
+# - add elasticsearch and other logging/auditing endpoints to url and health checks 
+# - add redpanda and mongo express (maybe as options I could have a -o consoles option )
+# - if no -o logging option make sure that logging is off => do need configure_vnext.py
+
+
 function check_arch {
   ## check architecture Mojaloop deploys on x64 only today arm is coming  
   arch=`uname -p`
@@ -14,11 +23,6 @@ function check_arch {
     printf " ** Error: Mojaloop is only running on x86_64 today and not yet running on ARM cpus \n"
     printf "    please see https://github.com/mojaloop/project/issues/2317 for ARM status \n"
     printf " ** \n"
-    if [[ ! -z "${devmode}" ]]; then 
-      printf "devmode Flag set ==> this flag is for mini-loop development only ==> continuing \n"
-    else
-      exit 1
-    fi
   fi
 }
 
@@ -28,6 +32,14 @@ function check_user {
     printf " ** Error: please run $0 as non root user ** \n"
     exit 1
   fi
+}
+
+function check_deployment_dir_exists  {
+  if [[ ! -d "$DEPLOYMENT_DIR" ]] &&  [[ "$mode" == "delete_ml" ]]; then
+    printf "  ** Error: can't delete as the vNext code is missing  \n"
+    printf "            suggest you run again with %s -m install_ml \n" $0
+    exit 1 
+  fi 
 }
 
 function set_k8s_distro { 
@@ -43,7 +55,7 @@ function set_k8s_distro {
     printf " ** \n"
     exit 1      
   fi 
-  printf "==> the installed kubernetes distribution appears to be [%s] \n" "$k8s_distro"
+  printf "==> the installed kubernetes distribution is  [%s] \n" "$k8s_distro"
 }
 
 function set_k8s_version { 
@@ -118,6 +130,29 @@ function set_logfiles {
   printf "==> logfiles can be found at %s and %s \n" "$LOGFILE" "$ERRFILE"
 }
 
+function configure_extra_options {
+  printf "==> configuring which Mojaloop vNext options to install   \n"
+  # if [ -z ${install_opt+x} ] ; then 
+  #   printf " ** Error: mini-loop requires information about which optional modules to configure when using -m config_ml   \n"
+  #   printf "           example: to configure mojaloop to enable thirdparty charts and bulk-api use:-  \n"
+  #   printf "           $0 -m config_ml -o thirdparty,bulk \n"
+  #   exit 1 
+  # fi 
+  for mode in $(echo $install_opt | sed "s/,/ /g"); do
+    case $mode in
+      logging)
+        MOJALOOP_CONFIGURE_FLAGS_STR+="--logging "
+        ram_warning="true"
+        ;;
+      *)
+          printf " ** Error: specifying -o option   \n"
+          printf "    try $0 -h for help \n" 
+          exit 1 
+        ;;
+    esac
+  done 
+} 
+
 function set_and_create_namespace { 
   ## Set and create namespace if necessary 
   if [[ ! -z "$nspace" ]]; then 
@@ -139,10 +174,55 @@ function clone_mojaloop_repo {
   fi
   # check if repo exists , clone new if not 
   if [[ ! -d "$REPO_DIR" ]]; then
-    printf " cloning repo from https://github.com/mojaloop/platform-shared-tools.git \n"
-    git clone --branch $MOJALOOP_BRANCH https://github.com/mojaloop/platform-shared-tools.git $REPO_DIR
+    printf "==> cloning repo from https://github.com/mojaloop/platform-shared-tools.git \n"
+    git clone --branch $MOJALOOP_BRANCH https://github.com/mojaloop/platform-shared-tools.git $REPO_DIR > /dev/null 2>&1
     NEED_TO_REPACKAGE="true"
   fi 
+}
+
+turn_on_yaml_files() {
+  local directory="$1"
+  shift
+  local prefixes=("$@")
+
+  for file in "$directory"/*.off; do
+    if [[ -f "$file" ]]; then
+      local filename=$(basename "$file")
+      for prefix in "${prefixes[@]}"; do
+        if [[ "$filename" == "$prefix"* ]]; then
+          local new_name="${filename%.*}.yaml"
+          local new_path="$directory/$new_name"
+          mv "$file" "$new_path"
+          #echo "Renamed $file to $new_path"
+          break
+        fi
+      done
+    fi
+  done
+}
+
+function modify_local_mojaloop_yaml_and_charts {
+  printf "==> configuring Mojaloop vNext yaml and helm chart values" 
+  if [ ! -z ${domain_name+x} ]; then 
+    printf "==> setting domain name to <%s> \n " $domain_name 
+    MOJALOOP_CONFIGURE_FLAGS_STR+="--domain_name $domain_name " 
+  fi
+  printf "     executing $SCRIPTS_DIR/mojaloop_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR  \n" 
+  $SCRIPTS_DIR/vnext_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR >> $LOGFILE 2>>$ERRFILE
+  if [[ $? -ne 0  ]]; then 
+      printf " [ failed ] \n"
+      exit 1 
+  fi 
+  # set the repackage scope depending on what gets configured in the values files
+  # Check if MOJALOOP_CONFIGURE_FLAGS_STR contains "logging"
+  if [[ $MOJALOOP_CONFIGURE_FLAGS_STR == *"logging"* ]]; then
+    NEED_TO_REPACKAGE="true"
+    cp $INFRA_DIR/etc/values-logging.yaml $INFRA_DIR/infra-helm/values.yaml 
+    turn_on_yaml_files $CROSSCUT_DIR "logging" "auditing"  #these are off i.e. named .off by default  
+  else 
+    cp $INFRA_DIR/etc/values-no-logging.yaml $INFRA_DIR/infra-helm/values.yaml 
+  fi
+
 }
 
 function repackage_infra_helm_chart {
@@ -318,7 +398,7 @@ function check_mojaloop_health {
   # verify the health of the deployment 
   for i in "${EXTERNAL_ENDPOINTS_LIST[@]}"; do
     #curl -s  http://$i/health
-    if [[ `curl -s  http://$i/health | \
+    if [[ `curl -s  --head --fail --write-out \"%{http_code}\" http://$i/health | \
       perl -nle '$count++ while /\"status\":\"OK+/g; END {print $count}' ` -lt 1 ]] ; then
       printf  " ** Error: [curl -s http://%s/health] endpoint healthcheck failed ** \n" "$i"
       exit 1
@@ -327,6 +407,25 @@ function check_mojaloop_health {
     fi
     sleep 2 
   done 
+}
+
+function check_urls {
+  for url in "${EXTERNAL_ENDPOINTS_LIST[@]}"; do
+    if ! [[ $url =~ ^https?:// ]]; then
+        url="http://$url"
+    fi
+
+    if curl --output /dev/null --silent --head --fail "$url"; then
+        if curl --output /dev/null --silent --head --fail --write-out "%{http_code}" "$url" | grep -q "200\|301"; then
+            printf "  URL %s  [ ok ]  \n" $url
+        else
+            printf "    ** Warning: URL %s [ not ok ] \n " $url 
+            printf "       (Status code: %s)\n" "$url" "$(curl --output /dev/null --silent --head --fail --write-out "%{http_code}" "$url")"
+        fi
+    else
+        printf "  ** Warning : URL %s is not working.\n" $url 
+    fi
+  done
 }
 
 function print_end_banner {
@@ -384,16 +483,19 @@ function showUsage {
 		echo "Incorrect number of arguments passed to function $0"
 		exit 1
 	else
-echo  "USAGE: $0 -m <mode> [-n namespace] [-f]
+echo  "USAGE: $0 -m <mode> [-d dns domain] [-n namespace] [-t secs] [-o options] [-f] 
 Example 1 : $0 -m install_ml  # install mojaloop (vnext) 
 Example 2 : $0 -m install_ml -n namespace1  # install mojaloop (vnext)
-Example 3 : $0 -m delete_ml   # delete mojaloop  (vnext)
- 
+Example 3 : $0 -m install_ml -o logging -f # install , turn on logging , force clone of repo
+Example 4 : $0 -m delete_ml  # delete mojaloop  (vnext)  
+
 Options:
 -m mode ............ install_ml|delete_ml
+-d domain name ..... domain name for ingress hosts e.g mydomain.com 
 -n namespace ....... the kubernetes namespace to deploy mojaloop into 
 -f force ........... force the cloning and updating of the Mojaloop vNext repo
 -t secs ............ number of seconds (timeout) to wait for pods to all be reach running state
+-o options(s) .......ml vNext options to toggle on ( logging )
 -h|H ............... display this message
 "
 	fi
@@ -407,7 +509,7 @@ Options:
 # Environment Config & global vars 
 ##
 INFRA_RELEASE_NAME="infra"
-MOJALOOP_BRANCH="k8s"
+MOJALOOP_BRANCH="main"
 DEFAULT_NAMESPACE="default"
 k8s_version=""
 K8S_CURRENT_RELEASE_LIST=( "1.26" "1.27" )
@@ -424,12 +526,15 @@ export CROSSCUT_DIR=$DEPLOYMENT_DIR/crosscut
 export APPS_DIR=$DEPLOYMENT_DIR/apps
 export TTK_DIR=$DEPLOYMENT_DIR/ttk
 NEED_TO_REPACKAGE="false"
+MOJALOOP_CONFIGURE_FLAGS_STR=""
+EXTERNAL_ENDPOINTS_LIST=( vnextadmin fspiop.local bluebank.local greenbank.local ) 
+LOGGING_ENDPOINTS_LIST=( elasticsearch.local )
 declare -A timer_array
 declare -A memstats_array
 record_memory_use "at_start"
 
 # Process command line options as required
-while getopts "fm:t:l:hH" OPTION ; do
+while getopts "fd:m:t:l:o:hH" OPTION ; do
    case "${OPTION}" in
         n)  nspace="${OPTARG}"
         ;;
@@ -439,8 +544,14 @@ while getopts "fm:t:l:hH" OPTION ; do
         ;;
         t)  tsecs="${OPTARG}"
         ;;
+        d)  domain_name="${OPTARG}"
+            echo "-d flag is TBD"
+            exit 1 
+        ;; 
         m)  mode="${OPTARG}"
         ;;
+        o)  install_opt="${OPTARG}"
+        ;; 
         h|H)	showUsage
                 exit 0
         ;;
@@ -451,10 +562,9 @@ while getopts "fm:t:l:hH" OPTION ; do
     esac
 done
 
-# set_k8s_distro
-# print_stats
-# print_success_message 
-# exit 1
+turn_on_yaml_files $CROSSCUT_DIR "auditing" "logging"
+exit
+
 
 printf "\n\n****************************************************************************************\n"
 printf "            -- mini-loop Mojaloop (vNext) install utility -- \n"
@@ -470,19 +580,23 @@ set_mojaloop_timeout
 printf "\n"
 
 if [[ "$mode" == "delete_ml" ]]; then
-  delete_mojaloop_layer "ttk" $TTK_DIR
-  delete_mojaloop_layer "apps" $APPS_DIR
-  delete_mojaloop_layer "crosscut" $CROSSCUT_DIR
-  delete_mojaloop_infra_release  
+  check_deployment_dir_exists
+  # delete_mojaloop_layer "ttk" $TTK_DIR
+  # delete_mojaloop_layer "apps" $APPS_DIR
+  # delete_mojaloop_layer "crosscut" $CROSSCUT_DIR
+  # delete_mojaloop_infra_release  
   print_end_banner
 elif [[ "$mode" == "install_ml" ]]; then
   tstart=$(date +%s)
   printf "start : mini-loop Mojaloop (vNext) install utility [%s]\n" "`date`" >> $LOGFILE
   # clone_mojaloop_repo 
+  configure_extra_options 
+  modify_local_mojaloop_yaml_and_charts
   # install_infra_from_local_chart
   # install_mojaloop_layer "crosscut" $CROSSCUT_DIR 
   # install_mojaloop_layer "apps" $APPS_DIR
-  install_mojaloop_layer "ttk" $TTK_DIR
+  # install_mojaloop_layer "ttk" $TTK_DIR
+  check_urls
 
   tstop=$(date +%s)
   telapsed=$(timer $tstart $tstop)

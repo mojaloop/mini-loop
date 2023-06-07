@@ -113,9 +113,7 @@ def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Automate modifications across mojaloop helm charts')
     parser.add_argument("-d", "--directory", required=True, help="directory for helm charts")
     parser.add_argument("-v", "--verbose", required=False, action="store_true", help="print more verbose messages ")
-    parser.add_argument("-t", "--thirdparty", required=False, action="store_true", help="enable thirdparty charts and tests  ")
-    parser.add_argument("-b", "--bulk", required=False, action="store_true", help="enable bulk-api charts and tests  ")
-    parser.add_argument("--domain_name", type=str, required=False, default=None, help="e.g. mydomain.com   ")
+    parser.add_argument("-l", "--logging", required=False, action="store_true", help="enable logging and auditing  ")
 
     args = parser.parse_args(args)
     if len(sys.argv[1:])==0:
