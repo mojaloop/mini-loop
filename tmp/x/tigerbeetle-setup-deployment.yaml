@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose.yaml
+    kompose.version: 1.26.0 (40646f47)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: tigerbeetle-setup
+  name: tigerbeetle-setup
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: tigerbeetle-setup
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f docker-compose.yaml
+        kompose.version: 1.26.0 (40646f47)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: tigerbeetle-setup
+    spec:
+      containers:
+        - args:
+            - format
+            - --cluster=0
+            - --replica=0
+            - --replica-count=1
+            - /data/0_0.tigerbeetle
+          image: ghcr.io/tigerbeetledb/tigerbeetle:latest
+          name: cl-tigerbeetle-setup
+          resources: {}
+          securityContext:
+            capabilities:
+              add:
+                - IPC_LOCK
+          volumeMounts:
+            - mountPath: /data
+              name: tigerbeetle-setup-claim0
+      restartPolicy: Always
+      volumes:
+        - name: tigerbeetle-setup-claim0
+          persistentVolumeClaim:
+            claimName: tigerbeetle-setup-claim0
+status: {}

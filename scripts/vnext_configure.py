@@ -114,6 +114,7 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("-d", "--directory", required=True, help="directory for helm charts")
     parser.add_argument("-v", "--verbose", required=False, action="store_true", help="print more verbose messages ")
     parser.add_argument("-l", "--logging", required=False, action="store_true", help="enable logging and auditing  ")
+    parser.add_argument("--domain_name", type=str, required=False, default=None, help="e.g. mydomain.com   ")
 
     args = parser.parse_args(args)
     if len(sys.argv[1:])==0:
@@ -139,10 +140,6 @@ def main(argv) :
     yaml.width = 4096
 
     # turn_ttk_off(p,yaml)
-    if args.thirdparty:
-        modify_values_for_thirdparty(p,yaml,args.verbose)
-    if args.bulk:
-        modify_values_for_bulk(p,yaml,args.verbose)  
     if args.domain_name :
          modify_values_for_dns_domain_name(p,args.domain_name,args.verbose)
     if args.verbose :

@@ -207,7 +207,7 @@ function modify_local_mojaloop_yaml_and_charts {
     printf "==> setting domain name to <%s> \n " $domain_name 
     MOJALOOP_CONFIGURE_FLAGS_STR+="--domain_name $domain_name " 
   fi
-  printf "     executing $SCRIPTS_DIR/mojaloop_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR  \n" 
+  printf "     executing $SCRIPTS_DIR/vnext_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR  \n" 
   $SCRIPTS_DIR/vnext_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR >> $LOGFILE 2>>$ERRFILE
   if [[ $? -ne 0  ]]; then 
       printf " [ failed ] \n"
@@ -526,7 +526,7 @@ export CROSSCUT_DIR=$DEPLOYMENT_DIR/crosscut
 export APPS_DIR=$DEPLOYMENT_DIR/apps
 export TTK_DIR=$DEPLOYMENT_DIR/ttk
 NEED_TO_REPACKAGE="false"
-MOJALOOP_CONFIGURE_FLAGS_STR=""
+export MOJALOOP_CONFIGURE_FLAGS_STR=" -d $DEPLOYMENT_DIR " 
 EXTERNAL_ENDPOINTS_LIST=( vnextadmin fspiop.local bluebank.local greenbank.local ) 
 LOGGING_ENDPOINTS_LIST=( elasticsearch.local )
 declare -A timer_array
@@ -562,10 +562,6 @@ while getopts "fd:m:t:l:o:hH" OPTION ; do
     esac
 done
 
-turn_on_yaml_files $CROSSCUT_DIR "auditing" "logging"
-exit
-
-
 printf "\n\n****************************************************************************************\n"
 printf "            -- mini-loop Mojaloop (vNext) install utility -- \n"
 printf "********************* << START  >> *****************************************************\n\n"
@@ -581,21 +577,21 @@ printf "\n"
 
 if [[ "$mode" == "delete_ml" ]]; then
   check_deployment_dir_exists
-  # delete_mojaloop_layer "ttk" $TTK_DIR
-  # delete_mojaloop_layer "apps" $APPS_DIR
-  # delete_mojaloop_layer "crosscut" $CROSSCUT_DIR
-  # delete_mojaloop_infra_release  
+  delete_mojaloop_layer "ttk" $TTK_DIR
+  delete_mojaloop_layer "apps" $APPS_DIR
+  delete_mojaloop_layer "crosscut" $CROSSCUT_DIR
+  delete_mojaloop_infra_release  
   print_end_banner
 elif [[ "$mode" == "install_ml" ]]; then
   tstart=$(date +%s)
   printf "start : mini-loop Mojaloop (vNext) install utility [%s]\n" "`date`" >> $LOGFILE
-  # clone_mojaloop_repo 
+  clone_mojaloop_repo 
   configure_extra_options 
   modify_local_mojaloop_yaml_and_charts
-  # install_infra_from_local_chart
-  # install_mojaloop_layer "crosscut" $CROSSCUT_DIR 
-  # install_mojaloop_layer "apps" $APPS_DIR
-  # install_mojaloop_layer "ttk" $TTK_DIR
+  install_infra_from_local_chart
+  install_mojaloop_layer "crosscut" $CROSSCUT_DIR 
+  install_mojaloop_layer "apps" $APPS_DIR
+  install_mojaloop_layer "ttk" $TTK_DIR
   check_urls
 
   tstop=$(date +%s)

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose.yaml
+    kompose.version: 1.26.0 (40646f47)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: temp-curl
+  name: temp-curl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: temp-curl
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f docker-compose.yaml
+        kompose.version: 1.26.0 (40646f47)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/cl-mojaloop-net: "true"
+        io.kompose.service: temp-curl
+    spec:
+      containers:
+        - args:
+            - /opt/wait-for/wait-for-mockserver.sh
+          command:
+            - sh
+            - -c
+          image: byrnedo/alpine-curl
+          name: cl-temp-curl
+          resources: {}
+          volumeMounts:
+            - mountPath: /opt/wait-for
+              name: temp-curl-claim0
+      restartPolicy: Always
+      volumes:
+        - name: temp-curl-claim0
+          persistentVolumeClaim:
+            claimName: temp-curl-claim0
+status: {}

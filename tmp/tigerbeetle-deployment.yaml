@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose.yaml
+    kompose.version: 1.26.0 (40646f47)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: tigerbeetle
+  name: tigerbeetle
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: tigerbeetle
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f docker-compose.yaml
+        kompose.version: 1.26.0 (40646f47)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/cl-mojaloop-net: "true"
+        io.kompose.service: tigerbeetle
+    spec:
+      containers:
+        - args:
+            - start
+            - --addresses=0.0.0.0:5001
+            - /data/0_0.tigerbeetle
+          image: ghcr.io/tigerbeetledb/tigerbeetle:latest
+          livenessProbe:
+            exec:
+              command:
+                - /tigerbeetle
+                - version
+            failureThreshold: 10
+            initialDelaySeconds: 40
+            periodSeconds: 30
+            timeoutSeconds: 20
+          name: cl-tigerbeetle
+          ports:
+            - containerPort: 5001
+          resources: {}
+          securityContext:
+            capabilities:
+              add:
+                - IPC_LOCK
+          volumeMounts:
+            - mountPath: /data
+              name: tigerbeetle-claim0
+      restartPolicy: Always
+      volumes:
+        - name: tigerbeetle-claim0
+          persistentVolumeClaim:
+            claimName: tigerbeetle-claim0
+status: {}
