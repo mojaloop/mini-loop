@@ -409,6 +409,17 @@ function check_mojaloop_health {
   done 
 }
 
+
+
+function restore_mongodb_data {
+  # temporary measure to inject base participants data into switch 
+  mongopod=`kubectp get pods --namespace $NAMESPACE | grep -i mongodb |awk '{print $1}'` 
+  mongo_root_pw="mongoDbPas42" ## <- this needs to come from the values file or a secret ideally 
+  kubectl cp $ETC_DIR/mongodata $mongopod:/tmp # copy the data (.json) files into the mongodb pod
+  # run the mongorestore 
+  kubectl exec --stdin --tty $mongopod -- mongorestore  -u root -p mongoDbPas42  /tmp/mongodata
+}
+
 function check_urls {
   for url in "${EXTERNAL_ENDPOINTS_LIST[@]}"; do
     if ! [[ $url =~ ^https?:// ]]; then
@@ -518,6 +529,7 @@ ERRFILE="/tmp/miniloop-install.err"
 DEFAULT_TIMEOUT_SECS="1200s"
 TIMEOUT_SECS=0
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
+ETC_DIR="$SCRIPTS_DIR../etc"
 REPO_BASE_DIR=$HOME/vnext
 REPO_DIR=$REPO_BASE_DIR/platform-shared-tools
 DEPLOYMENT_DIR=$REPO_DIR/packages/deployment/k8s
@@ -592,6 +604,7 @@ elif [[ "$mode" == "install_ml" ]]; then
   install_mojaloop_layer "crosscut" $CROSSCUT_DIR 
   install_mojaloop_layer "apps" $APPS_DIR
   install_mojaloop_layer "ttk" $TTK_DIR
+  restore_mongodb_data
   check_urls
 
   tstop=$(date +%s)
