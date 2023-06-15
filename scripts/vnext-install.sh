@@ -8,6 +8,8 @@
 # Date May 2023
 
 # todo list :
+# - copy in the database data 
+# 
 # - add the vNext hosts to the hosts list in the k8s-install.sh 
 # - starting adding the curl tests for the endpoints that should come up
 # - add option for not installing elasticsearch/kibana 
@@ -409,15 +411,19 @@ function check_mojaloop_health {
   done 
 }
 
-
-
 function restore_mongodb_data {
+  printf " ==>  restoring vNext mongodb demo/test data  \n" 
   # temporary measure to inject base participants data into switch 
-  mongopod=`kubectp get pods --namespace $NAMESPACE | grep -i mongodb |awk '{print $1}'` 
-  mongo_root_pw="mongoDbPas42" ## <- this needs to come from the values file or a secret ideally 
-  kubectl cp $ETC_DIR/mongodata $mongopod:/tmp # copy the data (.json) files into the mongodb pod
+  mongopod=`kubectl get pods --namespace $NAMESPACE | grep -i mongodb |awk '{print $1}'` 
+  kubectl get secret -o jsonpath='{.data.*}' | base64 -d
+  mongo_root_pw=`kubectl get secret mongodb -o jsonpath='{.data.mongodb-root-password}'| base64 -d` 
+  echo $mongo_root_pw
+  echo $mongopod
+  echo $ETC_DIR 
+  kubectl cp $ETC_DIR/mongodata.gz $mongopod:/tmp # copy the demo / test data into the mongodb pod
   # run the mongorestore 
-  kubectl exec --stdin --tty $mongopod -- mongorestore  -u root -p mongoDbPas42  /tmp/mongodata
+  kubectl exec --stdin --tty $mongopod -- mongorestore  -u root -p mongoDbPas42  --gzip --archive=/tmp/mongodata.gz
+  kubectl exec --stdin --tty $mongopod -- ls /tmp
 }
 
 function check_urls {
@@ -529,7 +535,7 @@ ERRFILE="/tmp/miniloop-install.err"
 DEFAULT_TIMEOUT_SECS="1200s"
 TIMEOUT_SECS=0
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
-ETC_DIR="$SCRIPTS_DIR../etc"
+ETC_DIR="$( cd $(dirname "$0")/../etc ; pwd )"
 REPO_BASE_DIR=$HOME/vnext
 REPO_DIR=$REPO_BASE_DIR/platform-shared-tools
 DEPLOYMENT_DIR=$REPO_DIR/packages/deployment/k8s
@@ -574,6 +580,7 @@ while getopts "fd:m:t:l:o:hH" OPTION ; do
     esac
 done
 
+
 printf "\n\n****************************************************************************************\n"
 printf "            -- mini-loop Mojaloop (vNext) install utility -- \n"
 printf "********************* << START  >> *****************************************************\n\n"
@@ -586,6 +593,10 @@ set_logfiles
 set_and_create_namespace
 set_mojaloop_timeout
 printf "\n"
+
+restore_mongodb_data
+exit 1 
+
 
 if [[ "$mode" == "delete_ml" ]]; then
   check_deployment_dir_exists
