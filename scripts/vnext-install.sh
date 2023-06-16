@@ -17,6 +17,15 @@
 # - add redpanda and mongo express (maybe as options I could have a -o consoles option )
 # - if no -o logging option make sure that logging is off => do need configure_vnext.py
 
+handle_error() {
+  local exit_code=$?
+  local line_number=$1
+  local message="$2"
+  local script_name="${0##*/}"
+  echo
+  echo "    ** Error exit code $exit_code on line $line_number : $message Exiting..."
+  exit $exit_code
+}
 
 function check_arch {
   ## check architecture Mojaloop deploys on x64 only today arm is coming  
@@ -411,19 +420,52 @@ function check_mojaloop_health {
   done 
 }
 
-function restore_mongodb_data {
-  printf " ==>  restoring vNext mongodb demo/test data  \n" 
+check_status() {
+  local exit_code=$?
+  local message="$1"
+  local line_number=${BASH_LINENO[0]}
+
+  if [[ $exit_code -ne 0 ]]; then
+    echo "Error occurred with exit code $exit_code on line $line_number: $message. Exiting..."
+    exit $exit_code
+  fi
+}
+
+function restore_data {
+  error_message=" restoring the mongo database data failed "
+  trap 'handle_error $LINENO "$error_message"' ERR
+  printf "==> restoring demonstration and test data  \n"
+  ok=true
   # temporary measure to inject base participants data into switch 
   mongopod=`kubectl get pods --namespace $NAMESPACE | grep -i mongodb |awk '{print $1}'` 
-  kubectl get secret -o jsonpath='{.data.*}' | base64 -d
+  #kubectl get secret -o jsonpath='{.data.*}' | base64 -d
   mongo_root_pw=`kubectl get secret mongodb -o jsonpath='{.data.mongodb-root-password}'| base64 -d` 
-  echo $mongo_root_pw
-  echo $mongopod
-  echo $ETC_DIR 
+  printf "      - mongodb data  " 
   kubectl cp $ETC_DIR/mongodata.gz $mongopod:/tmp # copy the demo / test data into the mongodb pod
   # run the mongorestore 
-  kubectl exec --stdin --tty $mongopod -- mongorestore  -u root -p mongoDbPas42  --gzip --archive=/tmp/mongodata.gz
-  kubectl exec --stdin --tty $mongopod -- ls /tmp
+  kubectl exec --stdin --tty $mongopod -- mongorestore  -u root -p $mongo_root_pw \
+               --gzip --archive=/tmp/mongodata.gz --authenticationDatabase admin > /dev/null 2>&1
+  printf " [ ok ] \n"
+  error_message=" restoring the testing toolkit data failed  "
+  #echo "fred" | grep tom
+  printf "      - testing toolkit data and environment config   " 
+
+  # copy in the bluebank TTK environment data 
+  # only need bluebank as we run the TTK from there.
+  file_base="$ETC_DIR/ttk/bluebank"
+  file1="dfsp_local_environment.json"
+  file2="hub_local_environment.json"
+  file3="fred.test"
+  pod_dest="/opt/app/examples/environments" 
+  pod="bluebank-backend-0" 
+
+  kubectl cp "$file_base/$file1" "$pod:$pod_dest"
+  kubectl cp "$file_base/$file2" "$pod:$pod_dest"
+  kubectl cp "$file_base/$file3" "$pod:$pod_dest"
+
+  #kubectl exec --stdin --tty $pod -- ls -l "$pod_dest"
+
+  printf " [ ok ] \n"
 }
 
 function check_urls {
@@ -521,6 +563,7 @@ Options:
 ################################################################################
 # MAIN
 ################################################################################
+# Set the trap to call the error handler
 
 ##
 # Environment Config & global vars 
@@ -594,9 +637,8 @@ set_and_create_namespace
 set_mojaloop_timeout
 printf "\n"
 
-restore_mongodb_data
-exit 1 
-
+restore_data
+exit 1
 
 if [[ "$mode" == "delete_ml" ]]; then
   check_deployment_dir_exists
@@ -615,7 +657,7 @@ elif [[ "$mode" == "install_ml" ]]; then
   install_mojaloop_layer "crosscut" $CROSSCUT_DIR 
   install_mojaloop_layer "apps" $APPS_DIR
   install_mojaloop_layer "ttk" $TTK_DIR
-  restore_mongodb_data
+  restore_data
   check_urls
 
   tstop=$(date +%s)
