@@ -230,8 +230,8 @@ function modify_local_mojaloop_yaml_and_charts {
     NEED_TO_REPACKAGE="true"
     cp $INFRA_DIR/etc/values-logging.yaml $INFRA_DIR/infra-helm/values.yaml 
     turn_on_yaml_files $CROSSCUT_DIR "logging" "auditing"  #these are off i.e. named .off by default  
-  else 
-    cp $INFRA_DIR/etc/values-no-logging.yaml $INFRA_DIR/infra-helm/values.yaml 
+  # else 
+  #   cp $INFRA_DIR/etc/values-no-logging.yaml $INFRA_DIR/infra-helm/values.yaml 
   fi
 
 }
@@ -435,10 +435,8 @@ function restore_data {
   error_message=" restoring the mongo database data failed "
   trap 'handle_error $LINENO "$error_message"' ERR
   printf "==> restoring demonstration and test data  \n"
-  ok=true
   # temporary measure to inject base participants data into switch 
   mongopod=`kubectl get pods --namespace $NAMESPACE | grep -i mongodb |awk '{print $1}'` 
-  #kubectl get secret -o jsonpath='{.data.*}' | base64 -d
   mongo_root_pw=`kubectl get secret mongodb -o jsonpath='{.data.mongodb-root-password}'| base64 -d` 
   printf "      - mongodb data  " 
   kubectl cp $ETC_DIR/mongodata.gz $mongopod:/tmp # copy the demo / test data into the mongodb pod
@@ -447,7 +445,6 @@ function restore_data {
                --gzip --archive=/tmp/mongodata.gz --authenticationDatabase admin > /dev/null 2>&1
   printf " [ ok ] \n"
   error_message=" restoring the testing toolkit data failed  "
-  #echo "fred" | grep tom
   printf "      - testing toolkit data and environment config   " 
 
   # copy in the bluebank TTK environment data 
@@ -455,16 +452,11 @@ function restore_data {
   file_base="$ETC_DIR/ttk/bluebank"
   file1="dfsp_local_environment.json"
   file2="hub_local_environment.json"
-  file3="fred.test"
   pod_dest="/opt/app/examples/environments" 
   pod="bluebank-backend-0" 
-
   kubectl cp "$file_base/$file1" "$pod:$pod_dest"
   kubectl cp "$file_base/$file2" "$pod:$pod_dest"
   kubectl cp "$file_base/$file3" "$pod:$pod_dest"
-
-  #kubectl exec --stdin --tty $pod -- ls -l "$pod_dest"
-
   printf " [ ok ] \n"
 }
 
@@ -636,9 +628,6 @@ set_logfiles
 set_and_create_namespace
 set_mojaloop_timeout
 printf "\n"
-
-restore_data
-exit 1
 
 if [[ "$mode" == "delete_ml" ]]; then
   check_deployment_dir_exists
