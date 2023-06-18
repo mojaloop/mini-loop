@@ -16,6 +16,7 @@
 # - add elasticsearch and other logging/auditing endpoints to url and health checks 
 # - add redpanda and mongo express (maybe as options I could have a -o consoles option )
 # - if no -o logging option make sure that logging is off => do need configure_vnext.py
+# - add the trap error handler to all routines and have a list of error messages 
 
 handle_error() {
   local exit_code=$?
@@ -191,48 +192,54 @@ function clone_mojaloop_repo {
   fi 
 }
 
-turn_on_yaml_files() {
-  local directory="$1"
-  shift
-  local prefixes=("$@")
+# turn_on_yaml_files() {
+#   local directory="$1"
+#   shift
+#   local prefixes=("$@")
 
-  for file in "$directory"/*.off; do
-    if [[ -f "$file" ]]; then
-      local filename=$(basename "$file")
-      for prefix in "${prefixes[@]}"; do
-        if [[ "$filename" == "$prefix"* ]]; then
-          local new_name="${filename%.*}.yaml"
-          local new_path="$directory/$new_name"
-          mv "$file" "$new_path"
-          #echo "Renamed $file to $new_path"
-          break
-        fi
-      done
-    fi
-  done
-}
+#   for file in "$directory"/*.off; do
+#     if [[ -f "$file" ]]; then
+#       local filename=$(basename "$file")
+#       for prefix in "${prefixes[@]}"; do
+#         if [[ "$filename" == "$prefix"* ]]; then
+#           local new_name="${filename%.*}.yaml"
+#           local new_path="$directory/$new_name"
+#           mv "$file" "$new_path"
+#           #echo "Renamed $file to $new_path"
+#           break
+#         fi
+#       done
+#     fi
+#   done
+# }
 
 function modify_local_mojaloop_yaml_and_charts {
-  printf "==> configuring Mojaloop vNext yaml and helm chart values" 
+  printf "==> configuring Mojaloop vNext yaml and helm chart values \n" 
   if [ ! -z ${domain_name+x} ]; then 
     printf "==> setting domain name to <%s> \n " $domain_name 
     MOJALOOP_CONFIGURE_FLAGS_STR+="--domain_name $domain_name " 
   fi
+
+  
+  # Check if MOJALOOP_CONFIGURE_FLAGS_STR contains "logging"
+  # set the repackage scope depending on if logging will be toggled on not 
+  if [[ $MOJALOOP_CONFIGURE_FLAGS_STR == *"logging"* ]]; then
+    if ls $CROSSCUT_DIR | grep -q '\.off$'; then
+      #echo "off files => turning on => need to repackage "
+      NEED_TO_REPACKAGE="true"
+    fi 
+  else # no logging specified 
+    if ls $CROSSCUT_DIR | grep -q '\.off$'; then
+      #echo "off files => logging already off  => skip repackage "
+      NEED_TO_REPACKAGE="false"
+    fi 
+  fi
   printf "     executing $SCRIPTS_DIR/vnext_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR  \n" 
-  $SCRIPTS_DIR/vnext_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR >> $LOGFILE 2>>$ERRFILE
+  $SCRIPTS_DIR/vnext_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR 
   if [[ $? -ne 0  ]]; then 
       printf " [ failed ] \n"
       exit 1 
   fi 
-  # set the repackage scope depending on what gets configured in the values files
-  # Check if MOJALOOP_CONFIGURE_FLAGS_STR contains "logging"
-  if [[ $MOJALOOP_CONFIGURE_FLAGS_STR == *"logging"* ]]; then
-    NEED_TO_REPACKAGE="true"
-    cp $INFRA_DIR/etc/values-logging.yaml $INFRA_DIR/infra-helm/values.yaml 
-    turn_on_yaml_files $CROSSCUT_DIR "logging" "auditing"  #these are off i.e. named .off by default  
-  # else 
-  #   cp $INFRA_DIR/etc/values-no-logging.yaml $INFRA_DIR/infra-helm/values.yaml 
-  fi
 
 }
 
@@ -579,7 +586,7 @@ export CROSSCUT_DIR=$DEPLOYMENT_DIR/crosscut
 export APPS_DIR=$DEPLOYMENT_DIR/apps
 export TTK_DIR=$DEPLOYMENT_DIR/ttk
 NEED_TO_REPACKAGE="false"
-export MOJALOOP_CONFIGURE_FLAGS_STR=" -d $DEPLOYMENT_DIR " 
+export MOJALOOP_CONFIGURE_FLAGS_STR=" -d $REPO_BASE_DIR " 
 EXTERNAL_ENDPOINTS_LIST=( vnextadmin fspiop.local bluebank.local greenbank.local ) 
 LOGGING_ENDPOINTS_LIST=( elasticsearch.local )
 declare -A timer_array
