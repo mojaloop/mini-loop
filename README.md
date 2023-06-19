@@ -47,7 +47,7 @@ The mini-loop scripts add the required host names to the 127.0.0.1 entry in the 
 
  For example if Mojaloop vNext is installed on a cloud VM with a public IP of 192.168.56.100  Then add an entry to your laptop's /etc/hosts similar to ...
 ```
-192.168.56.100 vnextadmin elasticsearch.local fspiop.local bluebank.local greenbank.local bluebank-specapi.local greenbank-specapi.local
+192.168.56.100  vnextadmin elasticsearch.local mongohost.local mongo-express.local redpanda-console.local fspiop.local bluebank.local greenbank.local bluebank-specapi.local greenbank-specapi.local
 ```
 You should now be able to browse or curl to Mojaloop vNext admin url using  http://vnextadmin you can also access the deloyed instances of the Mojaloop testing toolkit at http://bluebank.local and http://greenbank.local
 

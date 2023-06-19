@@ -8,15 +8,17 @@
 # Date May 2023
 
 # todo list :
-# - copy in the database data 
+# - copy in the database data [done] 
 # 
-# - add the vNext hosts to the hosts list in the k8s-install.sh 
+# - add the vNext hosts to the hosts list in the k8s-install.sh [done] 
 # - starting adding the curl tests for the endpoints that should come up
-# - add option for not installing elasticsearch/kibana 
+# - add option for not installing elasticsearch/kibana [done] 
 # - add elasticsearch and other logging/auditing endpoints to url and health checks 
 # - add redpanda and mongo express (maybe as options I could have a -o consoles option )
-# - if no -o logging option make sure that logging is off => do need configure_vnext.py
+# - if no -o logging option make sure that logging is off => do need configure_vnext.py [Done]
 # - add the trap error handler to all routines and have a list of error messages 
+# - check that all PV and PVCs have gone on delete_ml 
+
 
 handle_error() {
   local exit_code=$?
@@ -176,42 +178,38 @@ function set_and_create_namespace {
   printf "==> Setting NAMESPACE to [ %s ] \n" "$NAMESPACE"
 }
 
-function clone_mojaloop_repo {
+# function clone_mojaloop_repo {
+#   if [ ! -z "$force" ]; then 
+#     printf "==> removing existing helm directory\n"
+#     rm -rf $REPO_BASE_DIR 
+#   fi 
+#   if [[ ! -d "$REPO_BASE_DIR" ]]; then
+#     mkdir "$REPO_BASE_DIR"
+#   fi
+#   # check if repo exists , clone new if not 
+#   if [[ ! -d "$REPO_DIR" ]]; then
+#     printf "==> cloning repo from https://github.com/mojaloop/platform-shared-tools.git \n"
+#     git clone --branch $MOJALOOP_BRANCH https://github.com/mojaloop/platform-shared-tools.git $REPO_DIR > /dev/null 2>&1
+#     NEED_TO_REPACKAGE="true"
+#   fi 
+# }
+
+function clone_mojaloop_repo { 
+  printf "==> cloning mojaloop vNext repo  "
   if [ ! -z "$force" ]; then 
-    printf "==> removing existing helm directory\n"
-    rm -rf $REPO_BASE_DIR 
+    #printf "==> removing existing helm directory\n"
+    rm -rf  "$REPO_BASE_DIR" >> $LOGFILE 2>>$ERRFILE
   fi 
-  if [[ ! -d "$REPO_BASE_DIR" ]]; then
+  if [ ! -d "$REPO_BASE_DIR" ]; then 
     mkdir "$REPO_BASE_DIR"
-  fi
-  # check if repo exists , clone new if not 
-  if [[ ! -d "$REPO_DIR" ]]; then
-    printf "==> cloning repo from https://github.com/mojaloop/platform-shared-tools.git \n"
     git clone --branch $MOJALOOP_BRANCH https://github.com/mojaloop/platform-shared-tools.git $REPO_DIR > /dev/null 2>&1
     NEED_TO_REPACKAGE="true"
-  fi 
+    printf " [ done ] \n"
+  else 
+    printf "\n    ** INFO: vnext  repo is not cloned as there is an existing $REPO_DIR directory\n"
+    printf "    to get a fresh clone of the repo , either delete $REPO_DIR of use the -f flag **\n"
+  fi
 }
-
-# turn_on_yaml_files() {
-#   local directory="$1"
-#   shift
-#   local prefixes=("$@")
-
-#   for file in "$directory"/*.off; do
-#     if [[ -f "$file" ]]; then
-#       local filename=$(basename "$file")
-#       for prefix in "${prefixes[@]}"; do
-#         if [[ "$filename" == "$prefix"* ]]; then
-#           local new_name="${filename%.*}.yaml"
-#           local new_path="$directory/$new_name"
-#           mv "$file" "$new_path"
-#           #echo "Renamed $file to $new_path"
-#           break
-#         fi
-#       done
-#     fi
-#   done
-# }
 
 function modify_local_mojaloop_yaml_and_charts {
   printf "==> configuring Mojaloop vNext yaml and helm chart values \n" 

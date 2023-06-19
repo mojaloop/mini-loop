@@ -115,7 +115,9 @@ function add_hosts {
     quoting-service.local central-settlement-service.local transaction-request-service.local central-settlement.local bulk-api-adapter.local 
     moja-simulator.local sim-payerfsp.local sim-payeefsp.local sim-testfsp1.local sim-testfsp2.local sim-testfsp3.local sim-testfsp4.local 
     mojaloop-simulators.local finance-portal.local operator-settlement.local settlement-management.local testing-toolkit.local 
-    testing-toolkit-specapi.local apachehost ) 
+    testing-toolkit-specapi.local apachehost 
+    mongohost.local mongo-express.local vnextadmin elasticsearch.local redpanda-console.local fspiop.local bluebank.local greenbank.local bluebank-specapi.local greenbank-specapi.local ) 
+    
     export ENDPOINTS=`echo ${ENDPOINTSLIST[*]}`
 
     perl -p -i.bak -e 's/127\.0\.0\.1.*localhost.*$/$ENV{ENDPOINTS} /' /etc/hosts
