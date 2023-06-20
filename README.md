@@ -1,4 +1,4 @@
-# mini-loop v5.0 - install Mojaloop v15.0.0 (using kubernetes v1.25 - 1.27 with k3s or microk8s) 
+# mini-loop v5.0 - install Mojaloop v15.0.0 (using kubernetes v1.26 - 1.27 with k3s or microk8s) 
 ## Description 
 mini-loop is a simple, scripted/automated installer for Mojaloop (http://mojaloop.io) to enable demo, test, training and development of the Mojaloop switch and its associated environment. 
 
@@ -10,14 +10,14 @@ The goal is to make it realistic, easy, quick ,scriptable and cost effective to 
 - cost effective : uses minimal resources, everything you need to test Mojaloop and nothing you don't need
 
 Example environments include:-
-- an x86_64 laptop or server running ubuntu 20 or 22 
-- an x86_64 laptop or server running ubuntu 20 or 22 as a guest VM (say using virtualbox , prarallels, qemu or similar) 
-- an appropriately sized x86_64 ubuntu 20 or 22 cloud instance running in any of the major cloud vendors
+- an x86_64 laptop or server running ubuntu 22 
+- an x86_64 laptop or server running ubuntu 22 as a guest VM (say using virtualbox , prarallels, qemu or similar) 
+- an appropriately sized x86_64 ubuntu 22 cloud instance running in any of the major cloud vendors
  
 This project automates the instructions for mojaloop deployment in the mojaloop.io documentation at https://docs.mojaloop.io/documentation/deployment-guide/local-setup-linux.html. 
 
 # Simplest install
-Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
+Assuming you have an x86_64 environment running Ubuntu release 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                          # login as an existing non-root user e.g. mluser                                                  
 git clone https://github.com/tdaly61/mini-loop.git       # clone the mini-loop scripts
@@ -28,7 +28,7 @@ source $HOME/.bashrc                                     # or logout/log back in
 # Examples of other ways to install with more flexibility over kubernetes release, Mojaloop options etc
 
 ## Example #1 K3s, kubernetes 1.26 and Mojaloop 3PPI
-Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
+Assuming you have an x86_64 environment running Ubuntu release 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                       # login as an existing non-root user e.g. mluser
 git clone https://github.com/tdaly61/mini-loop.git                    # clone the mini-loop scripts
@@ -38,7 +38,7 @@ source $HOME/.bashrc                                                  # or logou
 ```
 
 ## Example #2 Microk8s, kubernetes 1.27, Mojaloop 3PPI and bulk 
-Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
+Assuming you have an x86_64 environment running Ubuntu release 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                             # login as an existing non-root user e.g. mluser
 git clone https://github.com/tdaly61/mini-loop.git                          # clone the mini-loop scripts
@@ -90,8 +90,8 @@ For a good overview of the Testing Toolkit functionality please see the video (h
 - a running  Ubuntu 22 OS on x86_64.
 - sudo access
 - non-root user (with bash shell)
-- git installed (usually installed by default on Ubuntu 20 or 22) 
-- min 16GB ram available  (current testing suggests 16 GB is needed if deploying 3PPI and Bulk options  ) 
+- git installed (usually installed by default on Ubuntu  22) 
+- min 8 or 16GB ram available  (current testing suggests 16 GB is needed if deploying 3PPI and Bulk options  ) 
 - min 50GB storage available
 - broadband internet connection from the ubuntu OS (for downloading helm charts and container images )
 
@@ -193,8 +193,6 @@ Note you can only have one host per line so on windows 10 your hosts file should
 - removed all automation that created the ubuntu enviromnent, this is now left to the user. It became obvious that the utility of mini-loop install would be far 
   improved by making this change
 - removed the script to run the testing toolkit, currently `helm test` is utilised and the user guided as how to run helm test from the mini-loop scripts
-
-
 
 ## FAQ
 1. I think it installed correctly, but how do I verify that everything is working?

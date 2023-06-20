@@ -36,7 +36,7 @@ record_memory_use () {
 }
 
 function check_arch {
-  ## check architecture Mojaloop deploys on x64 only today arm is coming  
+  ## check architecture Mojaloop deploys on x64 only today (it is anticipated ARM will work in the near future)
   arch=`uname -p`
   if [[ ! "$arch" == "x86_64" ]]; then 
     printf " ** Error: Mojaloop is only running on x86_64 today and not yet running on ARM cpus \n"
@@ -148,8 +148,12 @@ function clone_mojaloop_helm_repo {
     rm -rf $HOME/helm >> $LOGFILE 2>>$ERRFILE
   fi 
   if [ ! -d $HOME/helm ]; then 
+<<<<<<< HEAD:scripts/mojaloop-install.sh
     git clone https://github.com/mojaloop/helm.git --branch $MOJALOOP_BRANCH --single-branch $HOME/helm >> $LOGFILE 2>>$ERRFILE
     NEED_TO_REPACKAGE="true"
+=======
+    git clone https://github.com/mojaloop/helm.git --branch v14.1.0 --single-branch $HOME/helm >> $LOGFILE 2>>$ERRFILE
+>>>>>>> master:install/mini-loop/scripts/miniloop-local-install.sh
     printf " [ done ] \n"
   else 
     printf "\n    ** INFO: helm repo is not cloned as there is an existing $HOME/helm directory\n"

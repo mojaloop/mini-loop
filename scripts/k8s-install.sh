@@ -132,7 +132,7 @@ function set_k8s_distro {
 }
 
 function print_current_k8s_releases {
-    printf "          Current Kubernetes releases are : " 
+    printf "          Please select one of the following kubernetes releases : " 
     for i in "${K8S_CURRENT_RELEASE_LIST[@]}"; do
         printf " [v%s]" "$i"
     done
@@ -158,7 +158,7 @@ function set_k8s_version {
             K8S_VERSION=$k8s_user_version
         else 
             printf "** Error: The specified kubernetes release [ %s ] is not a current release \n" "$k8s_user_version"
-            printf "          when using the -v flag you must specify a current supported release \n"
+            printf "**        or is not tested with this version of mini-loop and/or Mojaloop \n"
             print_current_k8s_releases 
             printf "** \n"
             exit 1 
@@ -384,6 +384,8 @@ function delete_k8s {
 
 function check_k8s_installed { 
     printf "==> Check the cluster is available and ready from kubectl  "
+    echo "kubeconfig is $KUBECONFIG"
+
     k8s_ready=`su - $k8s_user -c "kubectl get nodes" | perl -ne 'print  if s/^.*Ready.*$/Ready/'`
     if [[ ! "$k8s_ready" == "Ready" ]]; then 
         printf "** Error : kubernetes is not installed , please run $0 -m install -u $k8s_user \n"
