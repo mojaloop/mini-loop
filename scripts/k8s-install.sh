@@ -3,18 +3,13 @@
 # based on the older k8s-install.sh this script will only install current versions of kubernetes
 # Author:  Tom Daly 
 # Date : July 2022 
-# Updates : Feb 2023 
-#  - limit k8s release to v1.24 as older ones are likely now to cause issues and mini-loop v5 will support later k8s releases
-#  - limit OS to Ubuntu 20 or 22 both these seem to work well , some earlier versions lack some packages (e.g. git) 
-#  - updated helm release to 3.10.2 
-# 
+#  -- April 2023 : updated for Mojaloop v15 and also kubernetes 1.26 and 1.27
 
-# TODO : add command line params to enable selection of which ML release etc 
+# possible TODO ideas for the future 
+#       - add command line params to enable selection of which ML release etc 
+#       - improve logging so that this is easier to run from CI/CD 
 #       - put this into circle-ci and merge with k8s-versions-test.sh in charts repo so that little/no code is duplicated
-#       - change the ingress port 
-#           @see https://discuss.kubernetes.io/t/add-on-ingress-default-port-change-options/14428
-#       - Can I make this work for MacOS , other linux or windows ?  Is there any need demand ? 
-#   
+
 function check_pi {
     # this is to enable experimentation on raspberry PI which is WIP
     if [ -f "/proc/device-tree/model" ]; then
@@ -31,18 +26,30 @@ function check_arch_ok {
     fi
 } 
 
-# function print_ok_oses {
-#     printf "      Fedora versions: " 
-#     for i in "${FEDORA_OK_VERSIONS_LIST[@]}"; do
-#         printf " [%s]" "$i"
-#     done
-#     printf "\n"
-#     printf "      Ubuntu versions: " 
-#     for i in "${UBUNTU_OK_VERSIONS_LIST[@]}"; do
-#         printf " [%s]" "$i"
-#     done
-#     printf "\n"
-# }
+function check_resources_ok {
+    # Get the total amount of installed RAM in GB
+    total_ram=$(free -g | awk '/^Mem:/{print $2}')
+    # Get the current free space on the root filesystem in GB
+    free_space=$(df -BG /home/"$k8s_user" | awk '{print $4}' | tail -n 1 | sed 's/G//')
+
+    # Check RAM 
+    if [[ "$total_ram" -lt "$MIN_RAM" ]]; then
+        printf " ** Error : mini-loop currently requires $MIN_RAM GBs to run properly \n"
+        printf "    Please increase RAM available before trying to run mini-loop \n"
+        exit 1 
+    fi
+    # Check free space 
+        if [[  "$free_space" -lt "$MIN_FREE_SPACE" ]] ; then
+        printf " ** Warning : mini-loop currently requires %sGBs free storage in %s home directory  \n"  "$MIN_FREE_SPACE" "$k8s_user"
+        printf "    but only found %sGBs free storage \n"  "$free_space"
+        printf "    mini-loop installation will continue , but beware it might fail later due to insufficient storage \n"
+    fi
+} 
+
+function set_user {
+  # set the k8s_user 
+  k8s_user=`who am i | cut -d " " -f1`
+}
 
 function k8s_already_installed {  
     if [[ -f "/usr/local/bin/k3s" ]]; then 
@@ -62,12 +69,6 @@ function set_linux_os_distro {
     if [ -x "/usr/bin/lsb_release" ]; then
         LINUX_OS=`lsb_release --d | perl -ne 'print  if s/^.*Ubuntu.*(\d+).(\d+).*$/Ubuntu/' `
         LINUX_VERSION=`/usr/bin/lsb_release --d | perl -ne 'print $&  if m/(\d+)/' `
-    elif [ -f /etc/fedora-release ]; then    
-        LINUX_OS=`cat /etc/fedora-release | grep Fedora | cut -d " " -f1` 
-        LINUX_VERSION=`cat /etc/fedora-release | perl -ne 'print  if s/^.*edora.*(\d+)(\d+).*$/\1\2/' `
-    elif [ -f /etc/redhat-release ]; then
-        LINUX_OS=`cat /etc/redhat-release |  perl -ne 'print  if s/^Red Hat Enterprise.*$/Redhat/' `
-        LINUX_VERSION=`cat /etc/redhat-release |  perl -ne 'print  if s/^.*(\d+).(\d+).*$/\1.\2/' `
     else
         LINUX_OS="Untested"
     fi 
@@ -77,57 +78,26 @@ function set_linux_os_distro {
 function check_os_ok {
     printf "==> checking OS and kubernetes distro is tested with mini-loop scripts\n"
     set_linux_os_distro
-    if [[ $LINUX_OS == "Untested" ]] || [[ $LINUX_OS == "Fedora" ]];  then 
-        printf " ** WARNING: miniloop is untested with operating system [%s] \n" "$LINUX_OS"
-        printf "    currently mini-loop is only well tested on the following Linux OS  \n"
-        for i in "${LINUX_OS_LIST[@]}"; do
-            printf "    %s\n" "$i"
-        done
-        if [ ! -z ${force+x} ]; then  
-            printf "    -f flag (force) specified so k8s install will continue but will likely experience errors **\n"
-        else 
-            printf "    -f flag (force) not specified so k8s install exiting **\n"
-            exit 1
-        fi
-    fi
 
-    #check for Ubuntu as this is ok for microk8s and k3s otherwise advise just k3s 
     if [[ ! $LINUX_OS == "Ubuntu" ]]; then
-        if [[ "$k8s_distro" == "microk8s" ]]; then 
-            printf "  ** Error: OS is not Ubuntu and microk8s has not been reliably tested with mini-loop except on Ubuntu OS \n"
-            printf "  ** please use -k k3s (or omit -k flag) to use k3s on this linux OS \n"
-            exit 1 
-        fi
-    fi
+        printf "** Error , mini-loop $MINILOOP_VERSION is only tested with Ubuntu OS at this time   **\n"
+        exit 1
+    fi 
 } 
 
 function install_prerequisites {
     printf "==> Install any OS prerequisites , tools &  updates  ...\n"
     if [[ $LINUX_OS == "Ubuntu" ]]; then  
-        printf "   apt update \n"
+        printf "    apt update \n"
         apt update > /dev/null 2>&1
         printf "    python and python libs ...\n"
-        apt install python3-pip -y 
-        pip3 install ruamel.yaml
+        apt install python3-pip -y > /dev/null 2>&1
+        pip3 install ruamel.yaml > /dev/null 
         if [[ $k8s_distro == "microk8s" ]]; then 
             printf "   install snapd\n"
             apt install snapd -y > /dev/null 2>&1
         fi
-    fi 
-    if [[ $LINUX_OS == "Redhat" ]]; then  
-        printf "** Error : Only Ubuntu OS is supported for mini-loop v4.1 \n"
-            exit 1
-        # systemctl stop nm-cloud-setup.service 
-        # systemctl stop nm-cloud-setup.timer
-        # systemctl disable nm-cloud-setup.service 
-        # systemctl disable nm-cloud-setup.timer
-        # systemctl stop NetworkManager
-        # ip rule del pref 30400
-        # sleep 10 
-        # ip rule 
-        # dnf install python3 -y 
-        # dnf install python3-pip -y 
-        # pip3 install ruamel.yaml
+        apt install jq -y > /dev/null 2>&1
     fi 
 }
 
@@ -173,9 +143,8 @@ function set_k8s_version {
     # printf "========================================================================================\n"
     # printf " set the k8s version to install  \n"
     # printf "========================================================================================\n\n"
-    # Users who want to run non-current versions of kubernetes will need to use mini-loop version 3.0 and 
-    # or the older script in ubuntu directory for as long as it is included in current versions of mini-loop
-    # (which might not be too long)
+    # Users who want to run non-current versions of kubernetes will need to use earlier releases of mini-loop and 
+    # and be aware that these are not being actively maintained
     if [ ! -z ${k8s_user_version+x} ] ; then
         # strip off any leading characters
         k8s_user_version=`echo $k8s_user_version |  tr -d A-Z | tr -d a-z `
@@ -236,23 +205,32 @@ function do_microk8s_install {
     mkdir -p $k8s_user_home/.kube
     chown -f -R $k8s_user $k8s_user_home/.kube
     microk8s config > $k8s_user_home/.kube/config
-    #echo "KUBECONFIG=$k8s_user_home/.kube/config" >> $k8s_user_home/.bashrc
-
 }
 
 function do_k3s_install {
     printf "========================================================================================\n"
     printf "Mojaloop k3s install : Installing Kubernetes k3s engine and tools (helm/ingress etc) \n"
     printf "========================================================================================\n"
-
-    # ensure k8s_user has clean .kube/config 
+    # ensure k8s_user has clean .kube/config and clean Mojaloop helm charts starting point 
     rm -rf $k8s_user_home/.kube >> /dev/null 2>&1 
-    printf "=> installing k3s \n"
-    echo $K8S_VERSION
+    rm -rf $k8s_user_home/helm >> /dev/null 2>&1 
+    printf "=> installing k3s "
+    #echo $K8S_VERSION
     curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" \
                             INSTALL_K3S_CHANNEL="v$K8S_VERSION" \
-                            INSTALL_K3S_EXEC=" --disable traefik " sh 
-    
+                            INSTALL_K3S_EXEC=" --disable traefik " sh > /dev/null 2>&1
+
+    # check k3s installed ok 
+    status=`k3s check-config 2> /dev/null | grep "^STATUS" | awk '{print $2}'  ` 
+    if [[ "$status" -eq "pass" ]]; then 
+        printf "[ok]\n"
+    else
+        printf "** Error : k3s check-config not reporting status of pass   ** \n"
+        printf "   run k3s check-config manually as user [%s] for more information   ** \n" "$k8s_user"
+        exit 1
+    fi
+
+    # configure user environment to communicate with k3s kubernetes
     export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
     cp /etc/rancher/k3s/k3s.yaml  $k8s_user_home/k3s.yaml
     chown $k8s_user  $k8s_user_home/k3s.yaml
@@ -260,11 +238,10 @@ function do_k3s_install {
 
     perl -p -i.bak -e 's/^.*KUBECONFIG.*$//g' $k8s_user_home/.bashrc
     echo "export KUBECONFIG=\$HOME/k3s.yaml" >>  $k8s_user_home/.bashrc
-
     perl -p -i.bak -e 's/^.*source .bashrc.*$//g' $k8s_user_home/.bash_profile 
-    perl -p  -e 's/^.*export KUBECONFIG.*$//g' $k8s_user_home/.bash_profile 
+    perl -p  -i.bak2 -e 's/^.*export KUBECONFIG.*$//g' $k8s_user_home/.bash_profile 
     echo "source .bashrc" >>   $k8s_user_home/.bash_profile 
-    echo "export KUBECONFIG=\$HOME/k3s.yaml" >>   $k8s_user_home/.bash_profile  
+    echo "export KUBECONFIG=\$HOME/k3s.yaml" >> $k8s_user_home/.bash_profile  
     
     # install helm
     printf "==> installing helm " 
@@ -292,9 +269,23 @@ function do_k3s_install {
     fi
     
     #install nginx
-    printf "==> installing ingress chart and wait for it to be ready\n" 
-    su - $k8s_user -c "helm install --wait --timeout 300s ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx" 
+    printf "==> installing nginx ingress chart and wait for it to be ready " 
+    su - $k8s_user -c "helm install --wait --timeout 300s ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx" > /dev/null 2>&1
     # TODO : check to ensure that the ingress is indeed running 
+    nginx_pod_name=$(kubectl get pods | grep nginx | awk '{print $1}')
+
+    if [ -z "$nginx_pod_name" ]; then
+        printf "** Error : helm install of nginx seems to have failed , no nginx pod found ** \n"
+        exit 1
+    fi
+    # Check if the Nginx pod is running
+    if kubectl get pods $nginx_pod_name | grep -q "Running"; then
+        printf "[ok]\n"
+    else
+        printf "** Error : helm install of nginx seems to have failed , nginx pod is not running  ** \n"
+        exit 1
+    fi
+
 }
 
 function install_k8s_tools { 
@@ -302,24 +293,27 @@ function install_k8s_tools {
     curl -s -L https://github.com/ahmetb/kubectx/releases/download/v0.9.4/kubens_v0.9.4_linux_x86_64.tar.gz| gzip -d -c | tar xf - 
     mv ./kubens /usr/local/bin > /dev/null 2>&1
     curl -s -L https://github.com/ahmetb/kubectx/releases/download/v0.9.4/kubectx_v0.9.4_linux_x86_64.tar.gz | gzip -d -c | tar xf -
-    mv ./kubectx /usr/local/bin > /dev/null
+    mv ./kubectx /usr/local/bin > /dev/null  2>&1
     
     # install kustomize
-    curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
+    curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash > /dev/null  2>&1
     mv ./kustomize /usr/local/bin > /dev/null 2>&1
 }
 
 function add_helm_repos { 
+    # see readme at https://github.com/mojaloop/helm for required helm libs 
     printf "==> add the helm repos required to install and run Mojaloop version 13.x \n" 
     su - $k8s_user -c "helm repo add kiwigrid https://kiwigrid.github.io" > /dev/null 2>&1
+    su - $k8s_user -c "helm repo add kokuwa https://kokuwaio.github.io/helm-charts" > /dev/null 2>&1  #fluentd 
     su - $k8s_user -c "helm repo add elastic https://helm.elastic.co" > /dev/null 2>&1
+    su - $k8s_user -c "helm repo add codecentric https://codecentric.github.io/helm-charts" > /dev/null 2>&1 # keycloak for TTK
     su - $k8s_user -c "helm repo add bitnami https://charts.bitnami.com/bitnami" > /dev/null 2>&1
     su - $k8s_user -c "helm repo add mojaloop http://mojaloop.io/helm/repo/" > /dev/null 2>&1
     su - $k8s_user -c "helm repo update" > /dev/null 2>&1
 }
 
 function configure_k8s_user_env { 
-    start_message="# start of config added by mini-loop #"
+    start_message="# ML_START start of config added by mini-loop #"
     grep "start of config added by mini-loop" $k8s_user_home/.bashrc >/dev/null 2>&1
     if [[ $? -ne 0  ]]; then 
         printf "==> Adding configuration for %s to %s .bashrc\n" "$k8s_distro" "$k8s_user"
@@ -329,18 +323,18 @@ function configure_k8s_user_env {
         echo "complete -F __start_kubectl k " >>  $k8s_user_home/.bashrc
         echo "alias ksetns=\"kubectl config set-context --current --namespace\" " >>  $k8s_user_home/.bashrc
         echo "alias ksetuser=\"kubectl config set-context --current --user\" "  >>  $k8s_user_home/.bashrc 
-        echo "alias cdml=\"cd $k8s_user_home/mini-loop/install/mini-loop\" " >>  $k8s_user_home/.bashrc 
-        printf "# end of config added by mini-loop #\n" >> $k8s_user_home/.bashrc 
+        echo "alias cdml=\"cd $k8s_user_home/mini-loop\" " >>  $k8s_user_home/.bashrc 
+        printf "#ML_END end of config added by mini-loop #\n" >> $k8s_user_home/.bashrc 
     else 
-        printf "==> Configuration for .bashrc for %s for user %s already exists ..skipping\n" "$k8s_distro" "$k8s_user"
+        printf "==> K8s configuration in .bashrc for %s for user %s already exists ..skipping\n" "$k8s_distro" "$k8s_user"
     fi
 }
 
 function verify_user {
 # ensure that the user for k8s exists
         if [ -z ${k8s_user+x} ]; then 
-            printf "** Error: The operating system user has not been specified with the -u flag \n" 
-            printf "          the user specified with the -u flag must exist and not be the root user \n" 
+            printf "** Error: The operating system can't be identified \n" 
+            printf "          you must use sudo from a non-rot user and not the root user directly \n" 
             printf "** \n"
             exit 1
         fi
@@ -374,7 +368,7 @@ function delete_k8s {
         fi
     else 
         printf "==> removing any existing k3s installation and helm binary"
-        rm /usr/local/bin/helm >> /dev/null 2>&1
+        rm -f /usr/local/bin/helm >> /dev/null 2>&1
         /usr/local/bin/k3s-uninstall.sh >> /dev/null 2>&1
         if [[ $? -eq 0  ]]; then 
             printf " [ ok ] \n"
@@ -383,7 +377,9 @@ function delete_k8s {
             printf "** was k3s installed ?? \n" 
             printf "   if so please try running \"/usr/local/bin/k3s-uninstall.sh\" manually ** \n"
         fi
-    fi     
+    fi    
+    # remove config from user .bashrc
+    perl -i -ne 'print unless /START_ML/ .. /END_ML/'  $k8s_user_home/.bashrc
 }
 
 function check_k8s_installed { 
@@ -403,13 +399,7 @@ function print_end_message {
     printf "\n\n*********************** << success >> *******************************************\n"
     printf "            -- mini-loop kubernetes install utility -- \n"
     printf "  utilities for deploying kubernetes in preparation for Mojaloop deployment   \n"
- 
     printf "************************** << end  >> *******************************************\n\n"
-
-   
-    # printf "\n\n****************************************************************************************\n"
-    # printf " Mojaloop.io mini-loop kubernetes installer end        \n"
-    # printf "****************************************************************************************\n" 
 } 
 
 ################################################################################
@@ -425,14 +415,14 @@ function showUsage {
 		exit 1
 	else
 echo  "USAGE: $0 -m [mode] -u [user] -v [k8 version] -k [distro] [-f] 
-Example 1 : k8s-install-current.sh -m install -u ubuntu -v 1.24 # install k8s k3s version 1.24
-Example 2 : k8s-install-current.sh -m delete -u ubuntu -v 1.24 # delete  k8s microk8s version 1.24
+Example 1 : k8s-install-current.sh -m install -v 1.26 # install k8s k3s version 1.26
+Example 2 : k8s-install-current.sh -m delete  -v 1.27 # delete  k8s microk8s version 1.27
+Example 3 : k8s-install-current.sh -m install -k microk8s -v 1.26 # install k8s microk8s distro version 1.26
 
 Options:
 -m mode ............... install|delete (-m is required)
 -k kubernetes distro... microk8s|k3s (default=k3s as it installs across multiple linux distros)
--v k8s version ........ 1.24 
--u user ............... non root user to run helm and k8s commands and to own mojaloop deployment
+-v k8s version ........ 1.26|1.27 i.e. current k8s releases at time if this mini-loop release
 -h|H .................. display this message
 "
 	fi
@@ -442,27 +432,25 @@ Options:
 # MAIN
 ################################################################################
 
-##
-# Environment Config
-##
 BASE_DIR=$( cd $(dirname "$0")/../.. ; pwd )
 RUN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" # the directory that this script is run from 
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 
 DEFAULT_K8S_DISTRO="k3s"   # default to microk8s as this is what is in the mojaloop linux deploy docs.
 K8S_VERSION="" 
+MINILOOP_VERSION="5.0"
 
-HELM_VERSION="3.10.2"
-OS_VERSIONS_LIST=( 20 22 )
-K8S_CURRENT_RELEASE_LIST=( "1.24" )
+HELM_VERSION="3.11.1"  # Feb 2023 
+OS_VERSIONS_LIST=( 20 22 ) 
+K8S_CURRENT_RELEASE_LIST=( "1.26" "1.27" )
 CURRENT_RELEASE="false"
 k8s_user_home=""
 k8s_arch=`uname -p`  # what arch
-
+# Set the minimum amount of RAM in GB
+MIN_RAM=8
+MIN_FREE_SPACE=30
 LINUX_OS_LIST=( "Ubuntu" )
-UBUNTU_OK_VERSIONS_LIST=(20 22 )
-FEDORA_OK_VERSIONS_LIST=( 36 )
-REDHAT_OK_VERSIONS_LIST=( 8 )
+UBUNTU_OK_VERSIONS_LIST=(20 22)
 
 # ensure we are running as root 
 if [ "$EUID" -ne 0 ]
@@ -478,17 +466,15 @@ if [ $# -lt 1 ] ; then
 fi
 
 # Process command line options as required
-while getopts "fm:k:v:u:hH" OPTION ; do
+while getopts "m:k:v:u:hH" OPTION ; do
    case "${OPTION}" in
-        f)      force="true"
-        ;;
         m)	    mode="${OPTARG}"
         ;;
         k)      k8s_distro="${OPTARG}"
         ;;
         v)	    k8s_user_version="${OPTARG}"
-        ;;
-        u)      k8s_user="${OPTARG}"
+        # ;;
+        # u)      k8s_user="${OPTARG}"
         ;;
         h|H)	showUsage
                 exit 0
@@ -500,14 +486,19 @@ while getopts "fm:k:v:u:hH" OPTION ; do
     esac
 done
 
+
+
 printf "\n\n*********************************************************************************\n"
 printf "            -- mini-loop kubernetes install utility -- \n"
 printf "  utilities for deploying kubernetes in preparation for Mojaloop deployment \n"
 printf "************************* << start >> *******************************************\n\n"
 
 check_arch_ok 
+set_user
+verify_user
+
 if [[ "$mode" == "install" ]]  ; then
-    verify_user
+    check_resources_ok
     set_k8s_distro
     set_k8s_version
     k8s_already_installed
@@ -527,7 +518,7 @@ if [[ "$mode" == "install" ]]  ; then
     printf "==> kubernetes distro:[%s] version:[%s] is now configured for user [%s] and ready for mojaloop deployment \n" \
                 "$k8s_distro" "$K8S_VERSION" "$k8s_user"
     printf "    To deploy mojaloop, please su - %s from root or login as user [%s] and then \n"  "$k8s_user" "$k8s_user"
-    printf "    please execute %s/miniloop-local-install.sh\n" "$SCRIPTS_DIR"
+    printf "    please execute %s/mojaloop-install.sh\n" "$SCRIPTS_DIR"
     print_end_message 
 elif [[ "$mode" == "delete" ]]  ; then
     delete_k8s 

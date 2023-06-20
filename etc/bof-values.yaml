@@ -1,0 +1,165 @@
+## BOF Deployment
+#
+## 1. Install Pre-requisites: Backend Dependencies
+### helm -n moja4 install bof-backend mojaloop-charts/backend -f ./mojaloop/test.mojaloop.live/values-moja4-bof-backend.yaml --skip-crds
+##
+#
+### 2. BoF deployment
+### helm -n moja4 upgrade bof mojaloop-charts/bof -f ./mojaloop/test.mojaloop.live/values-moja4-bof.yaml --install --skip-crds
+##
+#
+
+# Default values for bof.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  adminApiSvc:
+    host: "moja4-centralledger-service"
+    port: 80
+  settlementSvc:
+    host: "moja4-centralsettlement-service"
+    port: 80
+  keto:
+    host: "keto"
+    readPort: 4466
+    writePort: 4467
+  wso2:
+    identityServer:
+      host: "bop-test-vm.mojaloop.live"
+      port: 9443
+      userListURL: "https://bop-test-vm.mojaloop.live:9443/scim2/Users"
+      user: 'admin'
+      secret:
+        name: 'wso2-is-admin-creds'
+        ket: 'password'
+  reportingDB:
+    ## This is the same as setting the host explicitly, i.e. will set the host as set below. It is included to support importing MySQL charts as a dependency.
+    # fullnameOverride: mysql
+    ## This will override the name of kafka and add the release prefix, e.g. '<RELEASE_NAME>-<nameOverride>'.
+    # nameOverride: mysql
+    ## FOR default
+    # host: moja4-centralledger-mysql
+    ## FOR example-mojaloop-backend
+    host: mysqldb
+    port: 3306
+    user: central_ledger
+    database: central_ledger
+    secret:
+      ## FOR default
+      # name: moja4-centralledger-mysql
+      ## FOR example-mojaloop-backend
+      name: mysqldb
+      key: mysql-password
+  reportingEventsDB:
+    host: mysqldb
+    port: 27017
+    user: user
+    database: default
+    # secret: {}
+    secret:
+      name: mysqldb
+      key: mysql-password
+  mojalooprole: {}
+
+role-assignment-service:
+  enabled: false
+
+reporting-hub-bop-shell:
+  enabled: true
+  ingress:
+    enabled: true
+    hostname: bof.moja4.test.mojaloop.live
+    path: /
+  config:
+    env:
+      AUTH_MOCK_API: false
+      REMOTE_API_BASE_URL: /
+      REMOTE_MOCK_API: false
+      LOGIN_URL: /kratos/self-service/registration/browser
+      LOGOUT_URL: /kratos/self-service/browser/flows/logout
+      AUTH_TOKEN_URL: /kratos/sessions/whoami
+      AUTH_ENABLED: false
+      REMOTE_1_URL: http://iam.ui.moja4.test.mojaloop.live
+      REMOTE_2_URL: http://transfers.ui.moja4.test.mojaloop.live
+      REMOTE_3_URL: http://settlements.ui.moja4.test.mojaloop.live
+      REMOTE_4_URL: http://positions.ui.moja4.test.mojaloop.live
+
+security-role-perm-operator-svc:
+  enabled: false
+
+security-hub-bop-kratos-ui:
+  enabled: false
+
+reporting-hub-bop-role-ui:
+  enabled: false
+
+reporting-hub-bop-trx-ui:
+  enabled: true
+  config:
+    env:
+      REACT_APP_API_BASE_URL: http://bof.moja4.test.mojaloop.live/transfers-api
+      REACT_APP_MOCK_API: false
+  ingress:
+    enabled: true
+    pathType: ImplementationSpecific
+    hostname: transfers.ui.moja4.test.mojaloop.live
+    path: /
+    # annotations:
+    #   nginx.ingress.kubernetes.io/rewrite-target: /$2
+
+## NOTE: THIS IS CURRENTLY NOT WORKING WITHOUT OATH-KEEPER
+reporting-hub-bop-settlements-ui:
+  enabled: true
+  config:
+    env:
+      CENTRAL_LEDGER_ENDPOINT: http://central-ledger.moja4.test.mojaloop.live ## This works <-- Experience layer does not support central-settlements, but it should. TODO: Story to fix this.
+      CENTRAL_SETTLEMENTS_ENDPOINT: http://bof.moja4.test.mojaloop.live/experience-api/central-settlements ## This DOESN'T WORK <-- Experience layer does not support central-settlements, but it should. TODO: Story to fix this.
+      REPORTING_API_ENDPOINT: http://bof.moja4.test.mojaloop.live/transfers-api
+  ingress:
+    enabled: true
+    pathType: ImplementationSpecific
+    hostname: settlements.ui.moja4.test.mojaloop.live
+
+reporting-hub-bop-positions-ui:
+  enabled: true
+  config:
+    env:
+      CENTRAL_LEDGER_ENDPOINT: http://bof.moja4.test.mojaloop.live/experience-api/central-admin
+  ingress:
+    enabled: true
+    pathType: ImplementationSpecific
+    hostname: positions.ui.moja4.test.mojaloop.live
+
+reporting-hub-bop-api-svc:
+  enabled: true
+  auth: false
+  ingress:
+    enabled: true
+    hostname: bof.moja4.test.mojaloop.live
+    path: /transfers-api
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+  # auth: true
+
+reporting-events-processor-svc:
+  enabled: false
+  kafka:
+    host: moja4-kafka-headless
+    port: 9092
+    topic: topic-event
+    # consumerGroup: group
+    # clientId: client-id
+
+reporting-legacy-api:
+  enabled: false
+
+reporting-hub-bop-experience-api-svc:
+  enabled: true
+  ingress:
+    enabled: true
+    hostname: bof.moja4.test.mojaloop.live
+    path: /experience-api(/|$)(.*)
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: '/$2'
+

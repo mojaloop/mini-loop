@@ -6,12 +6,19 @@
 #         
 # Date July 2022
 # Author Tom Daly 
+# Updated May 2023 to use mini-loop v5.0 
 
 # ensure we are running as root 
 if [ "$EUID" -ne 0 ]
   then echo "Please run as root"
   exit 1
 fi
+
+function get_user {
+  # set the k8s_user 
+  k8s_user=`who am i | cut -d " " -f1`
+}
+
 
 function set_k8s_distro { 
     if [ -z ${k8s_distro+x} ]; then 
@@ -38,20 +45,21 @@ function test_k8s_releases {
 
   # test k8s releases 
   for i in "${K8S_CURRENT_RELEASE_LIST[@]}"; do
-    logfile="$log_base$log_numb"
-    printf "miniloop-test>> processing kubernetes distro [%s] version [v%s] and using logfile [%s]\n" \
+    logfile="$log_base"_"$k8s"_"$log_numb"
+    printf "###################################################################################################\n"
+    printf "start_miniloop-test>>  processing kubernetes distro [%s] version [v%s] and using logfile [%s]\n" \
              "$k8s" "$i" "$logfile"
 
-    $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m delete -u $k8s_user -k $k8s
-    echo "  $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m install -u $k8s_user -k $k8s -v $i"
-    $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m install -u $k8s_user -k $k8s -v $i
+    $SCRIPTS_DIR/k8s-install.sh -m delete -k $k8s
+    echo "  $SCRIPTS_DIR/k8s-install.sh  -m install -k $k8s -v $i"
+    $SCRIPTS_DIR/k8s-install.sh  -m install -k $k8s -v $i 
     if [[ $? -ne 0 ]]; then 
         printf "miniloop-test>> Error k8s distro [%s] version [%s] failed to install cleanly \n" "$k8s" "$i"
         printf "               skipping this release \n"
     else 
-      su - $k8s_user -c "$SCRIPTS_DIR/miniloop-local-install.sh -m delete_ml -l $logfile" 
-      su - $k8s_user -c "$SCRIPTS_DIR/miniloop-local-install.sh -m install_ml -l $logfile -f"
-      su - $k8s_user -c "$SCRIPTS_DIR/miniloop-local-install.sh -m check_ml -l $logfile "
+      su - $k8s_user -c "$SCRIPTS_DIR/mojaloop-install.sh -m delete_ml -l $logfile" 
+      su - $k8s_user -c "$SCRIPTS_DIR/mojaloop-install.sh -m install_ml -l $logfile -f"
+      su - $k8s_user -c "$SCRIPTS_DIR/mojaloop-install.sh -m check_ml -l $logfile "
     fi 
 
     if [ ! -z ${helm_test+x} ]; then  
@@ -60,6 +68,9 @@ function test_k8s_releases {
         su - $k8s_user -c "helm test ml --logs" >> $logfile 2>&1
     fi 
     ((log_numb=log_numb+1))
+    printf "end_miniloop-test>> processing kubernetes distro [%s] version [v%s] and using logfile [%s]\n" \
+             "$k8s" "$i" "$logfile"
+    printf "###################################################################################################\n"
   done
   
 }
@@ -77,15 +88,14 @@ function showUsage {
 		echo "Incorrect number of arguments passed to function $0"
 		exit 1
 	else
-echo  "USAGE: $0 -m <mode> -u <user> -k <k8s distro(s)> [-t]
-Example 1 : $0 -m test_ml -u mluser # test both microk8s and k3s using user mluser 
-Example 3 : $0 -m test_ml -k -u user k3s 
+echo  "USAGE: sudo $0 -m <mode> -k <k8s distro(s)> [-t]
+Example 1 : $0 -m test_ml            # test both microk8s and k3s using user mluser 
+Example 3 : $0 -m test_ml -k k3s     # test k3s 
 
  
 Options:
 -m mode ............... test_ml
 -k kubernetes distro... microk8s|k3s|both (scope of tests)
--u user ............... non root user to run helm and k8s commands and to own mojaloop deployment
 -t .................... run helm tests  
 -h|H .................. display this message
 "
@@ -99,10 +109,11 @@ Options:
 ##
 # Environment Config & global vars 
 ##
-SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
+SCRIPTS_DIR="$( cd $(dirname "$0")/../../scripts ; pwd )"
 K8S_VERSION="" 
-K8S_CURRENT_RELEASE_LIST=( "1.22" "1.23" "1.24" )
-LOGFILE_BASE_NAME="ml_test"
+K8S_CURRENT_RELEASE_LIST=( "1.26" )
+LOGFILE_BASE_NAME="/home/ubuntu/logs/ml_test"
+k8s_user=""
 
 
 # Process command line options as required
@@ -111,8 +122,6 @@ while getopts "k:m:u:thH" OPTION ; do
         m)  mode="${OPTARG}"
         ;;
         k)  k8s_distro="${OPTARG}"
-        ;;
-        u)  k8s_user="${OPTARG}"
         ;; 
         t)  helm_test="true"
         ;; 
@@ -132,17 +141,18 @@ printf " tool to test kubernetes install/config and miniloop install \n"
 printf "              across multiple k8s releases \n"
 printf "********************* << START  >> *****************************************************\n\n"
 
+get_user
 set_k8s_distro
 
 if [[ "$mode" == "test_ml" ]]; then 
   if [[ $k8s_distro == "k3s" ]] || [[ $k8s_distro == "both" ]]; then 
     # delete any installed microk8s before we start 
-    $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m delete -u $k8s_user -k microk8s 
+    $SCRIPTS_DIR/k8s-install.sh -m delete -k microk8s > /dev/null 2>&1
     test_k8s_releases "$k8s_user" "$LOGFILE_BASE_NAME" "k3s"
   fi 
   if [[ $k8s_distro == "microk8s" ]] || [[ $k8s_distro == "both" ]]; then
     # delete any installed k3s before we start  
-    $SCRIPTS_DIR/../scripts/k8s-install-current.sh -m delete -u $k8s_user -k k3s 
+    $SCRIPTS_DIR/k8s-install.sh -m delete -k k3s  > /dev/null 2>&1
     test_k8s_releases "$k8s_user" "$LOGFILE_BASE_NAME" "microk8s"
   fi 
 
