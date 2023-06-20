@@ -20,7 +20,7 @@ This project automates the instructions for mojaloop deployment in the mojaloop.
 Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                          # login as an existing non-root user e.g. mluser                                                  
-git clone --branch v5.0rc https://github.com/tdaly61/mini-loop.git  # clone the mini-loop scripts
+git clone https://github.com/tdaly61/mini-loop.git       # clone the mini-loop scripts
 sudo ./mini-loop/scripts/mini-loop-simple-install.sh     # install kubernetes and Mojaloop 
 source $HOME/.bashrc                                     # or logout/log back in again to set kubernetes env
 ```
@@ -31,7 +31,7 @@ source $HOME/.bashrc                                     # or logout/log back in
 Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                       # login as an existing non-root user e.g. mluser
-git clone --branch v5.0rc https://github.com/tdaly61/mini-loop.git    # clone the mini-loop scripts
+git clone https://github.com/tdaly61/mini-loop.git                    # clone the mini-loop scripts
 sudo ./mini-loop/scripts/k8s-install.sh -m install -k k3s -v 1.26     # install and configure microk8s 
 source $HOME/.bashrc                                                  # or logout/log back in again to set kubernetes env
 ./mini-loop/scripts/mojaloop-install.sh -m install_ml -o thirdparty   # deploy and configure the mojaloop helm chart -o deploys 3PPI too
@@ -41,11 +41,17 @@ source $HOME/.bashrc                                                  # or logou
 Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                             # login as an existing non-root user e.g. mluser
-git clone --branch v5.0rc https://github.com/tdaly61/mini-loop.git          # clone the mini-loop scripts
+git clone https://github.com/tdaly61/mini-loop.git                          # clone the mini-loop scripts
 sudo ./mini-loop/scripts/k8s-install.sh -m install -k microk8s -v 1.27      # install and configure microk8s v1.25
 source $HOME/.bashrc                                                        # or logout/log back in again to set kubernetes env
 ./mini-loop/scripts/mojaloop-install.sh -m install_ml  -o thirdparty,bulk   # deploy and configure the mojaloop helm chart 
 ```
+## Some videos that might also help
+For the recent DFS labs hack-a-thon I created a couple of videos that might also help you run mini-loop to install Mojaloop and also to run the TTK from your laptop
+you can find these at 
+- https://youtu.be/BpBbl2UuQxI (deploying Mojaloop)
+- https://youtu.be/mGVZNAWDowg (running the Testing Toolkit against Mojaloop v15.0.0 from your laptop )
+
 ## Running the Testing Toolkit via ```helm test```
 To ensure that your deployment is all up and running and Mojaloop functioning correctly you can run the testing Toolkit.
 login to the system or VM where you install Mojaloop and as the non-root user (e.g. mluser)... 
@@ -147,16 +153,20 @@ Note you can only have one host per line so on windows 10 your hosts file should
 3. The format of the logfiles is a bit of a mess at the moment, it is intended to tidy these up so that mini-loop scripts can be used very (cost) effectively in CI/CD pipelines across multiple configurations of Mojaloop and its environment such as kubernetes releases etc. 
 4. the  -d option allows the user to configure the DNS domain name for their Mojaloop services. It is not as fully tested as other mini-loop features and I need to add some documentation on how to use and critically test this (note this is important for Mifos integration )
 5. if we deploy with -o and then come and redeploy without -f or -o then thirdparty and bulk will again be deployed and this might not be intended 
-6. there appear to be minor but annoying issues with Mojaloop v15.0.0 where helm test fails and some TTK tests also fail, I expect these to be promptly fixed (see https://github.com/mojaloop/helm/issues) 
+6. there appear to be minor but annoying issues with Mojaloop v15.0.0 where helm test fails and some TTK tests also fail, see https://github.com/mojaloop/helm/issues. 
+   It appears that these issues are not showing up for other members of the core team , including when deploying v15.0.0 to AWS managed kubernetes (EKS) , yet my testing 
+   independent of mini-loop and depoying from the pre-packaged helm archive still shows the issues so I guess it is unclear if the issues are related to the k8s environment
+   or perhaps the resources devoted to the Ubuntu OS.  Please use the Mojaloop slack to advise if you gather any more information on these minor issues.
 
 ## Noteble changes in mini-loop v5.0
 1. updated to deploy Mojaloop v15.0.0 including deploying the now standard Mojaloop example backend services chart which deploys MySQL, Mongo, Kafka etc
-2. simplified the directory structure and the names of the scripts installing and configuring both kubernetes (k8s-install.sh) and Mojaloop (mojaloop-install.sh)
-3. added the mini-loop-simple-install.sh script to further simplify access to Mojaloop !
-4. added the -o option to allowed the deployment and configuration of 3PPI and Bulk Mojaloop charts
-5. added a statics section for the deployment, reporting memory usage, deployment times and a few other basic stats.
-6. updated the utils/test/miniloop-test.sh script to run mini-loop in a "loop". This is the start of CI/CD tools that are aimed at reducing cloud costs for Mojaloop operators and developers.
-7. added memory and disk space checks to make sure that there is enough memory and disk available for Mojaloop,  it is currently set at 8GB Ram , this is a case of trying to "fail fast" , the alternative is confusion as kubernetes tries and fails to fit all pods into insufficient memory. 
+2. updated to use and require kubernetes v1.26 or 1.27 
+3. simplified the directory structure and the names of the scripts installing and configuring both kubernetes (k8s-install.sh) and Mojaloop (mojaloop-install.sh)
+4. added the mini-loop-simple-install.sh script to further simplify access to Mojaloop !
+5. added the -o option to allowed the deployment and configuration of 3PPI and Bulk Mojaloop charts
+6. added a statics section for the deployment, reporting memory usage, deployment times and a few other basic stats.
+7. updated the utils/test/miniloop-test.sh script to run mini-loop in a "loop". This is to illustrate how mini-loop can be used in CI/CD tools that are spun-up and spun-down with the aim of increasing test scope and reducing cloud costs for Mojaloop operators and developers.
+8. added memory and disk space checks to make sure that there is enough memory and disk available for Mojaloop,  it is currently set at 8GB Ram , this is a case of trying to "fail fast" , the alternative is confusion as kubernetes tries and fails to fit all pods into insufficient memory. If you want to try running in < 8GB ram just modify the MIN_RAM=8 setting in the scripts/k8s.install.sh script.
 
 ## Notable changes in mini-loop v4.1
 - dropped support for out of date kubernetes versions. mini-loop version 4.1 only allows use of kubernetes 1.24

@@ -3,19 +3,10 @@
 # based on the older k8s-install.sh this script will only install current versions of kubernetes
 # Author:  Tom Daly 
 # Date : July 2022 
-#  -- April 2023 : updated for Mojaloop v15 and also kubernetes 1.24 and 1.25, 1.26
+#  -- April 2023 : updated for Mojaloop v15 and also kubernetes 1.26 and 1.27
 
-
-# Updates for release notes 
-# - added facility for choosing DNS name 
-
-# todo for update : 
-#   - add in the DNS , FQDN work as options too 
-#   - fix the prompt and make sure promt shows git version
-#   - test bulk a bit further 
-
-
-# TODO in the future : add command line params to enable selection of which ML release etc 
+# possible TODO ideas for the future 
+#       - add command line params to enable selection of which ML release etc 
 #       - improve logging so that this is easier to run from CI/CD 
 #       - put this into circle-ci and merge with k8s-versions-test.sh in charts repo so that little/no code is duplicated
 
@@ -454,7 +445,7 @@ CURRENT_RELEASE="false"
 k8s_user_home=""
 k8s_arch=`uname -p`  # what arch
 # Set the minimum amount of RAM in GB
-MIN_RAM=4
+MIN_RAM=8
 MIN_FREE_SPACE=30
 LINUX_OS_LIST=( "Ubuntu" )
 UBUNTU_OK_VERSIONS_LIST=(20 22)

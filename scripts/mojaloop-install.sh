@@ -7,19 +7,16 @@
 #                      
 # Author Tom Daly 
 # Date July 2022
-# Updates : Feb 2023 for Mojaloop v15  
-#  - updated to pull helm repo version 15 git clone –single-branch –branch command
-#   - add in the DNS , FQDN work as options too 
-#   - include 3ppi and bulk install as option
-#   - test bulk
+# Updates : Feb-June 2023 for Mojaloop v15  
 
 # 
 # TODO : 
+# - move the warning about not using mini-loop for real money to the front and get a user acknowledgement and store it 
+#  the idea is to ensure that the user acknowledges the warning , yet maintain suitability of use in pipleines. 
 # - tidy up logfile contents
 # - truncate logfiles to keep under say 500MB
-# - add and test BizOps framework 
 # - fix the prompt and make sure prompt shows git version ??
-#  - tidy up the error exit of the script by creating an error_exit function that takes a string (msg) param
+#  - tidy up the error exit of the script by creating an error_exit function using trap that takes a string (msg) param
 #    this way the program exits always through the same point and I can print out stats etc 
 #  - Issue: if we deploy with -o and then come and redeploy without -f or -o then thirdparty and bulk will again be deployed 
 #           and this might not be intended <=== this needs checking and fixing
@@ -36,7 +33,6 @@ record_memory_use () {
   mem_when=$1
   total_mem=$(free -m | awk 'NR==2{printf "%.2fGB      | %.2fGB    | %.2f%%", $3/1024, $4/1024, $3*100/($3+$4)}')
   memstats_array["$mem_when"]="$total_mem"
-
 }
 
 function check_arch {
@@ -163,12 +159,6 @@ function clone_mojaloop_helm_repo {
 
 function configure_optional_modules {
   printf "==> configuring optional Mojaloop functions to install   \n"
-  # if [ -z ${install_opt+x} ] ; then 
-  #   printf " ** Error: mini-loop requires information about which optional modules to configure when using -m config_ml   \n"
-  #   printf "           example: to configure mojaloop to enable thirdparty charts and bulk-api use:-  \n"
-  #   printf "           $0 -m config_ml -o thirdparty,bulk \n"
-  #   exit 1 
-  # fi 
   ram_warning="false"
   for mode in $(echo $install_opt | sed "s/,/ /g"); do
     case $mode in
@@ -244,7 +234,6 @@ function delete_be {
   #  delete any existing deployment and clean up any pv and pvc's that the bitnami mysql chart seems to leave behind
   printf "==> deleting mojaloop backend services in helm release  [%s] " "$BE_RELEASE_NAME"
   be_exists=`helm ls  --namespace $NAMESPACE | grep $BE_RELEASE_NAME | cut -d " " -f1`
-  #helm ls  --namespace $NAMESPACE | grep $BE_RELEASE_NAME | cut -d " " -f1
   if [ ! -z $be_exists ] && [ "$be_exists" == "$BE_RELEASE_NAME" ]; then 
     helm delete $BE_RELEASE_NAME  --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
     sleep 2 
