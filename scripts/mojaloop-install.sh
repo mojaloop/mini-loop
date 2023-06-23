@@ -457,7 +457,7 @@ Options:
 ##
 ML_RELEASE_NAME="ml"
 BE_RELEASE_NAME="be"
-MOJALOOP_BRANCH="v15.0.0"
+MOJALOOP_BRANCH="v15.1.0"
 LOGFILE="/tmp/miniloop-install.log"
 ERRFILE="/tmp/miniloop-install.err"
 DEFAULT_TIMEOUT_SECS="2400s"
