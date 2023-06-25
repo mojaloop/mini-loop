@@ -20,7 +20,7 @@ This project automates the instructions for mojaloop deployment in the mojaloop.
 Assuming you have an x86_64 environment running Ubuntu release 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                          # login as an existing non-root user e.g. mluser                                                  
-git clone https://github.com/tdaly61/mini-loop.git       # clone the mini-loop scripts
+git clone https://github.com/mojaloop/mini-loop.git       # clone the mini-loop scripts
 sudo ./mini-loop/scripts/mini-loop-simple-install.sh     # install kubernetes and Mojaloop 
 source $HOME/.bashrc                                     # or logout/log back in again to set kubernetes env
 ```
@@ -31,7 +31,7 @@ source $HOME/.bashrc                                     # or logout/log back in
 Assuming you have an x86_64 environment running Ubuntu release 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                       # login as an existing non-root user e.g. mluser
-git clone https://github.com/tdaly61/mini-loop.git                    # clone the mini-loop scripts
+git clone https://github.com/mojaloop/mini-loop.git                    # clone the mini-loop scripts
 sudo ./mini-loop/scripts/k8s-install.sh -m install -k k3s -v 1.26     # install and configure microk8s 
 source $HOME/.bashrc                                                  # or logout/log back in again to set kubernetes env
 ./mini-loop/scripts/mojaloop-install.sh -m install_ml -o thirdparty   # deploy and configure the mojaloop helm chart -o deploys 3PPI too
@@ -41,7 +41,7 @@ source $HOME/.bashrc                                                  # or logou
 Assuming you have an x86_64 environment running Ubuntu release 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                             # login as an existing non-root user e.g. mluser
-git clone https://github.com/tdaly61/mini-loop.git                          # clone the mini-loop scripts
+git clone https://github.com/mojaloop/mini-loop.git                          # clone the mini-loop scripts
 sudo ./mini-loop/scripts/k8s-install.sh -m install -k microk8s -v 1.27      # install and configure microk8s v1.25
 source $HOME/.bashrc                                                        # or logout/log back in again to set kubernetes env
 ./mini-loop/scripts/mojaloop-install.sh -m install_ml  -o thirdparty,bulk   # deploy and configure the mojaloop helm chart 
