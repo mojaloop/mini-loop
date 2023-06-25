@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Get the list of YAML files in the current directory except for files beginning with "docker-"
-yaml_non_dataresource_files=$(ls *.yml *.yaml | grep -v '^docker-' | grep -v "\-data\-" )
-yaml_dataresource_files=$(ls *.yml *.yaml | grep -v '^docker-' | grep -i "\-data\-" )
+yaml_non_dataresource_files=$(ls *.yaml | grep -v '^docker-' | grep -v "\-data\-" )
+yaml_dataresource_files=$(ls *.yaml | grep -v '^docker-' | grep -i "\-data\-" )
 
 if [[ $1 == "apply" ]]; then
     for file in $yaml_dataresource_files; do

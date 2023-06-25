@@ -178,25 +178,10 @@ function set_and_create_namespace {
   printf "==> Setting NAMESPACE to [ %s ] \n" "$NAMESPACE"
 }
 
-# function clone_mojaloop_repo {
-#   if [ ! -z "$force" ]; then 
-#     printf "==> removing existing helm directory\n"
-#     rm -rf $REPO_BASE_DIR 
-#   fi 
-#   if [[ ! -d "$REPO_BASE_DIR" ]]; then
-#     mkdir "$REPO_BASE_DIR"
-#   fi
-#   # check if repo exists , clone new if not 
-#   if [[ ! -d "$REPO_DIR" ]]; then
-#     printf "==> cloning repo from https://github.com/mojaloop/platform-shared-tools.git \n"
-#     git clone --branch $MOJALOOP_BRANCH https://github.com/mojaloop/platform-shared-tools.git $REPO_DIR > /dev/null 2>&1
-#     NEED_TO_REPACKAGE="true"
-#   fi 
-# }
-
 function clone_mojaloop_repo { 
+  #force=$1 
   printf "==> cloning mojaloop vNext repo  "
-  if [ ! -z "$force" ]; then 
+  if [[ "$force" == "true" ]]; then
     #printf "==> removing existing helm directory\n"
     rm -rf  "$REPO_BASE_DIR" >> $LOGFILE 2>>$ERRFILE
   fi 
@@ -218,20 +203,7 @@ function modify_local_mojaloop_yaml_and_charts {
     MOJALOOP_CONFIGURE_FLAGS_STR+="--domain_name $domain_name " 
   fi
 
-  
-  # Check if MOJALOOP_CONFIGURE_FLAGS_STR contains "logging"
-  # set the repackage scope depending on if logging will be toggled on not 
-  if [[ $MOJALOOP_CONFIGURE_FLAGS_STR == *"logging"* ]]; then
-    if ls $CROSSCUT_DIR | grep -q '\.off$'; then
-      #echo "off files => turning on => need to repackage "
-      NEED_TO_REPACKAGE="true"
-    fi 
-  else # no logging specified 
-    if ls $CROSSCUT_DIR | grep -q '\.off$'; then
-      #echo "off files => logging already off  => skip repackage "
-      NEED_TO_REPACKAGE="false"
-    fi 
-  fi
+  # TODO We want to avoid running the helm repackage when we don't need to 
   printf "     executing $SCRIPTS_DIR/vnext_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR  \n" 
   $SCRIPTS_DIR/vnext_configure.py $MOJALOOP_CONFIGURE_FLAGS_STR 
   if [[ $? -ne 0  ]]; then 
@@ -620,6 +592,14 @@ while getopts "fd:m:t:l:o:hH" OPTION ; do
     esac
 done
 
+echo "$force when forst set"
+if [[ "$force" == "true" ]]; then
+    echo "its true"
+    
+fi
+if [ ! -z "$force" ]; then 
+  printf "==> removing existing helm directory\n"
+fi 
 
 printf "\n\n****************************************************************************************\n"
 printf "            -- mini-loop Mojaloop (vNext) install utility -- \n"
@@ -644,7 +624,7 @@ if [[ "$mode" == "delete_ml" ]]; then
 elif [[ "$mode" == "install_ml" ]]; then
   tstart=$(date +%s)
   printf "start : mini-loop Mojaloop (vNext) install utility [%s]\n" "`date`" >> $LOGFILE
-  clone_mojaloop_repo 
+  clone_mojaloop_repo
   configure_extra_options 
   modify_local_mojaloop_yaml_and_charts
   install_infra_from_local_chart
