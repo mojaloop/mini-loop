@@ -24,7 +24,7 @@ Example environments include:-
 Assuming you have an x86_64 environment running Ubuntu release 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                       # login as an existing non-root user e.g. mluser
-git clone --branch vnext3 https://github.com/mojaloop/mini-loop.git    # clone the mini-loop scripts
+git clone --branch vnext-alpha https://github.com/mojaloop/mini-loop.git    # clone the mini-loop scripts
 sudo ./mini-loop/scripts/k8s-install.sh -m install -k k3s -v 1.26     # install and configure k3s 
 source $HOME/.bashrc                                                  # or logout/log in again to set env
 ./mini-loop/scripts/vnext-install.sh -m install_ml                    # configure and deploy vNext
@@ -34,7 +34,7 @@ source $HOME/.bashrc                                                  # or logou
 Assuming you have an x86_64 environment running Ubuntu release 20 or 22 and are logged in as a non-root user (e.g. mluser)
 ```bash
 login as mluser                                                         # login as an existing non-root user e.g. mluser
-git clone --branch vnext3 https://github.com/mojaloop/mini-loop.git      # clone the mini-loop scripts
+git clone --branch vnext-alpha https://github.com/mojaloop/mini-loop.git      # clone the mini-loop scripts
 sudo ./mini-loop/scripts/k8s-install.sh -m install -k microk8s -v 1.27  # install and configure microk8s 
 source $HOME/.bashrc                                                    # or logout/log in again to set env
 ./mini-loop/scripts/vnext-install.sh -m install_ml                      # configure and deploy vNext
