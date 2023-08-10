@@ -426,15 +426,16 @@ function restore_data {
 
   # copy in the bluebank TTK environment data 
   # only need bluebank as we run the TTK from there.
-  file_base="$ETC_DIR/ttk/bluebank"
-  file1="dfsp_local_environment.json"
-  file2="hub_local_environment.json"
-  pod_dest="/opt/app/examples/environments" 
-  pod="bluebank-backend-0" 
-  kubectl cp "$file_base/$file1" "$pod:$pod_dest"
-  kubectl cp "$file_base/$file2" "$pod:$pod_dest"
-  kubectl cp "$file_base/$file3" "$pod:$pod_dest"
-  printf " [ ok ] \n"
+  ## TODO: this neeeds fixing 
+  # file_base="$ETC_DIR/ttk/bluebank"
+  # file1="dfsp_local_environment.json"
+  # file2="hub_local_environment.json"
+  # pod_dest="/opt/app/examples/environments" 
+  # pod="bluebank-backend-0" 
+  # kubectl cp "$file_base/$file1" "$pod:$pod_dest"
+  # kubectl cp "$file_base/$file2" "$pod:$pod_dest"
+  # kubectl cp "$file_base/$file3" "$pod:$pod_dest"
+  # printf " [ ok ] \n"
 }
 
 function check_urls {
@@ -557,7 +558,7 @@ export APPS_DIR=$DEPLOYMENT_DIR/apps
 export TTK_DIR=$DEPLOYMENT_DIR/ttk
 NEED_TO_REPACKAGE="false"
 export MOJALOOP_CONFIGURE_FLAGS_STR=" -d $REPO_BASE_DIR " 
-EXTERNAL_ENDPOINTS_LIST=( vnextadmin fspiop.local bluebank.local greenbank.local ) 
+EXTERNAL_ENDPOINTS_LIST=( vnextadmin bluebank.local greenbank.local ) 
 LOGGING_ENDPOINTS_LIST=( elasticsearch.local )
 declare -A timer_array
 declare -A memstats_array
