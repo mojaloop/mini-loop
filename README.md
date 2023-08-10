@@ -49,6 +49,8 @@ The mini-loop scripts add the required host names to the 127.0.0.1 entry in the 
 ```
 You should now be able to browse or curl to Mojaloop vNext admin url using  http://vnextadmin you can also access the deloyed instances of the Mojaloop testing toolkit at http://bluebank.local and http://greenbank.local
 
+Note: see [below](#modify-hosts-file-on-windows-10) for intructions on updating the hosts file on your windows 10 laptop 
+
 ## Prerequisites 
 - a running x86_64 ubuntu 22 environment (ubuntu 20 is ok but less tested for vnext-alpha)
 - root user or sudo access
@@ -80,6 +82,30 @@ You should now be able to browse or curl to Mojaloop vNext admin url using  http
 4. if we deploy with -o and then come and redeploy without -f or -o then thirdparty and bulk will again be deployed and this might not be intended 
 5. the endpoint testing is not implemented yet and so it is possible for the install to "look ok" but to not function correctly. Normally if you get messages from the scripts that indicate everyting was ok, then it probably is , but testing endpoints and other checks before giving the all-good messages needs improving and will in future releases.
 
+## modify hosts file on windows 10
+1. open Notepad
+2. Right click on Notepad and then Run as Administrator.
+3. allow this app to make changes to your device? type Yes.
+4. In Notepad, choose File then Open C:\Windows\System32\drivers\etc\hosts or click the address bar at the top and paste in the path and choose Enter.  If you don’t see the host file in the /etc directory then select All files from the File name: drop-down list, then click on the hosts file.
+5. Add the IP from your VM or system and then add a host from the list of required hosts (see example below)
+6. flush your DNS cache. Click the Windows button and search command prompt, in the command prompt:-
+```
+    ipconfig /flushdns
+```
+
+Note you can only have one host per line so on windows 10 your hosts file should look something like: 
+```
+192.168.56.100 vnextadmin 
+192.168.56.100 elasticsearch.local 
+192.168.56.100 mongohost.local 
+192.168.56.100 mongo-express.local 
+192.168.56.100 redpanda-console.local 
+192.168.56.100 fspiop.local 
+192.168.56.100 bluebank.local 
+192.168.56.100 greenbank.local 
+192.168.56.100 bluebank-specapi.local 
+192.168.56.100 greenbank-specapi.local
+```
 
 ## FAQ
 1. Q: I think it installed ok , how to I test ?  
