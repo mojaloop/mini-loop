@@ -424,6 +424,7 @@ function restore_data {
   error_message=" restoring the testing toolkit data failed  "
   printf "      - testing toolkit data and environment config   " 
 
+
   # copy in the bluebank TTK environment data 
   # only need bluebank as we run the TTK from there.
   ## TODO: this neeeds fixing 
@@ -436,6 +437,28 @@ function restore_data {
   # kubectl cp "$file_base/$file2" "$pod:$pod_dest"
   # kubectl cp "$file_base/$file3" "$pod:$pod_dest"
   # printf " [ ok ] \n"
+}
+
+function configure_elastic_search {
+  # if logging is on then configure elasticsearch
+  # see https://github.com/mojaloop/platform-shared-tools/tree/alpha-1.1/packages/deployment/docker-compose-infra
+  if [[ "$MOJALOOP_CONFIGURE_FLAGS_STR" == *"logging"* ]]; then
+    audit_json="$REPO_DIR/packages/deployment/docker-compose-infra/es_mappings_logging.json"
+    echo "audit_json is $audit_json"
+    logging_json=$REPO_DIR/packages/deployment/docker-compose-infra/es_mappings_auditing.json
+    echo "logging_json is $logging_json"
+    
+    elastic_password=`grep ES_ELASTIC_PASSWORD $REPO_DIR/packages/deployment/docker-compose-infra/.env.sample | cut -d "=" -f2`
+    echo "elastic password is $elastic_password"
+
+    curl -i --insecure -X PUT "http://elasticsearch.local/ml-logging/" \
+        -u elastic:$elastic_password \
+        -H "Content-Type: application/json" --data-binary @$logging_json
+
+    curl -i --insecure -X PUT "http://elasticsearch.local/ml-auditing/" \
+        -u elastic:$elastic_password \
+        -H "Content-Type: application/json" --data-binary @$audit_json
+  fi
 }
 
 function check_urls {
@@ -633,6 +656,7 @@ elif [[ "$mode" == "install_ml" ]]; then
   install_mojaloop_layer "apps" $APPS_DIR
   install_mojaloop_layer "ttk" $TTK_DIR
   restore_data
+  configure_elastic_search
   check_urls
 
   tstop=$(date +%s)
