@@ -539,7 +539,7 @@ Options:
 # Environment Config & global vars 
 ##
 INFRA_RELEASE_NAME="infra"
-MOJALOOP_BRANCH="alpha-1.1"
+MOJALOOP_BRANCH="vnext-alpha-td"
 DEFAULT_NAMESPACE="default"
 k8s_version=""
 K8S_CURRENT_RELEASE_LIST=( "1.26" "1.27" )

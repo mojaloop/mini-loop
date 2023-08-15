@@ -5,16 +5,6 @@
 # Date : July 2022 
 #  -- April 2023 : updated for Mojaloop v15 and also kubernetes 1.24 and 1.25, 1.26
 
-
-# Updates for release notes 
-# - updated helm to 3.12.0 
-# - updated kubernetes to 1.26 and 1.27 
-
-# todo for vNext: 
-#
-#   
-# 
-
 # TODO in the future : add command line params to enable selection of which ML release etc 
 #       - improve logging so that this is easier to run from CI/CD 
 #       - put this into circle-ci and merge with k8s-versions-test.sh in charts repo so that little/no code is duplicated
