@@ -32,13 +32,27 @@ handle_error() {
 
 function check_arch {
   ## check architecture Mojaloop deploys on x64 only today arm is coming  
-  arch=`uname -p`
-  if [[ ! "$arch" == "x86_64" ]]; then 
-    printf " ** Error: Mojaloop is only running on x86_64 today and not yet running on ARM cpus \n"
-    printf "    please see https://github.com/mojaloop/project/issues/2317 for ARM status \n"
+  ARCH=`uname -p`
+  if [[ "$ARCH" == "aarch64" ]]; then 
+    MOJALOOP_BRANCH="vnext-arm64-1"
+    printf " ** Notice: Mojaloop vNext running on arm64 is still under development  \n"
+    printf "    Using vNext branch: %s \n" $MOJALOOP_BRANCH
+    printf "    please let the vNext build team know if you try this out via \n"
+    printf "    the Mojaloop #general slack channel" 
     printf " ** \n"
   fi
 }
+
+# function check_set_mojaloop_vnext_branch {
+# # needed for dev/test only.
+# # while arm64 support is being tested and vNext is being developed
+# # there is an arm64 specific branch of the vNext packaging in the vnext-arm64-1 (or similar)
+# # branch of the platform-shared-tools repo if running on arm64 we need to use that arm specific branch
+# if [[ "$ARCH"  ]]
+
+# }
+
+
 
 function check_user {
   # ensure that the user is not root
@@ -538,6 +552,7 @@ Options:
 ##
 # Environment Config & global vars 
 ##
+ARCH="x86_64"  # default is Intel/AMD 
 INFRA_RELEASE_NAME="infra"
 MOJALOOP_BRANCH="vnext-alpha-td"
 DEFAULT_NAMESPACE="default"
@@ -605,7 +620,7 @@ fi
 printf "\n\n****************************************************************************************\n"
 printf "            -- mini-loop Mojaloop (vNext) install utility -- \n"
 printf "********************* << START  >> *****************************************************\n\n"
-check_arch
+check_arch # checks and sets the arm64 vnext branch if needed until I can combine amd64 and arm64 versions of vnext deployment code
 check_user
 set_k8s_distro
 set_k8s_version
@@ -614,7 +629,6 @@ set_logfiles
 set_and_create_namespace
 set_mojaloop_timeout
 printf "\n"
-
 if [[ "$mode" == "delete_ml" ]]; then
   check_deployment_dir_exists
   delete_mojaloop_layer "ttk" $TTK_DIR
