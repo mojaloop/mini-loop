@@ -562,7 +562,7 @@ Options:
 # Environment Config & global vars 
 ##
 INFRA_RELEASE_NAME="infra"
-MOJALOOP_BRANCH="alpha-1.1"
+MOJALOOP_BRANCH="alpha-1.1"  # this is the default x64_86 branch
 DEFAULT_NAMESPACE="default"
 k8s_version=""
 K8S_CURRENT_RELEASE_LIST=( "1.26" "1.27" )
@@ -616,7 +616,7 @@ while getopts "fd:m:t:l:o:hH" OPTION ; do
     esac
 done
 
-echo "$force when forst set"
+echo "$force when first set"
 if [[ "$force" == "true" ]]; then
     echo "its true"
     
