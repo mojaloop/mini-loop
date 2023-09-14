@@ -56,9 +56,10 @@ def enable_or_disable_logging(p,yaml,verbose=False,deploy_logging=False):
     deploy_logging_str="not deploy"
     logging_file_list = [ 
         "auditing-svc-deployment",
+        "auditing-svc-service",
         "auditing-svc-data-persistentvolumeclaim",
         "logging-svc-data-persistentvolumeclaim",
-        "logging-svc-deployment","tom","values"
+        "logging-svc-deployment"
     ]
     if deploy_logging:
         deploy_logging_str = "deploy"
