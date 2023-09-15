@@ -146,25 +146,20 @@ function set_logfiles {
 
 function configure_extra_options {
   printf "==> configuring which Mojaloop vNext options to install   \n"
-  # if [ -z ${install_opt+x} ] ; then 
-  #   printf " ** Error: mini-loop requires information about which optional modules to configure when using -m config_ml   \n"
-  #   printf "           example: to configure mojaloop to enable thirdparty charts and bulk-api use:-  \n"
-  #   printf "           $0 -m config_ml -o thirdparty,bulk \n"
-  #   exit 1 
-  # fi 
-  for mode in $(echo $install_opt | sed "s/,/ /g"); do
-    case $mode in
-      logging)
-        MOJALOOP_CONFIGURE_FLAGS_STR+="--logging "
-        ram_warning="true"
-        ;;
-      *)
-          printf " ** Error: specifying -o option   \n"
-          printf "    try $0 -h for help \n" 
-          exit 1 
-        ;;
-    esac
-  done 
+  printf "    ** INFO: no extra options implemented or required for mini-loop vNext at this time **"
+  # for mode in $(echo $install_opt | sed "s/,/ /g"); do
+  #   case $mode in
+  #     logging)
+  #       MOJALOOP_CONFIGURE_FLAGS_STR+="--logging "
+  #       ram_warning="true"
+  #       ;;
+  #     *)
+  #         printf " ** Error: specifying -o option   \n"
+  #         printf "    try $0 -h for help \n" 
+  #         exit 1 
+  #       ;;
+  #   esac
+  # done 
 } 
 
 function set_and_create_namespace { 
@@ -182,7 +177,6 @@ function clone_mojaloop_repo {
   #force=$1 
   printf "==> cloning mojaloop vNext repo  "
   if [[ "$force" == "true" ]]; then
-    #printf "==> removing existing helm directory\n"
     rm -rf  "$REPO_BASE_DIR" >> $LOGFILE 2>>$ERRFILE
   fi 
   if [ ! -d "$REPO_BASE_DIR" ]; then 
@@ -210,7 +204,6 @@ function modify_local_mojaloop_yaml_and_charts {
       printf " [ failed ] \n"
       exit 1 
   fi 
-
 }
 
 function repackage_infra_helm_chart {
@@ -237,20 +230,20 @@ function repackage_infra_helm_chart {
 }
 
 function delete_mojaloop_infra_release {
-  printf "==> uninstalling Mojaloop (vNext) infrastructure svcs : helm delete %s --namespace %s" "$NAMESPACE" "$INFRA_RELEASE_NAME"
-  ml_exists=`helm ls -a --namespace $NAMESPACE | grep $INFRA_RELEASE_NAME | awk '{print $1}' `
-  if [ ! -z $ml_exists ] && [ "$ml_exists" == "$INFRA_RELEASE_NAME" ]; then 
-    helm delete $INFRA_RELEASE_NAME --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
+  printf "==> uninstalling Mojaloop (vNext) infrastructure svcs : helm delete %s --namespace %s" "$NAMESPACE" "$HELM_INFRA_RELEASE"
+  ml_exists=`helm ls -a --namespace $NAMESPACE | grep $HELM_INFRA_RELEASE | awk '{print $1}' `
+  if [ ! -z $ml_exists ] && [ "$ml_exists" == "$HELM_INFRA_RELEASE" ]; then 
+    helm delete $HELM_INFRA_RELEASE --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
     if [[ $? -eq 0  ]]; then 
       printf " [ ok ] \n"
     else
-      printf "\n** Error: helm delete possibly failed \n" "$INFRA_RELEASE_NAME"
-      printf "   run helm delete %s manually   \n" $INFRA_RELEASE_NAME
-      printf "   also check the pods using kubectl get pods --namespace   \n" $INFRA_RELEASE_NAME
+      printf "\n** Error: helm delete possibly failed \n" "$HELM_INFRA_RELEASE"
+      printf "   run helm delete %s manually   \n" $HELM_INFRA_RELEASE
+      printf "   also check the pods using kubectl get pods --namespace   \n" $HELM_INFRA_RELEASE
       exit 1
     fi
   else 
-    printf "\n    [ infrastructure services release %s not deployed => nothing to delete ] \n" $INFRA_RELEASE_NAME
+    printf "\n    [ infrastructure services release %s not deployed => nothing to delete ] \n" $HELM_INFRA_RELEASE
   fi
 }
 
@@ -260,16 +253,16 @@ function install_infra_from_local_chart  {
   repackage_infra_helm_chart
   # install the chart
   printf  "==> deploy Mojaloop vNext infrastructure via %s helm chart and wait for upto %s  secs for it to be ready \n" "$ML_RELEASE_NAME" "$TIMEOUT_SECS"
-  printf  "    executing helm install $INFRA_RELEASE_NAME --wait --timeout $TIMEOUT_SECS $INFRA_DIR/infra-helm  \n "
+  printf  "    executing helm install $HELM_INFRA_RELEASE --wait --timeout $TIMEOUT_SECS $INFRA_DIR/infra-helm  \n "
   tstart=$(date +%s)
-  helm install $INFRA_RELEASE_NAME --wait --timeout $TIMEOUT_SECS  --namespace "$NAMESPACE" $INFRA_DIR/infra-helm  >> $LOGFILE 2>>$ERRFILE
+  helm install $HELM_INFRA_RELEASE --wait --timeout $TIMEOUT_SECS  --namespace "$NAMESPACE" $INFRA_DIR/infra-helm  >> $LOGFILE 2>>$ERRFILE
   tstop=$(date +%s)
   telapsed=$(timer $tstart $tstop)
-  if [[ `helm status $INFRA_RELEASE_NAME  --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
-    printf "   helm release [%s] deployed ok  \n" "$INFRA_RELEASE_NAME"
+  if [[ `helm status $HELM_INFRA_RELEASE  --namespace "$NAMESPACE" | grep "^STATUS:" | awk '{ print $2 }' ` = "deployed" ]] ; then 
+    printf "   helm release [%s] deployed ok  \n" "$HELM_INFRA_RELEASE"
     timer_array[install_infra]=$telapsed
   else 
-    printf "** Error: %s helm chart deployment failed \n" "$INFRA_RELEASE_NAME"
+    printf "** Error: %s helm chart deployment failed \n" "$HELM_INFRA_RELEASE"
     printf "   Possible reasons include : - \n"
     printf "     very slow internet connection /  issues downloading container images (e.g. docker rate limiting) \n"
     printf "     slow machine/vm instance / insufficient memory to start all pods  \n"
@@ -538,12 +531,11 @@ function showUsage {
 echo  "USAGE: $0 -m <mode> [-d dns domain] [-n namespace] [-t secs] [-o options] [-f] 
 Example 1 : $0 -m install_ml  # install mojaloop (vnext) 
 Example 2 : $0 -m install_ml -n namespace1  # install mojaloop (vnext)
-Example 3 : $0 -m install_ml -o logging -f # install , turn on logging , force clone of repo
-Example 4 : $0 -m delete_ml  # delete mojaloop  (vnext)  
+Example 3 : $0 -m delete_ml  # delete mojaloop  (vnext)  
 
 Options:
 -m mode ............ install_ml|delete_ml
--d domain name ..... domain name for ingress hosts e.g mydomain.com 
+-d domain name ..... domain name for ingress hosts e.g mydomain.com (TBD) 
 -n namespace ....... the kubernetes namespace to deploy mojaloop into 
 -f force ........... force the cloning and updating of the Mojaloop vNext repo
 -t secs ............ number of seconds (timeout) to wait for pods to all be reach running state
@@ -556,13 +548,12 @@ Options:
 ################################################################################
 # MAIN
 ################################################################################
-# Set the trap to call the error handler
-
 ##
 # Environment Config & global vars 
 ##
-INFRA_RELEASE_NAME="infra"
-MOJALOOP_BRANCH="alpha-1.1"  # this is the default x64_86 branch
+MOJALOOP_DEPLOY_TARGET="demo"   # i.e. mini-loop 
+HELM_INFRA_RELEASE="infra"
+MOJALOOP_BRANCH="main"  # this is the default x64_86 branch
 DEFAULT_NAMESPACE="default"
 k8s_version=""
 K8S_CURRENT_RELEASE_LIST=( "1.26" "1.27" )

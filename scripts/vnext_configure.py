@@ -52,50 +52,50 @@ def update_key(key, value, dictionary):
                         yield result
  
 
-def enable_or_disable_logging(p,yaml,verbose=False,deploy_logging=False):
-    deploy_logging_str="not deploy"
-    logging_file_list = [ 
-        "auditing-svc-deployment",
-        "auditing-svc-service",
-        "auditing-svc-data-persistentvolumeclaim",
-        "logging-svc-data-persistentvolumeclaim",
-        "logging-svc-deployment"
-    ]
-    if deploy_logging:
-        deploy_logging_str = "deploy"
+# def enable_or_disable_logging(p,yaml,verbose=False,deploy_logging=False):
+#     deploy_logging_str="not deploy"
+#     logging_file_list = [ 
+#         "auditing-svc-deployment",
+#         "auditing-svc-service",
+#         "auditing-svc-data-persistentvolumeclaim",
+#         "logging-svc-data-persistentvolumeclaim",
+#         "logging-svc-deployment"
+#     ]
+#     if deploy_logging:
+#         deploy_logging_str = "deploy"
 
-    print(f"     <vnext_configure.py>  : modify helm values and yaml files to {deploy_logging_str} logging and auditing functions for vNext ")
+#     print(f"     <vnext_configure.py>  : modify helm values and yaml files to {deploy_logging_str} logging and auditing functions for vNext ")
 
-    # configure the helm chart values.yaml in the k8s infra-helm directory 
-    vf = p /  "platform-shared-tools" / "packages" / "deployment" / "k8s" / "infra" / "infra-helm" / "values.yaml"
-    with open(vf) as f:
-        if (verbose): 
-            print(f"===> Processing file < {vf.parent}/{vf.name} > ")
-        data = yaml.load(f)
-        data['global']['kibanaEnabled'] = deploy_logging
-        data['elasticsearch']['enabled'] = deploy_logging
-    with open(vf, "w") as f:
-        yaml.dump(data, f)
+#     # configure the helm chart values.yaml in the k8s infra-helm directory 
+#     vf = p /  "platform-shared-tools" / "packages" / "deployment" / "k8s" / "infra" / "infra-helm" / "values.yaml"
+#     with open(vf) as f:
+#         if (verbose): 
+#             print(f"===> Processing file < {vf.parent}/{vf.name} > ")
+#         data = yaml.load(f)
+#         data['global']['kibanaEnabled'] = deploy_logging
+#         data['elasticsearch']['enabled'] = deploy_logging
+#     with open(vf, "w") as f:
+#         yaml.dump(data, f)
 
-    #configure the auditing and logging files in the k8s crosscut directory 
-    yf = p / "platform-shared-tools" / "packages" / "deployment" / "k8s" / "crosscut"
-    for file in logging_file_list :
-        if deploy_logging: 
-            file=file + ".off" 
-            file= yf / file 
-            if file.exists():
-                new_name = file.with_suffix(".yaml")
-                file.rename(new_name)
-                if verbose: 
-                    print(f"Renamed {file} to {new_name}")
-        else: # turn logging off 
-            file=file + ".yaml" 
-            file= yf / file 
-            if file.exists():
-                new_name = file.with_suffix(".off")
-                file.rename(new_name)
-                if verbose: 
-                    print(f"Renamed {file} to {new_name}")
+#     #configure the auditing and logging files in the k8s crosscut directory 
+#     yf = p / "platform-shared-tools" / "packages" / "deployment" / "k8s" / "crosscut"
+#     for file in logging_file_list :
+#         if deploy_logging: 
+#             file=file + ".off" 
+#             file= yf / file 
+#             if file.exists():
+#                 new_name = file.with_suffix(".yaml")
+#                 file.rename(new_name)
+#                 if verbose: 
+#                     print(f"Renamed {file} to {new_name}")
+#         else: # turn logging off 
+#             file=file + ".yaml" 
+#             file= yf / file 
+#             if file.exists():
+#                 new_name = file.with_suffix(".off")
+#                 file.rename(new_name)
+#                 if verbose: 
+#                     print(f"Renamed {file} to {new_name}")
 
 
 def modify_values_for_dns_domain_name(p,domain_name,verbose=False):
@@ -117,7 +117,7 @@ def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Automate modifications across mojaloop helm charts')
     parser.add_argument("-d", "--directory", required=True, help="directory for helm charts")
     parser.add_argument("-v", "--verbose", required=False, action="store_true", help="print more verbose messages ")
-    parser.add_argument("-l", "--logging", required=False, action="store_true", help="enable logging and auditing  ")
+    #parser.add_argument("-l", "--logging", required=False, action="store_true", help="enable logging and auditing  ")
     parser.add_argument("--domain_name", type=str, required=False, default=None, help="e.g. mydomain.com   ")
 
     args = parser.parse_args(args)
@@ -145,10 +145,10 @@ def main(argv) :
 
     if args.domain_name :
          modify_values_for_dns_domain_name(p,args.domain_name,args.verbose)
-    if args.logging :
-        enable_or_disable_logging(p,yaml,args.verbose,deploy_logging=True)
-    else: 
-        enable_or_disable_logging(p,yaml,args.verbose,deploy_logging=False)
+    # if args.logging :
+    #     enable_or_disable_logging(p,yaml,args.verbose,deploy_logging=True)
+    # else: 
+    #     enable_or_disable_logging(p,yaml,args.verbose,deploy_logging=False)
     if args.verbose :
         print(f"     <vnext_configure.py>  : end ")
 
