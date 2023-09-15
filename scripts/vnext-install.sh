@@ -7,19 +7,6 @@
 # Author Tom Daly 
 # Date May 2023
 
-# todo list :
-# - copy in the database data [done] 
-# 
-# - add the vNext hosts to the hosts list in the k8s-install.sh [done] 
-# - starting adding the curl tests for the endpoints that should come up
-# - add option for not installing elasticsearch/kibana [done] 
-# - add elasticsearch and other logging/auditing endpoints to url and health checks 
-# - add redpanda and mongo express (maybe as options I could have a -o consoles option )
-# - if no -o logging option make sure that logging is off => do need configure_vnext.py [Done]
-# - add the trap error handler to all routines and have a list of error messages 
-# - check that all PV and PVCs have gone on delete_ml 
-
-
 handle_error() {
   local exit_code=$?
   local line_number=$1
@@ -146,7 +133,7 @@ function set_logfiles {
 
 function configure_extra_options {
   printf "==> configuring which Mojaloop vNext options to install   \n"
-  printf "    ** INFO: no extra options implemented or required for mini-loop vNext at this time **"
+  printf "    ** INFO: no extra options implemented or required for mini-loop vNext at this time ** \n"
   # for mode in $(echo $install_opt | sed "s/,/ /g"); do
   #   case $mode in
   #     logging)
@@ -175,7 +162,7 @@ function set_and_create_namespace {
 
 function clone_mojaloop_repo { 
   #force=$1 
-  printf "==> cloning mojaloop vNext repo  "
+  printf "==> cloning mojaloop vNext branch [%s] to directory [%s]  " $MOJALOOP_BRANCH $REPO_BASE_DIR
   if [[ "$force" == "true" ]]; then
     rm -rf  "$REPO_BASE_DIR" >> $LOGFILE 2>>$ERRFILE
   fi 
@@ -230,22 +217,43 @@ function repackage_infra_helm_chart {
 }
 
 function delete_mojaloop_infra_release {
-  printf "==> uninstalling Mojaloop (vNext) infrastructure svcs : helm delete %s --namespace %s" "$NAMESPACE" "$HELM_INFRA_RELEASE"
+  printf "==> uninstalling Mojaloop (vNext) infrastructure svcs and deleting resources\n" 
+  #helm delete %s --namespace %s" "$NAMESPACE" "$HELM_INFRA_RELEASE"
   ml_exists=`helm ls -a --namespace $NAMESPACE | grep $HELM_INFRA_RELEASE | awk '{print $1}' `
   if [ ! -z $ml_exists ] && [ "$ml_exists" == "$HELM_INFRA_RELEASE" ]; then 
     helm delete $HELM_INFRA_RELEASE --namespace $NAMESPACE >> $LOGFILE 2>>$ERRFILE
-    if [[ $? -eq 0  ]]; then 
-      printf " [ ok ] \n"
-    else
+    sleep 2
+  else 
+    printf "\n    [ infrastructure services release %s not deployed => nothing to delete ]   " $HELM_INFRA_RELEASE
+  fi
+  # now check helm infra release is gone 
+  ml_exists=`helm ls -a --namespace $NAMESPACE | grep $HELM_INFRA_RELEASE | awk '{print $1}' `
+  if [ ! -z $ml_exists ] && [ "$ml_exists" == "$HELM_INFRA_RELEASE" ]; then 
       printf "\n** Error: helm delete possibly failed \n" "$HELM_INFRA_RELEASE"
       printf "   run helm delete %s manually   \n" $HELM_INFRA_RELEASE
       printf "   also check the pods using kubectl get pods --namespace   \n" $HELM_INFRA_RELEASE
       exit 1
-    fi
-  else 
-    printf "\n    [ infrastructure services release %s not deployed => nothing to delete ] \n" $HELM_INFRA_RELEASE
   fi
+  # now check that the persistent volumes got cleaned up
+  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE"  2>>$ERRFILE | grep $HELM_INFRA_RELEASE` >> $LOGFILE 2>>$ERRFILE
+  if [ ! -z "$pvc_exists" ]; then 
+    kubectl get pvc --namespace "$NAMESPACE" | cut -d " " -f1 | xargs kubectl delete pvc >> $LOGFILE 2>>$ERRFILE
+    kubectl get pv  --namespace "$NAMESPACE" | cut -d " " -f1 | xargs kubectl delete pv >> $LOGFILE 2>>$ERRFILE
+  fi 
+  # and chexk the pvc and pv are gone 
+  pvc_exists=`kubectl get pvc --namespace "$NAMESPACE" 2>>$ERRFILE | grep $HELM_INFRA_RELEASE 2>>$ERRFILE`
+  if [ ! -z "$pvc_exists" ]; then
+    printf "** Error: the backend persistent volume resources may not have deleted properly  \n" 
+    printf "   please try running the delete again or use helm and kubectl to remove manually  \n"
+    printf "   ensure no pv or pvc resources remain defore trying to re-install ** \n"
+    exit 1
+  fi
+  # if we get to here then we are reasonably confident infrastructure resources are cleanly deleted
+  printf " [ ok ] \n"
 }
+
+
+
 
 function install_infra_from_local_chart  {
   printf "start : mini-loop Mojaloop vNext install infrastructure services [%s]\n" "`date`" 
@@ -329,7 +337,6 @@ check_pods_status() {
   printf  "    \n** Warning: Not all pods in application layer [ %s ] are terminating or gone\n" $app_layer
   return 1
 }
-
 
 function delete_mojaloop_layer() { 
   local app_layer="$1"
@@ -417,7 +424,6 @@ function restore_data {
   error_message=" restoring the testing toolkit data failed  "
   printf "      - testing toolkit data and environment config   " 
 
-
   # copy in the bluebank TTK environment data 
   # only need bluebank as we run the TTK from there.
   ## TODO: this neeeds fixing 
@@ -433,16 +439,12 @@ function restore_data {
 }
 
 function configure_elastic_search {
-  # if logging is on then configure elasticsearch
+  printf "==> configure elastic search "
   # see https://github.com/mojaloop/platform-shared-tools/tree/alpha-1.1/packages/deployment/docker-compose-infra
   if [[ "$MOJALOOP_CONFIGURE_FLAGS_STR" == *"logging"* ]]; then
     audit_json="$REPO_DIR/packages/deployment/docker-compose-infra/es_mappings_logging.json"
-    echo "audit_json is $audit_json"
     logging_json=$REPO_DIR/packages/deployment/docker-compose-infra/es_mappings_auditing.json
-    echo "logging_json is $logging_json"
-    
     elastic_password=`grep ES_ELASTIC_PASSWORD $REPO_DIR/packages/deployment/docker-compose-infra/.env.sample | cut -d "=" -f2`
-    echo "elastic password is $elastic_password"
 
     curl -i --insecure -X PUT "http://elasticsearch.local/ml-logging/" \
         -u elastic:$elastic_password \
@@ -452,9 +454,11 @@ function configure_elastic_search {
         -u elastic:$elastic_password \
         -H "Content-Type: application/json" --data-binary @$audit_json
   fi
+  printf " [ ok ] \n"
 }
 
 function check_urls {
+  printf "==> checking URLs are active  \n"
   for url in "${EXTERNAL_ENDPOINTS_LIST[@]}"; do
     if ! [[ $url =~ ^https?:// ]]; then
         url="http://$url"
@@ -462,7 +466,7 @@ function check_urls {
 
     if curl --output /dev/null --silent --head --fail "$url"; then
         if curl --output /dev/null --silent --head --fail --write-out "%{http_code}" "$url" | grep -q "200\|301"; then
-            printf "  URL %s  [ ok ]  \n" $url
+            printf "      URL %s  [ ok ]  \n" $url
         else
             printf "    ** Warning: URL %s [ not ok ] \n " $url 
             printf "       (Status code: %s)\n" "$url" "$(curl --output /dev/null --silent --head --fail --write-out "%{http_code}" "$url")"
@@ -553,7 +557,7 @@ Options:
 ##
 MOJALOOP_DEPLOY_TARGET="demo"   # i.e. mini-loop 
 HELM_INFRA_RELEASE="infra"
-MOJALOOP_BRANCH="main"  # this is the default x64_86 branch
+MOJALOOP_BRANCH="k8s_working_br"  # this is the default x64_86 branch
 DEFAULT_NAMESPACE="default"
 k8s_version=""
 K8S_CURRENT_RELEASE_LIST=( "1.26" "1.27" )
@@ -563,15 +567,15 @@ DEFAULT_TIMEOUT_SECS="1200s"
 TIMEOUT_SECS=0
 SCRIPTS_DIR="$( cd $(dirname "$0")/../scripts ; pwd )"
 ETC_DIR="$( cd $(dirname "$0")/../etc ; pwd )"
-REPO_BASE_DIR=$HOME/vnext
+REPO_BASE_DIR=$HOME/base  # => so that running an install clones mojaloop to a seperate dir and does not clobber dev work
 REPO_DIR=$REPO_BASE_DIR/platform-shared-tools
 DEPLOYMENT_DIR=$REPO_DIR/packages/deployment/k8s
-export INFRA_DIR=$DEPLOYMENT_DIR/infra
-export CROSSCUT_DIR=$DEPLOYMENT_DIR/crosscut
-export APPS_DIR=$DEPLOYMENT_DIR/apps
-export TTK_DIR=$DEPLOYMENT_DIR/ttk
+INFRA_DIR=$DEPLOYMENT_DIR/infra
+CROSSCUT_DIR=$DEPLOYMENT_DIR/crosscut
+APPS_DIR=$DEPLOYMENT_DIR/apps
+TTK_DIR=$DEPLOYMENT_DIR/ttk
 NEED_TO_REPACKAGE="false"
-export MOJALOOP_CONFIGURE_FLAGS_STR=" -d $REPO_BASE_DIR " 
+MOJALOOP_CONFIGURE_FLAGS_STR=" -d $REPO_BASE_DIR " 
 EXTERNAL_ENDPOINTS_LIST=( vnextadmin bluebank.local greenbank.local ) 
 LOGGING_ENDPOINTS_LIST=( elasticsearch.local )
 declare -A timer_array
